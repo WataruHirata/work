@@ -79,10 +79,10 @@ describe("initial database migration and row-level security", () => {
         ('${operationsId}', 'store_operations'),
         ('${accountantId}', 'accounting'),
         ('${productOfficeId}', 'product_office');
-      insert into public.products (id, code, name, tax_rate)
+      insert into public.products (id, code, name, tax_rate, promotion_eligibility)
       values
-        ('${firstProductId}', 'DEMO-CAMPAIGN-001', 'Fictional campaign item one', 8),
-        ('${secondProductId}', 'DEMO-CAMPAIGN-002', 'Fictional campaign item two', 10);
+        ('${firstProductId}', 'DEMO-CAMPAIGN-001', 'Fictional campaign item one', 8, 'eligible'),
+        ('${secondProductId}', 'DEMO-CAMPAIGN-002', 'Fictional campaign item two', 10, 'eligible');
       insert into public.sales_imports (source_file_name, source_checksum)
       values ('fictional-sales.csv', 'fictional-sales-checksum');
       insert into public.sales_days (
@@ -130,6 +130,57 @@ describe("initial database migration and row-level security", () => {
 
   afterAll(async () => {
     await db.close();
+  });
+
+  it("AT-07/10: only product office issues instructions; retries notify once and stores confirm within scope", async () => {
+    const requestId = "50000000-0000-4000-8000-000000000001";
+    const args = `'${requestId}','price_change','Demo price instruction','Fictional shelf label work','${firstProductId}',198,'2026-11-01T09:00:00+09:00',array['${firstStoreId}']::uuid[]`;
+    await selectAs(managerId);
+    await expect(db.query(`select public.send_store_instruction(${args})`)).rejects.toThrow();
+    await db.exec("reset role");
+    await selectAs(productOfficeId);
+    const result = await db.query<{ id: string }>(`select public.send_store_instruction(${args}) as id`);
+    const id = result.rows[0].id;
+    const retry = await db.query<{ id: string }>(`select public.send_store_instruction(${args}) as id`);
+    expect(retry.rows[0].id).toBe(id);
+    await expect(db.query(`select public.send_store_instruction(${args.replace(",198,", ",199,")})`)).rejects.toThrow("Request ID conflict");
+    await db.exec("reset role");
+    const notices = await db.query<{ store_id: string }>("select store_id from public.store_announcements where title='Demo price instruction'");
+    expect(notices.rows).toEqual([{ store_id: firstStoreId }]);
+    await selectAs(managerId);
+    expect((await db.query(`select * from public.store_instructions where id='${id}'`)).rows).toHaveLength(1);
+    await expect(db.query(`select public.confirm_store_instruction('${id}','${secondStoreId}')`)).rejects.toThrow();
+    await db.query(`select public.confirm_store_instruction('${id}','${firstStoreId}')`);
+    await db.query(`select public.confirm_store_instruction('${id}','${firstStoreId}')`);
+    const directUpdate = await db.query(`update public.store_instructions set price_yen=1 where id='${id}'`);
+    expect(directUpdate.affectedRows).toBe(0);
+    expect((await db.query<{ price_yen: number }>(`select price_yen from public.store_instructions where id='${id}'`)).rows[0].price_yen).toBe(198);
+    await db.exec("reset role");
+    const confirmed = await db.query<{ confirmed_by: string }>(`select confirmed_by from public.store_instruction_targets where instruction_id='${id}'`);
+    expect(confirmed.rows[0].confirmed_by).toBe(managerId);
+    expect((await db.query(`select * from public.audit_logs where table_name='store_instructions' and record_id='${id}'`)).rows.length).toBeGreaterThan(0);
+  });
+
+  it("AT-10: non-target stores cannot read instructions; invalid target lists leave no partial notification", async () => {
+    await selectAs(productOfficeId);
+    const requestId = "50000000-0000-4000-8000-000000000002";
+    const args = `'${requestId}','price_change','Other store only','Fictional work','${firstProductId}',200,'2026-11-01T09:00:00+09:00'`;
+    await expect(db.query(`select public.send_store_instruction(${args},array['${secondStoreId}','00000000-0000-4000-8000-000000000000']::uuid[])`)).rejects.toThrow();
+    const result = await db.query<{ id: string }>(`select public.send_store_instruction(${args},array['${secondStoreId}']::uuid[]) as id`);
+    await db.exec("reset role");
+    await selectAs(managerId);
+    expect((await db.query(`select * from public.store_instructions where id='${result.rows[0].id}'`)).rows).toHaveLength(0);
+    expect((await db.query("select * from public.store_announcements where title='Other store only'")).rows).toHaveLength(0);
+    await db.exec("reset role");
+    expect((await db.query("select * from public.store_announcements where title='Other store only'")).rows).toHaveLength(1);
+  });
+
+  it("AT-07: promotion instructions reject products whose eligibility is unverified", async () => {
+    const unverifiedProductId = "40000000-0000-4000-8000-000000000003";
+    await db.query(`insert into public.products(id,code,name,tax_rate) values('${unverifiedProductId}','DEMO-UNVERIFIED','Fictional unverified item',8)`);
+    await selectAs(productOfficeId);
+    await expect(db.query(`select public.send_store_instruction('50000000-0000-4000-8000-000000000003','promotion','Demo promotion','Fictional work','${unverifiedProductId}',100,now(),array['${firstStoreId}']::uuid[])`)).rejects.toThrow("Verified promotion product required");
+    await db.exec("reset role");
   });
 
   it("applies migrations and seeds only fictional store records", async () => {
@@ -197,20 +248,25 @@ describe("initial database migration and row-level security", () => {
       `select public.request_sales_correction('${day.rows[0].id}', 'Fictional correction', 1250) as id`,
     );
     correctionId = request.rows[0].id;
+    const submitted = await db.query<{ title: string }>(`select title from public.notifications where correction_id='${correctionId}'`);
+    expect(submitted.rows).toHaveLength(1);
     await expect(
       db.query(`select public.approve_sales_correction('${correctionId}', true, null)`),
     ).rejects.toThrow("not allowed");
     await db.exec("reset role");
 
     await selectAs(areaManagerId);
+    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}' and notification_type='correction_requested'`)).rows).toHaveLength(1);
     await db.query(`select public.approve_sales_correction('${correctionId}', true, null)`);
     await db.exec("reset role");
     const awaitingOperations = await db.query<{ status: string }>(
       `select status from public.sales_corrections where id = '${correctionId}'`,
     );
     expect(awaitingOperations.rows[0].status).toBe("pending_operations_approval");
+    expect((await db.query<{ net_sales_yen: number }>(`select net_sales_yen from public.sales_days where id='${day.rows[0].id}'`)).rows[0].net_sales_yen).toBe(1000);
 
     await selectAs(operationsId);
+    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}'`)).rows).toHaveLength(2);
     await db.query(`select public.approve_sales_correction('${correctionId}', true, null)`);
     await db.exec("reset role");
     const correctedSales = await db.query<{ net_sales_yen: number; status: string }>(
@@ -223,6 +279,32 @@ describe("initial database migration and row-level security", () => {
       net_sales_yen: 1250,
       status: "approved",
     });
+    await selectAs(managerId);
+    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}' and notification_type='correction_approved'`)).rows).toHaveLength(1);
+    await db.exec("reset role");
+    await selectAs(productOfficeId);
+    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}'`)).rows).toHaveLength(0);
+    await db.exec("reset role");
+  });
+
+  it("AT-04/05/10: rejection notifies the requesting store without modifying sales or duplicating results", async () => {
+    const inserted = await db.query<{ id: string }>(`insert into public.sales_days(store_id,business_date,status,gross_sales_yen,net_sales_yen,confirmed_by,confirmed_at,import_id) select '${firstStoreId}','2019-12-01','confirmed',1000,1000,'${managerId}',now(),id from public.sales_imports returning id`);
+    const dayId = inserted.rows[0].id;
+    await selectAs(managerId);
+    const request = await db.query<{ id: string }>(`select public.request_sales_correction('${dayId}','Fictional rejection test',1100) as id`);
+    await db.exec("reset role");
+    const id = request.rows[0].id;
+    await selectAs(areaManagerId);
+    await db.query(`select public.approve_sales_correction('${id}',false,'Please check the fictional receipt')`);
+    await expect(db.query(`select public.approve_sales_correction('${id}',false,'Retry')`)).rejects.toThrow();
+    await db.exec("reset role");
+    expect((await db.query<{ net_sales_yen: number }>(`select net_sales_yen from public.sales_days where id='${dayId}'`)).rows[0].net_sales_yen).toBe(1000);
+    await selectAs(managerId);
+    const notices = await db.query<{ message: string }>(`select message from public.notifications where correction_id='${id}' and notification_type='correction_rejected'`);
+    expect(notices.rows).toHaveLength(1);
+    expect(notices.rows[0].message).toContain('Please check the fictional receipt');
+    await db.exec("reset role");
+    expect((await db.query("select * from public.store_announcements where title='売上修正依頼が差し戻されました'")).rows).toHaveLength(1);
   });
 
   it("allows only accounting to finalize a month and then prevents corrections", async () => {
@@ -338,6 +420,9 @@ describe("initial database migration and row-level security", () => {
       `select status from public.campaigns where id = '${campaignId}'`,
     );
     expect(visibleCampaign.rows[0].status).toBe("scheduled");
+    const campaignNotices = await db.query<{ store_id: string }>("select store_id from public.store_announcements where title like '特売指示:%'");
+    expect(campaignNotices.rows.length).toBeGreaterThan(0);
+    expect(campaignNotices.rows.every((notice) => notice.store_id === firstStoreId)).toBe(true);
     const visibleTasks = await db.query<{ store_id: string }>(
       `select task.store_id
        from public.campaign_item_store_tasks task

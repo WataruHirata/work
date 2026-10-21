@@ -1,0 +1,110 @@
+openapi: 3.0.3
+info:
+  title: Minoriya Integration Contract
+  version: '1.0'
+  description: 詳細な行形式・重複防止・価格版の照合要件は integration-api.md を参照。
+servers:
+  - url: http://localhost:3000
+security:
+  - bearerAuth: []
+paths:
+  /api/integrations/ingest:
+    post:
+      summary: 基幹在庫・通常売価・POS確定売上の原子的取込
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, eventId, kind, rows]
+              properties:
+                version: {type: integer, enum: [1]}
+                eventId: {type: string, minLength: 1, maxLength: 200}
+                kind: {type: string, enum: [inventory, prices, sales]}
+                rows:
+                  type: array
+                  minItems: 1
+                  maxItems: 10000
+                  items: {type: object, additionalProperties: true}
+      responses:
+        '200': {description: 適用済み、または同一イベントの再送}
+        '400': {description: 形式・参照・再送内容の不整合。通信断は同一IDで再照合する}
+        '401': {description: Bearer認証が不正または未設定}
+  /api/integrations/run:
+    post:
+      summary: CRON_SECRETによる送信待ち処理（最大4件）
+      responses:
+        '200': {description: claimed/completed/failed/unconfiguredを返す}
+        '401': {description: 認証失敗}
+        '503': {description: 処理結果を確認できない。監視画面で確認する}
+    get:
+      summary: GET型スケジューラー用の同等の入口
+      responses:
+        '200': {description: POSTと同じ処理結果}
+        '401': {description: 認証失敗}
+  /orders:
+    post:
+      servers:
+        - url: https://bridge.example.invalid
+      summary: 接続側が提供する基幹発注アダプター
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Envelope'}
+      responses:
+        '200':
+          description: 基幹受付を永続化した結果。同じキーへ同じ結果を返す
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Acknowledgement'}
+        '409': {description: 同じキーの異なる内容}
+  /prices:
+    post:
+      servers:
+        - url: https://bridge.example.invalid
+      summary: 接続側が提供するPOS価格アダプター。終了時刻・通常売価版を検証する
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Envelope'}
+      responses:
+        '200':
+          description: 実POS反映済み。appliedPriceYenと復帰時のnormalPriceRevisionも一致すること
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Acknowledgement'}
+        '409': {description: 期限切れ・古い価格版・矛盾する要求}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer}
+  schemas:
+    Envelope:
+      type: object
+      required: [version, kind, idempotencyKey, payload]
+      properties:
+        version: {type: integer, enum: [1]}
+        kind: {type: string, enum: [order, campaign_price, campaign_restore]}
+        idempotencyKey: {type: string, minLength: 1}
+        payload: {type: object, additionalProperties: true}
+    Acknowledgement:
+      type: object
+      required: [ok, idempotencyKey, reference]
+      properties:
+        ok: {type: boolean, enum: [true]}
+        idempotencyKey: {type: string}
+        reference: {type: string, minLength: 1, maxLength: 200}
+        appliedPriceYen: {type: integer, minimum: 0}
+        normalPriceRevision: {type: string, format: date-time}

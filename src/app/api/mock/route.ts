@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MOCK_API_KEY, mockDashboardData } from "@/lib/mock-api";
+import { MOCK_API_KEY, mockDashboardData } from "@/mocks/dashboard";
 
 export async function GET(request: Request) {
   const apiKey = request.headers.get("x-api-key") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");

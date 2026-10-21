@@ -1,66 +1,79 @@
 # みのり屋 販売管理システム
 
-112店舗のPOS売上取込、営業日判定、締め・修正承認を中核とする販売管理システムの開発リポジトリです。既存POS・基幹システムは原則維持し、店舗ごとの業務差を設定で扱う方針です。
+DB接続・モック利用者の準備・実操作の起動手順は [接続手順書](./docs/connected-backend.md)、API提供側の要件は [外部連携契約](./docs/integration-api.md) を参照してください。参照・保存コードはPostgreSQLへ接続する構成ですが、この作業環境では接続情報未設定のためリモート適用・実ログインは未検証です。
 
-## 現在の状態
+112店舗の売上取込、店舗別営業日、締め・修正承認、特売・価格変更指示、発注・通知を扱う販売管理システムです。業務要件は[統合要件書v3](./みのり屋_販売管理システム_統合要件書_v3.md)の第25章と最新の明示指示を優先します。
 
-このリポジトリにはNext.js/TypeScriptの初期アプリ、Supabase向けDBマイグレーション、Vercel/GitHub Actionsデリバリーハーネスが含まれます。初期技術選択は [ADR-0001](./docs/adr/0001-platform.md) を参照してください。外部IF仕様、運用SLA、Vercel/Supabase本番設定は別途確認が必要です。
+## 構成
 
-招待制ログインと初期アクセスガード、特売の下書き・店舗別進捗を扱う初期画面/DB基盤を実装しています。Supabase環境変数がないローカル/Preview環境では架空データのダッシュボードと、永続化操作を無効にした特売プレビューを表示します。Vercel ProductionではSupabase未設定のままアプリを提供しません。商品本部のEDLP確認データ、POS/基幹連携、売上業務画面などは未完成のため、本番リリースはまだ有効化しないでください。
+機能やフォルダーの役割を初めて確認する方は、[非技術者向けの機能・フォルダー案内](./docs/plain-language-guide.md)をご覧ください。店舗・本部で使う機能、申請や通知の流れ、現在試せる範囲を、専門用語を抑えて説明しています。
+
+**Next.js / TypeScript / Node.js 22** で画面とバックエンドを実装し、DB・認証には **Supabase PostgreSQL / Auth** を使用します。一つのアプリの中で役割を分離した構成です。Pythonは要件書の検査にのみ使用します。
+
+```text
+src/
+├── app/                   # URL・ページ・HTTP API
+├── components/            # 画面（認証・店舗・特売・通知などの機能別）
+├── domain/                # 業務計算・認可表・型・接続契約
+├── server/                # サーバー処理
+│   ├── actions/           # 保存・申請・承認などのServer Actions
+│   ├── auth/              # セッション・権限・店舗端末
+│   ├── queries/           # 取得処理
+│   ├── imports/           # CSV・利用者取込
+│   ├── integrations/      # 連携ジョブの実行手順
+│   ├── container.ts       # 使用するDB・認証・HTTP接続を組み立てる
+│   └── validation.ts      # サーバー入力検証
+├── infrastructure/        # Supabase・HTTPの具体的な接続
+├── config/                # 画面・テーマ設定
+└── mocks/                 # 架空データ・操作プレビュー
+supabase/                  # DBマイグレーション・ローカルseed
+public/samples/            # 架空のCSVサンプル
+scripts/                   # デモ環境設定・連携実行の開発補助
+tests/                     # DB統合・構成境界・要件書の検査
+docs/                      # 要件参照・設計・テスト・運用
+```
 
 ## 最初に読む資料
 
-1. [要件定義書](./みのり屋_販売管理システム_要件定義書_最終統合完全版.md) — 業務要件、受入条件、矛盾、未確定事項の一次資料
-2. [AGENTS.md](./AGENTS.md) — AIエージェントと開発者が常に守る作業ルール
-3. [システム設計方針](./docs/architecture.md) — 要件から導いた境界と、決定待ちの設計
-4. [未決事項一覧](./docs/open-questions.md) — 着手・リリースを妨げる判断事項と担当
-5. [CI/CD方針](./docs/ci-cd.md) — PR検証、本番移行・Vercelデプロイの順序と必要な環境設定
-6. [実装ロードマップ](./docs/implementation-roadmap.md) — 実装済み範囲、未実装機能、外部仕様待ち
+開発の知識を前提にしない説明は、[はじめて読む方への案内](./docs/plain-language-guide.md)にまとめています。
 
-## ハーネスの検証
+1. [資料案内](./docs/index.md) — 目的別の参照先
+2. [アーキテクチャ](./docs/architecture.md) — 全体図、各層の責任、データの流れ
+3. [コード案内](./docs/code-map.md) — 修正したい機能から実装・テストを探す
+4. [画面ルート](./docs/routes.md) — 店舗・本部のURL
+5. [開発ルール](./AGENTS.md) — 変更・検証・機密情報の扱い
 
-Node.js 22、npm、Docker、Supabase CLIを用意します。依存関係をインストールして検証します。
+## 現在の状態
+
+店舗ポータルと店舗機能の入口は公開し、本部機能・重要操作は個人ログインとサーバー・DBの権限制御を通します。接続済みの店舗端末は自店舗の情報を閲覧します。DB未設定時は架空データで操作可能なプレビューを表示します。
+
+本部の特売・価格変更指示と店舗確認、店舗からの売上修正依頼・二段階承認・結果通知の実装を含みます。実環境DBへの適用、実アカウントでの認証E2E、POS・基幹の物理IF、本番の負荷・復旧条件は別途確認が必要です。[未決事項](./docs/open-questions.md)、[v3照合台帳](./docs/requirements-v3-audit.md)、[ロードマップ](./docs/implementation-roadmap.md)を参照してください。
+
+## ローカル起動と検証
+
+Node.js 22とnpmを使用します。設定項目は [.env.example](./.env.example) を参照し、秘密情報はリポジトリに保存しません。
 
 ```powershell
-npm install
+npm ci
+npm run dev
+```
+
+変更後の基本チェック:
+
+```powershell
 npm run lint
 npm run typecheck
 npm test
 npm run build
-supabase start -x studio,inbucket,edge-runtime,logflare,vector
-supabase db reset
-supabase db lint --local --fail-on error
 python -m unittest discover -s tests -v
 ```
 
-PRではlint、型検査、ユニットテスト、ビルド、DBマイグレーション適用、要件トレーサビリティ検査が自動実行されます。Supabase/VercelのProduction設定を行い、保護されたGitHub `production` environmentからmainをデプロイするときは、DBマイグレーション成功後にVercelへデプロイします。
+DBを検証する場合はDockerとSupabase CLIも用意します。
 
-## 変更の進め方
-
-1. 要件IDと未確定事項を確認し、業務上の曖昧さを勝手に確定しない。
-2. 変更と一緒にテスト、要件トレーサビリティ、関連ドキュメントを更新する。
-3. PRで影響範囲、検証結果、データ移行・ロールバック、UXの動きと静止表示を説明する。
-4. 必須CIと権限を持つ担当者のレビューを通してからマージする。
-
-## ディレクトリ
-
-```text
-.
-├── .github/
-│   ├── PULL_REQUEST_TEMPLATE.md
-│   └── workflows/ci.yml
-├── docs/
-│   ├── adr/                 # 承認済みの設計判断と記録用テンプレート
-│   ├── implementation-roadmap.md
-│   ├── architecture.md
-│   ├── ci-cd.md
-│   ├── data-migrations.md
-│   ├── open-questions.md
-│   ├── testing.md
-│   ├── ui-motion.md
-│   └── security-operations.md
-├── src/                     # Next.jsアプリ、業務ロジック、テスト
-├── supabase/                # PostgreSQL migrationsと架空のローカルseed
-├── tests/                   # 要件トレーサビリティの検査
-└── みのり屋_販売管理システム_要件定義書_最終統合完全版.md
+```powershell
+supabase start -x studio,inbucket,edge-runtime,logflare,vector
+supabase db reset
+supabase db lint --local --fail-on error
 ```
+
+手順と検証範囲は[テスト方針](./docs/testing.md)、DB変更は[マイグレーション方針](./docs/data-migrations.md)、PR・本番配備は[CI/CD](./docs/ci-cd.md)を参照してください。初期技術基盤の判断は[ADR-0001](./docs/adr/0001-platform.md)に記録しています。

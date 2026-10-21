@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { PageLayout } from "@/components/ui/page-layout";
 import { useState } from "react";
 
 const toggleItems = [
@@ -24,14 +24,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="page-shell">
-      <header className="page-topbar">
-        <div>
-          <p className="eyebrow">設定</p>
-          <h1>システム設定と運用項目</h1>
-        </div>
-        <Link href="/" className="ghost-button">ダッシュボードへ戻る</Link>
-      </header>
+    <PageLayout page="settings">
 
       <section className="page-grid double">
         <article className="page-panel">
@@ -43,7 +36,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="toggle-list">
-            {toggleItems.map(({ key, label, value }) => (
+            {toggleItems.map(({ key, label }) => (
               <button type="button" key={key} className="toggle-row" onClick={() => toggle(key as keyof typeof settings)}>
                 <span>{label}</span>
                 <span className={`switch ${settings[key as keyof typeof settings] ? "on" : ""}`}>
@@ -72,6 +65,6 @@ export default function SettingsPage() {
           </button>
         </article>
       </section>
-    </main>
+    </PageLayout>
   );
 }

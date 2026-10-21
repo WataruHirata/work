@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { identity } from "@/server/container";
+import { safeAdminReturnPath } from "@/domain/access-policy";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const requestedPath = requestUrl.searchParams.get("next");
-  const nextPath =
-    requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//")
-      ? requestedPath
-      : "/";
+  const nextPath = safeAdminReturnPath(requestedPath);
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=auth", requestUrl.origin));
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) {
-    console.error("Supabase auth callback failed.", error);
+  try {
+    await identity().exchangeCode(code);
+  } catch {
     return NextResponse.redirect(new URL("/login?error=auth", requestUrl.origin));
   }
 

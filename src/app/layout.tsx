@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { AuthGuard } from "@/components/auth-guard";
+import { AppShell } from "@/components/layout/app-shell";
+import { uiConfig, themeStyle, responsiveStyles } from "@/config/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "みのり屋 | 販売管理",
-  description: "売上、店舗、商品、運用状況を確認する販売管理システム",
+  title: uiConfig.brand.title,
+  description: uiConfig.brand.description,
 };
 
 export default function RootLayout({
@@ -14,9 +15,10 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="ja">
+    <html lang="ja" style={themeStyle}>
       <body>
-        <AuthGuard>{children}</AuthGuard>
+        <AppShell>{children}</AppShell>
+      <style>{responsiveStyles}</style>
       </body>
     </html>
   );

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIREMENTS = ROOT / "みのり屋_販売管理システム_要件定義書_最終統合完全版.md"
+REQUIREMENTS = ROOT / "みのり屋_販売管理システム_統合要件書_v3.md"
 
 
 def section(document: str, start: str, end: str) -> str:
@@ -51,6 +51,18 @@ class RequirementsTraceabilityTests(unittest.TestCase):
             set(listed_ids),
             "AT-01～AT-12が揃っていません",
         )
+
+    def test_v3_audit_covers_all_defined_requirement_ids(self) -> None:
+        pattern = r"^\|\s*((?:FR|NFR)-\d{3}|F-10-\d{3}|NF-\d{2}|SCR-\d{2}|AT-\d{2}|IF-\d{2}|B-\d{2})(?=\s|\|)"
+        requirements = set(re.findall(pattern, self.document, re.MULTILINE))
+        audit = (ROOT / "docs/requirements-v3-audit.md").read_text(encoding="utf-8")
+        audited = set(re.findall(pattern, audit, re.MULTILINE))
+        self.assertEqual(226, len(requirements))
+        self.assertEqual(requirements, audited, "v3と照合台帳のID集合が一致しません")
+
+    def test_supabase_migration_versions_are_unique(self) -> None:
+        versions = [path.name.split("_", 1)[0] for path in (ROOT / "supabase/migrations").glob("*.sql")]
+        self.assertEqual(len(versions), len(set(versions)), "Supabase CLIで適用できない同一版のマイグレーションがあります")
 
 
 if __name__ == "__main__":

@@ -43,6 +43,20 @@
 
 ## 現在の自動テスト
 
+`tests/architecture.test.ts` はdomainの独立性、接続実装の依存方向、containerへの接続選択の集約、Client ComponentとServer Actionsの境界、旧lib参照の残存、資料入口のリンクを検証する（NFR-007/008、AT-10の保守基盤）。機能別の実装・テストは [コード案内](./code-map.md) から参照する。
+
+売上修正の通知では、申請者・担当エリア・本部への通知、最終承認後の店舗通知、差戻し理由・売上維持、無関係ロールの通知非表示をDBテストで検証する。プレビューの二段階承認と差戻しは `src/mocks/corrections.test.ts` が検証する（FR-008/009/010/029、AT-04/05/10）。
+
+本部指示・通知の追加仕様は [本部変更指示・店舗通知](./store-instructions.md) を参照する。`database-schema.test.ts` に発行権限・通知先境界・重複送信・競合・店舗確認・監査を追加し、`src/mocks/workspaces.test.ts` に店舗5機能/管理10機能の画面網羅と絞り込み・デモ確認の検証を追加した（FR-020/028/029、AT-07/10）。
+
+`store-overview.test.ts` は店舗ポータルのサンプル明示、重複リンクの非表示、日次表と7日間合計・部門合計・グラフ点数の整合を検証する（FR-005/006、AT-03/10の表示基盤）。管理ログインは共通サイドバーとページ枠を使用する。実ブラウザの表示倍率・キーボード・読み上げと実環境の認証は別途確認が必要。
+
+共通UI設定は `src/config/ui.test.ts` で、店舗5機能/管理10機能を含むTSXルートとナビゲーション、CSS/SVGのテーマ変数の定義漏れ、動き抑制設定を検証する（FR-005 / FR-006、AT-03 / AT-10の表示基盤）。実ブラウザのキーボード操作・倍率・画面読み上げはこの自動検査には含まれない。
+
+`src/domain/access-policy.test.ts` / `src/server/auth/admin-access.test.ts` / `src/server/actions/compatibility.test.ts` で、店舗入口の公開分類、管理メニューの権限表、未知/店舗ロールの拒否、無効利用者・未ログインの直接URL拒否、認証障害、戻り先の制限、service_role使用前の拒否を検証する（FR-028/034/035、AT-10）。Python検査は最新v3を読み、FR/NFR/ATのトレーサビリティと全226 IDの照合台帳の網羅性を確認する。これらは実Supabase環境の認証E2Eを代替しない。
+
+2026-10-21のHTTP確認（Supabase未設定のローカル開発サーバー）では `/` `/store` `/store/orders` `/store/operations` `/login` は200、`/admin` は設定案内のみ、旧 `/sales` は307で `/admin/sales` へ、未認証 `/api/dashboard` は401となった。管理ログイン後の実データ操作・外部IF・現場受入は未検証。
+
 要件書の機能要件・トレーサビリティ表・受入試験IDはPython標準ライブラリで検査する。営業日・税の業務ロジックとDBマイグレーション/RLSはVitestとPGliteで検査し、GitHub ActionsではSupabase CLIでもローカルPostgreSQLに対するマイグレーション適用・Lintを実行する。特売DBテストでは複数商品/店舗の下書き作成、未確認EDLP分類での公開拒否、商品本部のみの公開、店舗別RLS、店舗確認・作業記録を検証する。ログインや特売画面のSupabase実環境認証・E2Eは未実装であり、本番POS連携も未検証。
 
 ```powershell

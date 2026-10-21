@@ -1,0 +1,2 @@
+store_code,product_code,department_code,business_date,transaction_time,source_row_key,receipt_key,customer_count,quantity,amount_yen,tax_rate,line_type
+DEMO-001,FIXTURE-V1-FOOD,FIXTURE-FOOD,2020-01-02,2020-01-02T23:00:00+09:00,fictional-row-001,fictional-receipt-001,1,1,216,8,sale
