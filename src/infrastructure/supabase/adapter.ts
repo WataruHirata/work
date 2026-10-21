@@ -303,7 +303,7 @@ export class SupabaseRepository implements BusinessRepository {
   }
 }
 
-export class SupabaseIdentity implements IdentityProvider {
+class SupabaseIdentity implements IdentityProvider {
   async session() {
     const client = await createSupabaseServerClient();
     const {

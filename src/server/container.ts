@@ -7,11 +7,12 @@ import type {
 } from "@/domain/contracts";
 import {
   SupabaseRepository,
-  SupabaseIdentity,
 } from "@/infrastructure/supabase/adapter";
 import { SupabaseIntegrationStore } from "@/infrastructure/supabase/integration-store";
-import { LocalRepository, LocalIdentity, LocalIntegrationStore } from "@/infrastructure/pglite/adapter";
-import { mockCronSecret, mockIngestToken } from "@/infrastructure/pglite/adapter";
+import { LocalRepository, LocalIdentity, LocalIntegrationStore } from "@database/mock/pglite/adapter";
+import { mockCronSecret, mockIngestToken } from "@database/mock/pglite/adapter";
+import { MysqlRepository, MysqlIdentity } from "@database/mysql/repository";
+import { MysqlIntegrationStore } from "@database/mysql/integration-store";
 export { readBoundedJson as readIntegrationJson } from "@/infrastructure/integrations/bounded-json";
 import {
   configuredTargets,
@@ -21,22 +22,29 @@ import {
 export function isSupabaseProvider() {
   return process.env.DATABASE_PROVIDER === "supabase";
 }
+export function isMysqlProvider() {
+  return process.env.DATABASE_PROVIDER === "mysql";
+}
 
 // Replace these factories to change the database/auth provider. UI and use cases stay intact.
 export function repository(): BusinessRepository {
+  if (isMysqlProvider()) return new MysqlRepository();
   return isSupabaseProvider() ? new SupabaseRepository() : new LocalRepository();
 }
 export function identity(): IdentityProvider {
-  return isSupabaseProvider() ? new SupabaseIdentity() : new LocalIdentity();
+  // Authentication is owned by this Next.js application and its local identity store.
+  if (isMysqlProvider()) return new MysqlIdentity();
+  return new LocalIdentity();
 }
 export function integrationStore(): IntegrationJobStore {
+  if (isMysqlProvider()) return new MysqlIntegrationStore();
   return isSupabaseProvider() ? new SupabaseIntegrationStore() : new LocalIntegrationStore();
 }
 export function integrationRuntime(): {
   transport: IntegrationTransport;
   kinds: string[];
 } {
-  if (!isSupabaseProvider()) {
+  if (!isSupabaseProvider() && !isMysqlProvider()) {
     return {
       transport: {
         async send(kind, idempotencyKey) {
@@ -55,6 +63,7 @@ export function integrationRuntime(): {
   };
 }
 export function backendConfigured(): boolean {
+  if (isMysqlProvider()) return Boolean(process.env.MYSQL_HOST && process.env.MYSQL_DATABASE && process.env.MYSQL_USER);
   return !isSupabaseProvider() || Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -62,9 +71,9 @@ export function backendConfigured(): boolean {
 }
 
 export function integrationRunSecret() {
-  return isSupabaseProvider() ? process.env.CRON_SECRET : mockCronSecret;
+  return isSupabaseProvider() || isMysqlProvider() ? process.env.CRON_SECRET : mockCronSecret;
 }
 
 export function integrationIngestSecret() {
-  return isSupabaseProvider() ? process.env.INTEGRATION_INGEST_TOKEN : mockIngestToken;
+  return isSupabaseProvider() || isMysqlProvider() ? process.env.INTEGRATION_INGEST_TOKEN : mockIngestToken;
 }

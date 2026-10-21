@@ -21,13 +21,15 @@
     "db:demo:devices": "node --env-file=.env.local scripts/setup-demo-devices.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "db:migrate:check": "node --env-file-if-exists=.env.local scripts/migrate.mjs --dry-run",
+    "db:mysql:migrate": "node --env-file-if-exists=.env.local scripts/mysql-migrate.mjs",
     "integrations:run": "node --env-file-if-exists=.env.local scripts/run-integrations.mjs"
   },
   "dependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",
-    "@electric-sql/pglite": "0.5.10",
     "lucide-react": "1.59.0",
+    "mysql2": "^3.24.6",
     "next": "16.4.2",
     "prettier": "^3.9.10",
     "react": "19.3.1",

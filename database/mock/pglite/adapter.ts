@@ -22,7 +22,7 @@ import type {
 } from "@/domain/contracts";
 import { withLocalDatabase } from "./database";
 
-const tableSpecs: Record<
+export const tableSpecs: Record<
   Resource,
   {
     table: string;
