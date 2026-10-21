@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { MOCK_API_KEY, mockDashboardData } from "@/mocks/dashboard";
 
 export async function GET(request: Request) {
-  const apiKey = request.headers.get("x-api-key") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const apiKey =
+    request.headers.get("x-api-key") ??
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!apiKey || apiKey !== MOCK_API_KEY) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -19,7 +21,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const apiKey = request.headers.get("x-api-key") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const apiKey =
+    request.headers.get("x-api-key") ??
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!apiKey || apiKey !== MOCK_API_KEY) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

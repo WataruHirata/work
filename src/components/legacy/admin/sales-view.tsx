@@ -1,5 +1,8 @@
 import { PageLayout } from "@/components/ui/page-layout";
-import { getSalesDaysForList, getStoresForList } from "@/server/queries/compatibility";
+import {
+  getSalesDaysForList,
+  getStoresForList,
+} from "@/server/queries/compatibility";
 
 const trendData = {
   day: [42, 58, 51, 66, 62, 81, 74],
@@ -7,15 +10,20 @@ const trendData = {
 };
 
 export default async function SalesPage() {
-  const [salesRows, storesRows] = await Promise.all([getSalesDaysForList(), getStoresForList()]);
+  const [salesRows, storesRows] = await Promise.all([
+    getSalesDaysForList(),
+    getStoresForList(),
+  ]);
   const storeMap = new Map(storesRows.map((store) => [store.id, store]));
 
-  const totalSales = salesRows.reduce((sum, row) => sum + Number(row.net_sales_yen ?? 0), 0);
+  const totalSales = salesRows.reduce(
+    (sum, row) => sum + Number(row.net_sales_yen ?? 0),
+    0,
+  );
   const chartValues = trendData.week;
 
   return (
     <PageLayout page="sales">
-
       <section className="page-grid double">
         <article className="page-panel">
           <div className="panel-head">
@@ -39,7 +47,10 @@ export default async function SalesPage() {
           <div className="chart-bars" aria-label="売上の推移">
             {chartValues.map((value, index) => (
               <div key={`week-${index}`} className="bar-wrap">
-                <span className="bar" style={{ height: `${Math.max(value, 18)}%` }} />
+                <span
+                  className="bar"
+                  style={{ height: `${Math.max(value, 18)}%` }}
+                />
                 <small>{index + 1}</small>
               </div>
             ))}
@@ -61,11 +72,21 @@ export default async function SalesPage() {
             </div>
             <div className="mini-metric neutral">
               <span>客数</span>
-              <strong>{salesRows.reduce((sum, row) => sum + Number(row.customer_count ?? 0), 0).toLocaleString()}人</strong>
+              <strong>
+                {salesRows
+                  .reduce(
+                    (sum, row) => sum + Number(row.customer_count ?? 0),
+                    0,
+                  )
+                  .toLocaleString()}
+                人
+              </strong>
             </div>
             <div className="mini-metric warning">
               <span>未締め件数</span>
-              <strong>{salesRows.filter((row) => row.status !== "confirmed").length}件</strong>
+              <strong>
+                {salesRows.filter((row) => row.status !== "confirmed").length}件
+              </strong>
             </div>
           </div>
         </article>
@@ -95,10 +116,18 @@ export default async function SalesPage() {
               return (
                 <tr key={row.id}>
                   <td>{store?.name ?? "不明店舗"}</td>
-                  <td>{new Date(row.business_date).toLocaleDateString("ja-JP")}</td>
+                  <td>
+                    {new Date(row.business_date).toLocaleDateString("ja-JP")}
+                  </td>
                   <td>¥{Number(row.net_sales_yen ?? 0).toLocaleString()}</td>
                   <td>{Number(row.customer_count ?? 0).toLocaleString()}人</td>
-                  <td><span className={`status ${row.status === "confirmed" ? "ok" : "warning"}`}>{row.status}</span></td>
+                  <td>
+                    <span
+                      className={`status ${row.status === "confirmed" ? "ok" : "warning"}`}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
                 </tr>
               );
             })}

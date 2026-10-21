@@ -2,6 +2,14 @@
 
 ## スキーママイグレーション
 
+### 開発環境の起動前自動適用（AT-10/12）
+
+`npm run dev` の `predev` が `scripts/migrate.mjs --auto` を実行する。`AUTO_MIGRATE=true` の場合のみ、Supabase CLI 2.121.0 の `db push --linked --yes` により未適用の版管理SQLを適用する。初回のみCLIをnpxで取得する。`DEV_SUPABASE_PROJECT_REF`、アプリのSupabase URL、`supabase/.temp/project-ref` の3点が一致することを事前検査する。未リンク・不一致・適用失敗ではサーバーを起動しない。新しい環境の既定値は自動適用無効。APIリクエストや本番ビルドではこの処理を呼ばない。
+
+`npm run db:migrate:check` はdry-run、`npm run db:migrate` は手動実行。CLI認証とリンクは事前に必要。DBパスワードが必要な環境では `SUPABASE_DB_PASSWORD` をサーバー側の環境変数として設定する。秘密情報はログに転記しない。本番/CIからの開発コマンド実行は拒否し、本番は既存の保護されたproduction workflowでCI・レビュー後に適用する。
+
+前進は新規SQLの追加と再起動で行い、適用済みSQLを編集しない。失敗時は原因を修正して再実行する。reset・履歴repair・データ削除を自動実行しない。切戻しは既存方針どおり前方修正またはデータを保持したアプリ差戻しとする。`tests/migration-policy.test.ts` は明示的な有効化、対象不一致、本番/CI拒否を検証する。
+
 接続実装では `202610210001` 以降に、店舗端末/在庫/連携キュー/ユーザー属性、原子的な標準売上取込、初回パスワード変更の強制、下書き編集と公開時検査、端末秘密情報を除外する監査、通常売価版を追加した。取込履歴の一意性は「ファイル×店舗」から「ファイル×店舗×営業日」へ拡張する。既存テーブル/データを削除しない。PGliteで前進適用と権限・件数・金額・再送を検証するが、実Supabase CLI適用・並列動作・復旧試験は別途必要。切戻しは追加データを保持してアプリを戻すか前方修正とし、登録済みデータを削除する逆マイグレーションを自動実行しない。
 
 初期実装はSupabase PostgreSQLとSupabase CLIを採用する。スキーマは `supabase/migrations/` に追加し、ローカルSupabaseへ全マイグレーションを適用・LintするCIを通す。Production workflowは、保護されたGitHub `production` environmentから全CI成功後にのみ `supabase db push --linked` を実行する。DB製品・運用の最終承認、バックアップ、復旧目標が確定するまで本番適用を有効化しない。

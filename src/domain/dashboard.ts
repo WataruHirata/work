@@ -32,6 +32,17 @@ export type DashboardApiResponse = {
   };
   imports: DashboardImportItem[];
   actions: DashboardActionItem[];
-  stores: Array<{ code: string; name: string; area: string; status: string; lastSync: string }>;
-  approvals: Array<{ name: string; amount: string; stage: string; due: string }>;
+  stores: Array<{
+    code: string;
+    name: string;
+    area: string;
+    status: string;
+    lastSync: string;
+  }>;
+  approvals: Array<{
+    name: string;
+    amount: string;
+    stage: string;
+    due: string;
+  }>;
 };

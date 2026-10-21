@@ -23,9 +23,14 @@ export default function ApprovalsPage() {
     async function loadApprovals() {
       try {
         const res = await fetch("/api/dashboard", {
-          headers: { "x-api-key": process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key" },
+          headers: {
+            "x-api-key":
+              process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key",
+          },
         });
-        const json: { data?: { approvals?: (Partial<CorrectionRow> & { name?: string })[] } } = await res.json();
+        const json: {
+          data?: { approvals?: (Partial<CorrectionRow> & { name?: string })[] };
+        } = await res.json();
         const approvalsFromApi = json.data?.approvals ?? [];
         setApprovals(
           approvalsFromApi.map((item, index) => ({
@@ -50,7 +55,11 @@ export default function ApprovalsPage() {
 
   const resolveApproval = async (id: string, approved: boolean) => {
     try {
-      await submitApprovalDecision({ correctionId: id, approved, comment: approved ? "承認済み" : "差戻し" });
+      await submitApprovalDecision({
+        correctionId: id,
+        approved,
+        comment: approved ? "承認済み" : "差戻し",
+      });
       setApprovals((current) => current.filter((item) => item.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "承認処理に失敗しました");
@@ -59,7 +68,6 @@ export default function ApprovalsPage() {
 
   return (
     <PageLayout page="approvals">
-
       <section className="page-panel">
         <div className="panel-head">
           <div>
@@ -80,15 +88,31 @@ export default function ApprovalsPage() {
                 <div key={item.id} className="list-card">
                   <div>
                     <strong>{item.reason}</strong>
-                    <small>{new Date(item.requested_at).toLocaleString("ja-JP")}</small>
+                    <small>
+                      {new Date(item.requested_at).toLocaleString("ja-JP")}
+                    </small>
                   </div>
                   <div className="list-meta">
-                    <span>¥{Number(item.after_amount_yen ?? 0).toLocaleString()}</span>
+                    <span>
+                      ¥{Number(item.after_amount_yen ?? 0).toLocaleString()}
+                    </span>
                     <span className="badge warning">{item.status}</span>
                   </div>
                   <div className="button-row">
-                    <button type="button" className="primary-button small" onClick={() => resolveApproval(item.id, true)}>承認</button>
-                    <button type="button" className="danger-button small" onClick={() => resolveApproval(item.id, false)}>差戻し</button>
+                    <button
+                      type="button"
+                      className="primary-button small"
+                      onClick={() => resolveApproval(item.id, true)}
+                    >
+                      承認
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-button small"
+                      onClick={() => resolveApproval(item.id, false)}
+                    >
+                      差戻し
+                    </button>
                   </div>
                 </div>
               ))

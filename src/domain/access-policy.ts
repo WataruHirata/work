@@ -1,6 +1,17 @@
 /** Menu access from 画面遷移図1.drawio. Mutation permissions remain in RPC/RLS. */
-export const adminFeatures = ["sales", "products", "campaigns", "orders", "approvals", "monthly", "stores", "imports", "users", "audit"] as const;
-export type AdminFeature = typeof adminFeatures[number];
+export const adminFeatures = [
+  "sales",
+  "products",
+  "campaigns",
+  "orders",
+  "approvals",
+  "monthly",
+  "stores",
+  "imports",
+  "users",
+  "audit",
+] as const;
+export type AdminFeature = (typeof adminFeatures)[number];
 
 const roleFeatures: Record<string, readonly AdminFeature[]> = {
   area_manager: ["sales", "products", "campaigns", "approvals"],
@@ -10,8 +21,14 @@ const roleFeatures: Record<string, readonly AdminFeature[]> = {
   information_systems: ["stores", "imports", "users", "audit"],
 };
 
-export function canUseAdminFeature(roles: readonly string[], feature: AdminFeature): boolean {
-  return roles.some((role) => Object.hasOwn(roleFeatures, role) && roleFeatures[role].includes(feature));
+export function canUseAdminFeature(
+  roles: readonly string[],
+  feature: AdminFeature,
+): boolean {
+  return roles.some(
+    (role) =>
+      Object.hasOwn(roleFeatures, role) && roleFeatures[role].includes(feature),
+  );
 }
 
 export function hasAdminAccess(roles: readonly string[]): boolean {
@@ -25,7 +42,19 @@ export function isAdminPath(pathname: string): boolean {
 /** Only redirect to known local admin paths, including callback input. */
 export function safeAdminReturnPath(value?: string | null): string {
   if (!value || /[\\\s?#%]/.test(value)) return "/admin";
-  if (["/store/sales-inventory", "/store/orders", "/store/operations", "/store/campaigns", "/store/notices", "/account/password"].includes(value)) return value;
-  return value === "/admin" || adminFeatures.some((feature) => value === `/admin/${feature}`)
-    ? value : "/admin";
+  if (
+    [
+      "/store/sales-inventory",
+      "/store/orders",
+      "/store/operations",
+      "/store/campaigns",
+      "/store/notices",
+      "/account/password",
+    ].includes(value)
+  )
+    return value;
+  return value === "/admin" ||
+    adminFeatures.some((feature) => value === `/admin/${feature}`)
+    ? value
+    : "/admin";
 }

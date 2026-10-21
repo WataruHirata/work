@@ -7,7 +7,12 @@ import { uploadCsvImport } from "@/server/actions/compatibility";
 const initialImports = [
   { store: "デモ店舗・標準", code: "DEMO-001", time: "06:14", state: "完了" },
   { store: "デモ店舗・24時間", code: "DEMO-002", time: "06:12", state: "完了" },
-  { store: "デモ店舗・モール", code: "DEMO-003", time: "06:09", state: "要確認" },
+  {
+    store: "デモ店舗・モール",
+    code: "DEMO-003",
+    time: "06:09",
+    state: "要確認",
+  },
   { store: "デモ店舗・駅前", code: "DEMO-004", time: "06:05", state: "途中" },
 ];
 
@@ -44,13 +49,14 @@ export default function ImportsPage() {
       const result = await uploadCsvImport(formData);
       setStatus(`CSVを取り込みました。${result.rows}行を処理しました。`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "CSV取り込みに失敗しました");
+      setStatus(
+        error instanceof Error ? error.message : "CSV取り込みに失敗しました",
+      );
     }
   }
 
   return (
     <PageLayout page="imports">
-
       <section className="page-panel">
         <div className="panel-head">
           <div>
@@ -58,17 +64,47 @@ export default function ImportsPage() {
             <small>深夜ファイルの受信・再送・失敗状態を確認</small>
           </div>
           <div className="segmented-control">
-            <button type="button" className={tab === "all" ? "selected" : ""} onClick={() => setTab("all")}>すべて</button>
-            <button type="button" className={tab === "pending" ? "selected" : ""} onClick={() => setTab("pending")}>未完了</button>
-            <button type="button" className={tab === "completed" ? "selected" : ""} onClick={() => setTab("completed")}>完了</button>
+            <button
+              type="button"
+              className={tab === "all" ? "selected" : ""}
+              onClick={() => setTab("all")}
+            >
+              すべて
+            </button>
+            <button
+              type="button"
+              className={tab === "pending" ? "selected" : ""}
+              onClick={() => setTab("pending")}
+            >
+              未完了
+            </button>
+            <button
+              type="button"
+              className={tab === "completed" ? "selected" : ""}
+              onClick={() => setTab("completed")}
+            >
+              完了
+            </button>
           </div>
         </div>
 
         <div className="page-grid double">
           <div className="field">
             <span>CSVファイル</span>
-            <input type="file" accept=".csv" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} />
-            <button type="button" className="primary-button" onClick={handleUpload}>CSVを取り込む</button>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(event) =>
+                setSelectedFile(event.target.files?.[0] ?? null)
+              }
+            />
+            <button
+              type="button"
+              className="primary-button"
+              onClick={handleUpload}
+            >
+              CSVを取り込む
+            </button>
             {status && <small className="muted">{status}</small>}
           </div>
         </div>
@@ -82,10 +118,20 @@ export default function ImportsPage() {
               </div>
               <div className="list-meta">
                 <span>{item.time}</span>
-                <span className={`badge ${item.state === "要確認" ? "warning" : item.state === "途中" ? "neutral" : "ok"}`}>{item.state}</span>
+                <span
+                  className={`badge ${item.state === "要確認" ? "warning" : item.state === "途中" ? "neutral" : "ok"}`}
+                >
+                  {item.state}
+                </span>
               </div>
               {item.state !== "完了" && (
-                <button type="button" className="primary-button small" onClick={() => retryImport(item.code)}>再取込</button>
+                <button
+                  type="button"
+                  className="primary-button small"
+                  onClick={() => retryImport(item.code)}
+                >
+                  再取込
+                </button>
               )}
             </div>
           ))}

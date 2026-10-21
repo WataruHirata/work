@@ -6,14 +6,22 @@ import { useState, type FormEvent } from "react";
 import { signIn } from "@/server/actions/auth";
 import Link from "next/link";
 
-export function LoginForm({ accessDenied = false, returnTo }: { accessDenied?: boolean; returnTo?: string }) {
+export function LoginForm({
+  accessDenied = false,
+  returnTo,
+}: {
+  accessDenied?: boolean;
+  returnTo?: string;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
-    accessDenied ? "このアカウントは利用できません。管理者にお問い合わせください。" : "",
+    accessDenied
+      ? "このアカウントは利用できません。管理者にお問い合わせください。"
+      : "",
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -23,7 +31,9 @@ export function LoginForm({ accessDenied = false, returnTo }: { accessDenied?: b
 
     try {
       const data = new FormData();
-      data.set("email", email); data.set("password", password); data.set("next", returnTo ?? "");
+      data.set("email", email);
+      data.set("password", password);
+      data.set("next", returnTo ?? "");
       const result = await signIn(data);
       if (result.error || !result.next) {
         setErrorMessage(result.error ?? "ログインできませんでした。");
@@ -33,7 +43,9 @@ export function LoginForm({ accessDenied = false, returnTo }: { accessDenied?: b
       router.replace(result.next);
       router.refresh();
     } catch {
-      setErrorMessage("ログインを確認できませんでした。時間をおいて再度お試しください。");
+      setErrorMessage(
+        "ログインを確認できませんでした。時間をおいて再度お試しください。",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +89,11 @@ export function LoginForm({ accessDenied = false, returnTo }: { accessDenied?: b
           </button>
         </span>
       </label>
-      {errorMessage && <p className="login-error" role="alert">{errorMessage}</p>}
+      {errorMessage && (
+        <p className="login-error" role="alert">
+          {errorMessage}
+        </p>
+      )}
       <Link href="/account/reset">パスワードを忘れた場合</Link>
       <button className="login-submit" type="submit" disabled={submitting}>
         {submitting ? "確認しています…" : "ログイン"}

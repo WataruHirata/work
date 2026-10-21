@@ -18,7 +18,9 @@ let db: PGlite;
 let correctionId: string;
 
 async function selectAs(userId: string) {
-  await db.exec(`select set_config('request.jwt.claim.sub', '${userId}', false); set role authenticated`);
+  await db.exec(
+    `select set_config('request.jwt.claim.sub', '${userId}', false); set role authenticated`,
+  );
 }
 
 describe("initial database migration and row-level security", () => {
@@ -44,9 +46,13 @@ describe("initial database migration and row-level security", () => {
       .filter((file) => file.endsWith(".sql"))
       .sort();
     for (const migration of migrations) {
-      await db.exec(await readFile(resolve(migrationDirectory, migration), "utf8"));
+      await db.exec(
+        await readFile(resolve(migrationDirectory, migration), "utf8"),
+      );
     }
-    await db.exec(await readFile(resolve(process.cwd(), "supabase/seed.sql"), "utf8"));
+    await db.exec(
+      await readFile(resolve(process.cwd(), "supabase/seed.sql"), "utf8"),
+    );
     await db.exec(`
       grant usage on schema public to authenticated;
       grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -136,50 +142,122 @@ describe("initial database migration and row-level security", () => {
     const requestId = "50000000-0000-4000-8000-000000000001";
     const args = `'${requestId}','price_change','Demo price instruction','Fictional shelf label work','${firstProductId}',198,'2026-11-01T09:00:00+09:00',array['${firstStoreId}']::uuid[]`;
     await selectAs(managerId);
-    await expect(db.query(`select public.send_store_instruction(${args})`)).rejects.toThrow();
+    await expect(
+      db.query(`select public.send_store_instruction(${args})`),
+    ).rejects.toThrow();
     await db.exec("reset role");
     await selectAs(productOfficeId);
-    const result = await db.query<{ id: string }>(`select public.send_store_instruction(${args}) as id`);
+    const result = await db.query<{ id: string }>(
+      `select public.send_store_instruction(${args}) as id`,
+    );
     const id = result.rows[0].id;
-    const retry = await db.query<{ id: string }>(`select public.send_store_instruction(${args}) as id`);
+    const retry = await db.query<{ id: string }>(
+      `select public.send_store_instruction(${args}) as id`,
+    );
     expect(retry.rows[0].id).toBe(id);
-    await expect(db.query(`select public.send_store_instruction(${args.replace(",198,", ",199,")})`)).rejects.toThrow("Request ID conflict");
+    await expect(
+      db.query(
+        `select public.send_store_instruction(${args.replace(",198,", ",199,")})`,
+      ),
+    ).rejects.toThrow("Request ID conflict");
     await db.exec("reset role");
-    const notices = await db.query<{ store_id: string }>("select store_id from public.store_announcements where title='Demo price instruction'");
+    const notices = await db.query<{ store_id: string }>(
+      "select store_id from public.store_announcements where title='Demo price instruction'",
+    );
     expect(notices.rows).toEqual([{ store_id: firstStoreId }]);
     await selectAs(managerId);
-    expect((await db.query(`select * from public.store_instructions where id='${id}'`)).rows).toHaveLength(1);
-    await expect(db.query(`select public.confirm_store_instruction('${id}','${secondStoreId}')`)).rejects.toThrow();
-    await db.query(`select public.confirm_store_instruction('${id}','${firstStoreId}')`);
-    await db.query(`select public.confirm_store_instruction('${id}','${firstStoreId}')`);
-    const directUpdate = await db.query(`update public.store_instructions set price_yen=1 where id='${id}'`);
+    expect(
+      (
+        await db.query(
+          `select * from public.store_instructions where id='${id}'`,
+        )
+      ).rows,
+    ).toHaveLength(1);
+    await expect(
+      db.query(
+        `select public.confirm_store_instruction('${id}','${secondStoreId}')`,
+      ),
+    ).rejects.toThrow();
+    await db.query(
+      `select public.confirm_store_instruction('${id}','${firstStoreId}')`,
+    );
+    await db.query(
+      `select public.confirm_store_instruction('${id}','${firstStoreId}')`,
+    );
+    const directUpdate = await db.query(
+      `update public.store_instructions set price_yen=1 where id='${id}'`,
+    );
     expect(directUpdate.affectedRows).toBe(0);
-    expect((await db.query<{ price_yen: number }>(`select price_yen from public.store_instructions where id='${id}'`)).rows[0].price_yen).toBe(198);
+    expect(
+      (
+        await db.query<{ price_yen: number }>(
+          `select price_yen from public.store_instructions where id='${id}'`,
+        )
+      ).rows[0].price_yen,
+    ).toBe(198);
     await db.exec("reset role");
-    const confirmed = await db.query<{ confirmed_by: string }>(`select confirmed_by from public.store_instruction_targets where instruction_id='${id}'`);
+    const confirmed = await db.query<{ confirmed_by: string }>(
+      `select confirmed_by from public.store_instruction_targets where instruction_id='${id}'`,
+    );
     expect(confirmed.rows[0].confirmed_by).toBe(managerId);
-    expect((await db.query(`select * from public.audit_logs where table_name='store_instructions' and record_id='${id}'`)).rows.length).toBeGreaterThan(0);
+    expect(
+      (
+        await db.query(
+          `select * from public.audit_logs where table_name='store_instructions' and record_id='${id}'`,
+        )
+      ).rows.length,
+    ).toBeGreaterThan(0);
   });
 
   it("AT-10: non-target stores cannot read instructions; invalid target lists leave no partial notification", async () => {
     await selectAs(productOfficeId);
     const requestId = "50000000-0000-4000-8000-000000000002";
     const args = `'${requestId}','price_change','Other store only','Fictional work','${firstProductId}',200,'2026-11-01T09:00:00+09:00'`;
-    await expect(db.query(`select public.send_store_instruction(${args},array['${secondStoreId}','00000000-0000-4000-8000-000000000000']::uuid[])`)).rejects.toThrow();
-    const result = await db.query<{ id: string }>(`select public.send_store_instruction(${args},array['${secondStoreId}']::uuid[]) as id`);
+    await expect(
+      db.query(
+        `select public.send_store_instruction(${args},array['${secondStoreId}','00000000-0000-4000-8000-000000000000']::uuid[])`,
+      ),
+    ).rejects.toThrow();
+    const result = await db.query<{ id: string }>(
+      `select public.send_store_instruction(${args},array['${secondStoreId}']::uuid[]) as id`,
+    );
     await db.exec("reset role");
     await selectAs(managerId);
-    expect((await db.query(`select * from public.store_instructions where id='${result.rows[0].id}'`)).rows).toHaveLength(0);
-    expect((await db.query("select * from public.store_announcements where title='Other store only'")).rows).toHaveLength(0);
+    expect(
+      (
+        await db.query(
+          `select * from public.store_instructions where id='${result.rows[0].id}'`,
+        )
+      ).rows,
+    ).toHaveLength(0);
+    expect(
+      (
+        await db.query(
+          "select * from public.store_announcements where title='Other store only'",
+        )
+      ).rows,
+    ).toHaveLength(0);
     await db.exec("reset role");
-    expect((await db.query("select * from public.store_announcements where title='Other store only'")).rows).toHaveLength(1);
+    expect(
+      (
+        await db.query(
+          "select * from public.store_announcements where title='Other store only'",
+        )
+      ).rows,
+    ).toHaveLength(1);
   });
 
   it("AT-07: promotion instructions reject products whose eligibility is unverified", async () => {
     const unverifiedProductId = "40000000-0000-4000-8000-000000000003";
-    await db.query(`insert into public.products(id,code,name,tax_rate) values('${unverifiedProductId}','DEMO-UNVERIFIED','Fictional unverified item',8)`);
+    await db.query(
+      `insert into public.products(id,code,name,tax_rate) values('${unverifiedProductId}','DEMO-UNVERIFIED','Fictional unverified item',8)`,
+    );
     await selectAs(productOfficeId);
-    await expect(db.query(`select public.send_store_instruction('50000000-0000-4000-8000-000000000003','promotion','Demo promotion','Fictional work','${unverifiedProductId}',100,now(),array['${firstStoreId}']::uuid[])`)).rejects.toThrow("Verified promotion product required");
+    await expect(
+      db.query(
+        `select public.send_store_instruction('50000000-0000-4000-8000-000000000003','promotion','Demo promotion','Fictional work','${unverifiedProductId}',100,now(),array['${firstStoreId}']::uuid[])`,
+      ),
+    ).rejects.toThrow("Verified promotion product required");
     await db.exec("reset role");
   });
 
@@ -187,7 +265,11 @@ describe("initial database migration and row-level security", () => {
     const stores = await db.query<{ code: string }>(
       "select code from public.stores order by code",
     );
-    expect(stores.rows.map(({ code }) => code)).toEqual(["DEMO-001", "DEMO-002", "DEMO-003"]);
+    expect(stores.rows.map(({ code }) => code)).toEqual([
+      "DEMO-001",
+      "DEMO-002",
+      "DEMO-003",
+    ]);
   });
 
   it("assigns sales to store-specific business dates around local cutoff times", async () => {
@@ -212,8 +294,12 @@ describe("initial database migration and row-level security", () => {
 
   it("limits a store manager to the assigned store's store-level sales", async () => {
     await selectAs(managerId);
-    const stores = await db.query<{ id: string }>("select id from public.stores");
-    const salesDays = await db.query<{ store_id: string }>("select store_id from public.sales_days");
+    const stores = await db.query<{ id: string }>(
+      "select id from public.stores",
+    );
+    const salesDays = await db.query<{ store_id: string }>(
+      "select store_id from public.sales_days",
+    );
     await db.exec("reset role");
 
     expect(stores.rows.map(({ id }) => id)).toEqual([firstStoreId]);
@@ -225,8 +311,12 @@ describe("initial database migration and row-level security", () => {
 
   it("limits department staff to their store metadata and assigned department's sales lines", async () => {
     await selectAs(staffId);
-    const stores = await db.query<{ id: string }>("select id from public.stores");
-    const salesDays = await db.query<{ id: string }>("select id from public.sales_days");
+    const stores = await db.query<{ id: string }>(
+      "select id from public.stores",
+    );
+    const salesDays = await db.query<{ id: string }>(
+      "select id from public.sales_days",
+    );
     const salesLines = await db.query<{ product_code_snapshot: string }>(
       "select product_code_snapshot from public.sales_lines order by product_code_snapshot",
     );
@@ -234,9 +324,9 @@ describe("initial database migration and row-level security", () => {
 
     expect(stores.rows.map(({ id }) => id)).toEqual([firstStoreId]);
     expect(salesDays.rows).toEqual([]);
-    expect(salesLines.rows.map(({ product_code_snapshot }) => product_code_snapshot)).toEqual([
-      "DEMO-ITEM-1",
-    ]);
+    expect(
+      salesLines.rows.map(({ product_code_snapshot }) => product_code_snapshot),
+    ).toEqual(["DEMO-ITEM-1"]);
   });
 
   it("requires area and operations approvals for prior-day sales corrections", async () => {
@@ -248,28 +338,59 @@ describe("initial database migration and row-level security", () => {
       `select public.request_sales_correction('${day.rows[0].id}', 'Fictional correction', 1250) as id`,
     );
     correctionId = request.rows[0].id;
-    const submitted = await db.query<{ title: string }>(`select title from public.notifications where correction_id='${correctionId}'`);
+    const submitted = await db.query<{ title: string }>(
+      `select title from public.notifications where correction_id='${correctionId}'`,
+    );
     expect(submitted.rows).toHaveLength(1);
     await expect(
-      db.query(`select public.approve_sales_correction('${correctionId}', true, null)`),
+      db.query(
+        `select public.approve_sales_correction('${correctionId}', true, null)`,
+      ),
     ).rejects.toThrow("not allowed");
     await db.exec("reset role");
 
     await selectAs(areaManagerId);
-    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}' and notification_type='correction_requested'`)).rows).toHaveLength(1);
-    await db.query(`select public.approve_sales_correction('${correctionId}', true, null)`);
+    expect(
+      (
+        await db.query(
+          `select * from public.notifications where correction_id='${correctionId}' and notification_type='correction_requested'`,
+        )
+      ).rows,
+    ).toHaveLength(1);
+    await db.query(
+      `select public.approve_sales_correction('${correctionId}', true, null)`,
+    );
     await db.exec("reset role");
     const awaitingOperations = await db.query<{ status: string }>(
       `select status from public.sales_corrections where id = '${correctionId}'`,
     );
-    expect(awaitingOperations.rows[0].status).toBe("pending_operations_approval");
-    expect((await db.query<{ net_sales_yen: number }>(`select net_sales_yen from public.sales_days where id='${day.rows[0].id}'`)).rows[0].net_sales_yen).toBe(1000);
+    expect(awaitingOperations.rows[0].status).toBe(
+      "pending_operations_approval",
+    );
+    expect(
+      (
+        await db.query<{ net_sales_yen: number }>(
+          `select net_sales_yen from public.sales_days where id='${day.rows[0].id}'`,
+        )
+      ).rows[0].net_sales_yen,
+    ).toBe(1000);
 
     await selectAs(operationsId);
-    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}'`)).rows).toHaveLength(2);
-    await db.query(`select public.approve_sales_correction('${correctionId}', true, null)`);
+    expect(
+      (
+        await db.query(
+          `select * from public.notifications where correction_id='${correctionId}'`,
+        )
+      ).rows,
+    ).toHaveLength(2);
+    await db.query(
+      `select public.approve_sales_correction('${correctionId}', true, null)`,
+    );
     await db.exec("reset role");
-    const correctedSales = await db.query<{ net_sales_yen: number; status: string }>(
+    const correctedSales = await db.query<{
+      net_sales_yen: number;
+      status: string;
+    }>(
       `select day.net_sales_yen, correction.status
        from public.sales_days day
        join public.sales_corrections correction on correction.sales_day_id = day.id
@@ -280,31 +401,67 @@ describe("initial database migration and row-level security", () => {
       status: "approved",
     });
     await selectAs(managerId);
-    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}' and notification_type='correction_approved'`)).rows).toHaveLength(1);
+    expect(
+      (
+        await db.query(
+          `select * from public.notifications where correction_id='${correctionId}' and notification_type='correction_approved'`,
+        )
+      ).rows,
+    ).toHaveLength(1);
     await db.exec("reset role");
     await selectAs(productOfficeId);
-    expect((await db.query(`select * from public.notifications where correction_id='${correctionId}'`)).rows).toHaveLength(0);
+    expect(
+      (
+        await db.query(
+          `select * from public.notifications where correction_id='${correctionId}'`,
+        )
+      ).rows,
+    ).toHaveLength(0);
     await db.exec("reset role");
   });
 
   it("AT-04/05/10: rejection notifies the requesting store without modifying sales or duplicating results", async () => {
-    const inserted = await db.query<{ id: string }>(`insert into public.sales_days(store_id,business_date,status,gross_sales_yen,net_sales_yen,confirmed_by,confirmed_at,import_id) select '${firstStoreId}','2019-12-01','confirmed',1000,1000,'${managerId}',now(),id from public.sales_imports returning id`);
+    const inserted = await db.query<{ id: string }>(
+      `insert into public.sales_days(store_id,business_date,status,gross_sales_yen,net_sales_yen,confirmed_by,confirmed_at,import_id) select '${firstStoreId}','2019-12-01','confirmed',1000,1000,'${managerId}',now(),id from public.sales_imports returning id`,
+    );
     const dayId = inserted.rows[0].id;
     await selectAs(managerId);
-    const request = await db.query<{ id: string }>(`select public.request_sales_correction('${dayId}','Fictional rejection test',1100) as id`);
+    const request = await db.query<{ id: string }>(
+      `select public.request_sales_correction('${dayId}','Fictional rejection test',1100) as id`,
+    );
     await db.exec("reset role");
     const id = request.rows[0].id;
     await selectAs(areaManagerId);
-    await db.query(`select public.approve_sales_correction('${id}',false,'Please check the fictional receipt')`);
-    await expect(db.query(`select public.approve_sales_correction('${id}',false,'Retry')`)).rejects.toThrow();
+    await db.query(
+      `select public.approve_sales_correction('${id}',false,'Please check the fictional receipt')`,
+    );
+    await expect(
+      db.query(`select public.approve_sales_correction('${id}',false,'Retry')`),
+    ).rejects.toThrow();
     await db.exec("reset role");
-    expect((await db.query<{ net_sales_yen: number }>(`select net_sales_yen from public.sales_days where id='${dayId}'`)).rows[0].net_sales_yen).toBe(1000);
+    expect(
+      (
+        await db.query<{ net_sales_yen: number }>(
+          `select net_sales_yen from public.sales_days where id='${dayId}'`,
+        )
+      ).rows[0].net_sales_yen,
+    ).toBe(1000);
     await selectAs(managerId);
-    const notices = await db.query<{ message: string }>(`select message from public.notifications where correction_id='${id}' and notification_type='correction_rejected'`);
+    const notices = await db.query<{ message: string }>(
+      `select message from public.notifications where correction_id='${id}' and notification_type='correction_rejected'`,
+    );
     expect(notices.rows).toHaveLength(1);
-    expect(notices.rows[0].message).toContain('Please check the fictional receipt');
+    expect(notices.rows[0].message).toContain(
+      "Please check the fictional receipt",
+    );
     await db.exec("reset role");
-    expect((await db.query("select * from public.store_announcements where title='売上修正依頼が差し戻されました'")).rows).toHaveLength(1);
+    expect(
+      (
+        await db.query(
+          "select * from public.store_announcements where title='売上修正依頼が差し戻されました'",
+        )
+      ).rows,
+    ).toHaveLength(1);
   });
 
   it("allows only accounting to finalize a month and then prevents corrections", async () => {
@@ -384,11 +541,18 @@ describe("initial database migration and row-level security", () => {
     await db.exec("reset role");
 
     await selectAs(productOfficeId);
-    const campaignItems = await db.query<{ id: string; eligibility_status: string }>(
+    const campaignItems = await db.query<{
+      id: string;
+      eligibility_status: string;
+    }>(
       `select id, eligibility_status from public.campaign_items where campaign_id = '${campaignId}' order by product_id`,
     );
     expect(campaignItems.rows).toHaveLength(2);
-    expect(campaignItems.rows.every(({ eligibility_status }) => eligibility_status === "not_configured")).toBe(true);
+    expect(
+      campaignItems.rows.every(
+        ({ eligibility_status }) => eligibility_status === "not_configured",
+      ),
+    ).toBe(true);
     await expect(
       db.query(`select public.publish_campaign_draft('${campaignId}')`),
     ).rejects.toThrow("verified as non-EDLP");
@@ -403,16 +567,23 @@ describe("initial database migration and row-level security", () => {
       `update public.campaigns set status = 'failed' where id = '${campaignId}' returning id`,
     );
     expect(directCampaignUpdate.rows).toHaveLength(0);
-    const initialTasks = await db.query<{ pos_promotion_status: string; pos_restore_status: string }>(
+    const initialTasks = await db.query<{
+      pos_promotion_status: string;
+      pos_restore_status: string;
+    }>(
       `select task.pos_promotion_status, task.pos_restore_status
        from public.campaign_item_store_tasks task
        join public.campaign_items item on item.id = task.campaign_item_id
        where item.campaign_id = '${campaignId}'`,
     );
     expect(initialTasks.rows).toHaveLength(4);
-    expect(initialTasks.rows.every((task) =>
-      task.pos_promotion_status === "not_configured" && task.pos_restore_status === "not_configured",
-    )).toBe(true);
+    expect(
+      initialTasks.rows.every(
+        (task) =>
+          task.pos_promotion_status === "not_configured" &&
+          task.pos_restore_status === "not_configured",
+      ),
+    ).toBe(true);
     await db.exec("reset role");
 
     await selectAs(managerId);
@@ -420,9 +591,13 @@ describe("initial database migration and row-level security", () => {
       `select status from public.campaigns where id = '${campaignId}'`,
     );
     expect(visibleCampaign.rows[0].status).toBe("scheduled");
-    const campaignNotices = await db.query<{ store_id: string }>("select store_id from public.store_announcements where title like '特売指示:%'");
+    const campaignNotices = await db.query<{ store_id: string }>(
+      "select store_id from public.store_announcements where title like '特売指示:%'",
+    );
     expect(campaignNotices.rows.length).toBeGreaterThan(0);
-    expect(campaignNotices.rows.every((notice) => notice.store_id === firstStoreId)).toBe(true);
+    expect(
+      campaignNotices.rows.every((notice) => notice.store_id === firstStoreId),
+    ).toBe(true);
     const visibleTasks = await db.query<{ store_id: string }>(
       `select task.store_id
        from public.campaign_item_store_tasks task
@@ -430,7 +605,9 @@ describe("initial database migration and row-level security", () => {
        where item.campaign_id = '${campaignId}'`,
     );
     expect(visibleTasks.rows).toHaveLength(2);
-    expect(visibleTasks.rows.every(({ store_id }) => store_id === firstStoreId)).toBe(true);
+    expect(
+      visibleTasks.rows.every(({ store_id }) => store_id === firstStoreId),
+    ).toBe(true);
 
     await db.query(
       `select public.set_campaign_store_confirmation('${campaignItems.rows[0].id}', '${firstStoreId}', true)`,
@@ -450,13 +627,19 @@ describe("initial database migration and row-level security", () => {
     ).rejects.toThrow("not available");
     await db.exec("reset role");
 
-    const storeConfirmation = await db.query<{ store_confirmed_by: string; store_confirmed_at: string | null }>(
+    const storeConfirmation = await db.query<{
+      store_confirmed_by: string;
+      store_confirmed_at: string | null;
+    }>(
       `select store_confirmed_by, store_confirmed_at
        from public.campaign_store_targets where campaign_id = '${campaignId}' and store_id = '${firstStoreId}'`,
     );
     expect(storeConfirmation.rows[0].store_confirmed_by).toBe(managerId);
     expect(storeConfirmation.rows[0].store_confirmed_at).not.toBeNull();
-    const completedTask = await db.query<{ price_label_changed_by: string; price_label_changed_at: string | null }>(
+    const completedTask = await db.query<{
+      price_label_changed_by: string;
+      price_label_changed_at: string | null;
+    }>(
       `select task.price_label_changed_by, task.price_label_changed_at
        from public.campaign_item_store_tasks task
        where task.campaign_item_id = '${campaignItems.rows[0].id}' and task.store_id = '${firstStoreId}'`,

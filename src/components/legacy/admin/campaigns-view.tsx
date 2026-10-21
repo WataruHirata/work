@@ -1,15 +1,32 @@
 import { PageLayout } from "@/components/ui/page-layout";
 
 const campaignSummary = [
-  { id: "CP-2401", name: "秋の新商品キャンペーン", status: "公開中", stores: "全12店舗", trend: "+8.4%" },
-  { id: "CP-2402", name: "週末特売・まとめ買い", status: "準備中", stores: "7店舗", trend: "要確認" },
-  { id: "CP-2403", name: "会員限定クーポン", status: "終了予定", stores: "3店舗", trend: "本日18:00" },
+  {
+    id: "CP-2401",
+    name: "秋の新商品キャンペーン",
+    status: "公開中",
+    stores: "全12店舗",
+    trend: "+8.4%",
+  },
+  {
+    id: "CP-2402",
+    name: "週末特売・まとめ買い",
+    status: "準備中",
+    stores: "7店舗",
+    trend: "要確認",
+  },
+  {
+    id: "CP-2403",
+    name: "会員限定クーポン",
+    status: "終了予定",
+    stores: "3店舗",
+    trend: "本日18:00",
+  },
 ];
 
 export default function CampaignsPage() {
   return (
     <PageLayout page="campaigns">
-
       <section className="page-grid double">
         <article className="page-panel">
           <div className="panel-head">
@@ -28,7 +45,9 @@ export default function CampaignsPage() {
                 </div>
                 <div className="list-meta">
                   <span>{campaign.stores}</span>
-                  <span className={`badge ${campaign.status === "公開中" ? "ok" : campaign.status === "準備中" ? "neutral" : "warning"}`}>
+                  <span
+                    className={`badge ${campaign.status === "公開中" ? "ok" : campaign.status === "準備中" ? "neutral" : "warning"}`}
+                  >
                     {campaign.status}
                   </span>
                 </div>
@@ -60,7 +79,10 @@ export default function CampaignsPage() {
           <div className="chart-bars" aria-label="キャンペーン売上の想定推移">
             {[42, 58, 53, 66, 62, 80, 74].map((value, index) => (
               <div key={`campaign-${index}`} className="bar-wrap">
-                <span className="bar" style={{ height: `${Math.max(value, 18)}%` }} />
+                <span
+                  className="bar"
+                  style={{ height: `${Math.max(value, 18)}%` }}
+                />
                 <small>{index + 1}</small>
               </div>
             ))}
@@ -103,8 +125,12 @@ export default function CampaignsPage() {
         </div>
 
         <div className="button-row form-actions">
-          <button type="button" className="primary-button">保存する</button>
-          <button type="button" className="ghost-button">下書き保存</button>
+          <button type="button" className="primary-button">
+            保存する
+          </button>
+          <button type="button" className="ghost-button">
+            下書き保存
+          </button>
         </div>
       </section>
     </PageLayout>

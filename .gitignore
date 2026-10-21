@@ -23,6 +23,8 @@ coverage/
 
 # Supabase local state
 .supabase/
+supabase/.temp/
+.local/
 
 # Editors and operating systems
 .idea/

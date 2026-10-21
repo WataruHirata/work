@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="ja" style={themeStyle}>
       <body>
         <AppShell>{children}</AppShell>
-      <style>{responsiveStyles}</style>
+        <style>{responsiveStyles}</style>
       </body>
     </html>
   );

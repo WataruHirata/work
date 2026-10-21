@@ -43,7 +43,11 @@ export function getBusinessDate({
   }
 
   const previousDay = new Date(
-    Date.UTC(Number(local.year), Number(local.month) - 1, Number(local.day) - 1),
+    Date.UTC(
+      Number(local.year),
+      Number(local.month) - 1,
+      Number(local.day) - 1,
+    ),
   );
   return [
     previousDay.getUTCFullYear(),
@@ -67,7 +71,9 @@ export function calculateTaxIncludedTotal(
       !Number.isSafeInteger(line.quantity) ||
       line.quantity < 0
     ) {
-      throw new RangeError("unitPrice and quantity must be non-negative integers");
+      throw new RangeError(
+        "unitPrice and quantity must be non-negative integers",
+      );
     }
     return sum + line.unitPrice * line.quantity;
   }, 0);
@@ -78,7 +84,9 @@ export function calculateTaxIncludedTotal(
 
   const total = (BigInt(subtotal) * BigInt(100 + taxRatePercent)) / BigInt(100);
   if (total > BigInt(Number.MAX_SAFE_INTEGER)) {
-    throw new RangeError("tax-included total exceeds the supported safe integer range");
+    throw new RangeError(
+      "tax-included total exceeds the supported safe integer range",
+    );
   }
 
   return Number(total);

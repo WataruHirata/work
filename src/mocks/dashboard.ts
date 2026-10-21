@@ -1,6 +1,7 @@
 import type { DashboardApiResponse } from "@/domain/dashboard";
 
-export const MOCK_API_KEY = process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key";
+export const MOCK_API_KEY =
+  process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key";
 
 export const mockDashboardData: DashboardApiResponse = {
   metrics: [
@@ -47,9 +48,24 @@ export const mockDashboardData: DashboardApiResponse = {
     period: "week",
   },
   imports: [
-    { store: "デモ店舗・標準", code: "DEMO-001", time: "06:14", state: "取込完了" },
-    { store: "デモ店舗・24時間", code: "DEMO-002", time: "06:12", state: "取込完了" },
-    { store: "デモ店舗・モール", code: "DEMO-003", time: "06:09", state: "要確認" },
+    {
+      store: "デモ店舗・標準",
+      code: "DEMO-001",
+      time: "06:14",
+      state: "取込完了",
+    },
+    {
+      store: "デモ店舗・24時間",
+      code: "DEMO-002",
+      time: "06:12",
+      state: "取込完了",
+    },
+    {
+      store: "デモ店舗・モール",
+      code: "DEMO-003",
+      time: "06:09",
+      state: "要確認",
+    },
   ],
   actions: [
     {
@@ -73,12 +89,40 @@ export const mockDashboardData: DashboardApiResponse = {
     },
   ],
   stores: [
-    { code: "DEMO-001", name: "デモ店舗・標準", area: "東京エリア", status: "稼働中", lastSync: "06:14" },
-    { code: "DEMO-002", name: "デモ店舗・24時間", area: "関西エリア", status: "稼働中", lastSync: "06:12" },
-    { code: "DEMO-003", name: "デモ店舗・モール", area: "福岡エリア", status: "要確認", lastSync: "06:09" },
+    {
+      code: "DEMO-001",
+      name: "デモ店舗・標準",
+      area: "東京エリア",
+      status: "稼働中",
+      lastSync: "06:14",
+    },
+    {
+      code: "DEMO-002",
+      name: "デモ店舗・24時間",
+      area: "関西エリア",
+      status: "稼働中",
+      lastSync: "06:12",
+    },
+    {
+      code: "DEMO-003",
+      name: "デモ店舗・モール",
+      area: "福岡エリア",
+      status: "要確認",
+      lastSync: "06:09",
+    },
   ],
   approvals: [
-    { name: "売上修正承認", amount: "¥72,000", stage: "エリア承認待ち", due: "09:10" },
-    { name: "価格変更承認", amount: "¥31,500", stage: "本部承認待ち", due: "12:10" },
+    {
+      name: "売上修正承認",
+      amount: "¥72,000",
+      stage: "エリア承認待ち",
+      due: "09:10",
+    },
+    {
+      name: "価格変更承認",
+      amount: "¥31,500",
+      stage: "本部承認待ち",
+      due: "12:10",
+    },
   ],
 };
