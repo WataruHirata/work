@@ -15,6 +15,23 @@ describe("共通サイドバーとページヘッダー", () => {
     expect(layout).toContain("cookies()).has(stationCookie)");
   });
 
+  it("共通シェルにプルトゥリフレッシュと操作可能なスワイプドロワーを備える", () => {
+    const sidebar = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+    const loading = readFileSync("src/app/loading.tsx", "utf8");
+    const styles = readFileSync("src/app/globals.css", "utf8");
+    const responsive = readFileSync("src/config/ui.ts", "utf8");
+
+    expect(sidebar).toContain("router.refresh()");
+    expect(sidebar).toContain('"touchmove", onTouchMove, { passive: false }');
+    expect(sidebar).toContain("resolveSwipeAction");
+    expect(sidebar).toContain("メニューを閉じる");
+    expect(loading).toContain("loading-skeleton");
+    expect(styles).toContain("infographic-line-draw");
+    expect(styles).toContain("kinetic-type-enter");
+    expect(responsive).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(responsive).toContain(".global-sidebar");
+  });
+
   it("画面本文から権限ログインへの重複リンクをなくす", () => {
     const storeFeature = readFileSync("src/app/store/[feature]/page.tsx", "utf8");
     const deviceWorkspace = readFileSync("src/components/store/device-workspace.tsx", "utf8");

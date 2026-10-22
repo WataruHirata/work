@@ -91,14 +91,16 @@ try {
     `notifications.read_state: unread=${notificationState.unread_count}, read=${notificationState.read_count}`,
   );
   const scaleRequirements = [
-    ["stores", "20000000-%", 60],
-    ["products", "40000000-%", 120],
-    ["sales_days", "60000000-%", 1800],
-    ["sales_lines", "61000000-%", 10800],
-    ["inventory_snapshots", "62000000-%", 480],
+    ["stores", "id", "20000000-%", 180],
+    ["products", "id", "40000000-%", 1200],
+    ["store_products", "product_id", "40000000-%", 1200],
+    ["product_prices", "id", "41000000-%", 1200],
+    ["sales_days", "id", "60000000-%", 5400],
+    ["sales_lines", "id", "61000000-%", 32400],
+    ["inventory_snapshots", "id", "62000000-%", 1440],
   ];
-  for (const [table, pattern, minimum] of scaleRequirements) {
-    const [rows] = await db.query(`SELECT COUNT(*) AS count FROM ${table} WHERE id LIKE ?`, [
+  for (const [table, key, pattern, minimum] of scaleRequirements) {
+    const [rows] = await db.query(`SELECT COUNT(*) AS count FROM ${table} WHERE ${key} LIKE ?`, [
       pattern,
     ]);
     const count = Number(rows[0].count);
@@ -109,6 +111,27 @@ try {
     }
     console.log(`${table}.scale_fixture: ${count} rows (minimum ${minimum})`);
   }
+  const [orderCatalogRows] = await db.query(`
+    SELECT COUNT(DISTINCT product.id) AS count
+    FROM products product
+    JOIN store_products stock
+      ON stock.product_id=product.id
+     AND stock.store_id='20000000-0000-4000-8000-000000000001'
+     AND stock.active=1
+    WHERE product.active=1
+      AND EXISTS (
+        SELECT 1 FROM product_prices price
+        WHERE price.product_id=product.id
+          AND (price.store_id=stock.store_id OR price.store_id IS NULL)
+          AND price.valid_from<=CURRENT_TIMESTAMP(3)
+          AND (price.valid_until IS NULL OR price.valid_until>CURRENT_TIMESTAMP(3))
+      )
+  `);
+  const orderCatalogCount = Number(orderCatalogRows[0].count);
+  if (orderCatalogCount < 1000) {
+    throw new Error(`発注可能商品が最低件数 1000 件に達していません（${orderCatalogCount}件）。`);
+  }
+  console.log(`order_catalog.scale_fixture: ${orderCatalogCount} products (minimum 1000)`);
   const [diversityRows] = await db.query(`
     SELECT
       (SELECT COUNT(DISTINCT status) FROM stores WHERE id LIKE '20000000-%') AS store_statuses,

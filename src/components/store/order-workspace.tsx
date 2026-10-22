@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { executeOperation } from "@/server/actions/workspace";
 import { Feedback } from "@/components/workspaces/workspace-forms";
@@ -21,53 +20,49 @@ export type OrderHistoryItem = {
   itemNames: string[];
   itemCount: number;
   totalYen: number;
+  status: string;
 };
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
+const orderStatusLabels: Record<string, string> = {
+  draft: "下書き",
+  submitted: "送信待ち",
+  sent: "基幹受付済み",
+  failed: "連携失敗",
+  cancelled: "取消",
+};
 
 export function OrderHome({ history }: { history: OrderHistoryItem[] }) {
   return (
-    <>
-      <section className="page-panel">
-        <div className="button-row">
-          <Link className="primary-button" href="/store/orders/new">
-            発注入力
-          </Link>
-          <Link className="ghost-button" href="/store/orders/history">
-            発注履歴
-          </Link>
-        </div>
-      </section>
-      <section className="page-panel">
-        <h2>直近の発注履歴</h2>
-        {history.length ? (
-          <div className="workspace-table">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">日付</th>
-                  <th scope="col">担当者</th>
-                  <th scope="col">品数</th>
-                  <th scope="col">金額</th>
+    <section className="page-panel">
+      <h2>直近の発注履歴</h2>
+      {history.length ? (
+        <div className="workspace-table">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th scope="col">日付</th>
+                <th scope="col">担当者</th>
+                <th scope="col">品数</th>
+                <th scope="col">金額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((order) => (
+                <tr key={order.id}>
+                  <td>{order.orderDate}</td>
+                  <td>{order.requestedBy}</td>
+                  <td>{order.itemCount}品</td>
+                  <td>{yen.format(order.totalYen)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {history.map((order) => (
-                  <tr key={order.id}>
-                    <td>{order.orderDate}</td>
-                    <td>{order.requestedBy}</td>
-                    <td>{order.itemCount}品</td>
-                    <td>{yen.format(order.totalYen)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p>発注履歴はまだありません。</p>
-        )}
-      </section>
-    </>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p>発注履歴はまだありません。</p>
+      )}
+    </section>
   );
 }
 
@@ -86,11 +81,6 @@ export function OrderHistory({ history }: { history: OrderHistoryItem[] }) {
   }, [date, history, item, person]);
   return (
     <section className="page-panel">
-      <div className="button-row">
-        <Link className="ghost-button" href="/store/orders">
-          発注入力・履歴へ戻る
-        </Link>
-      </div>
       <h2>発注履歴</h2>
       <div className="workspace-fields order-history-filters">
         <label className="field">
@@ -116,6 +106,7 @@ export function OrderHistory({ history }: { history: OrderHistoryItem[] }) {
               <th scope="col">品目</th>
               <th scope="col">品数</th>
               <th scope="col">金額</th>
+              <th scope="col">連携状態</th>
             </tr>
           </thead>
           <tbody>
@@ -126,6 +117,7 @@ export function OrderHistory({ history }: { history: OrderHistoryItem[] }) {
                 <td>{order.itemNames.join("、")}</td>
                 <td>{order.itemCount}品</td>
                 <td>{yen.format(order.totalYen)}</td>
+                <td>{orderStatusLabels[order.status] ?? order.status}</td>
               </tr>
             ))}
           </tbody>
@@ -171,14 +163,9 @@ export function OrderEntry({
     setCart((current) => ({ ...current, [productId]: (current[productId] ?? 0) + 1 }));
   return (
     <section className="page-panel">
-      <div className="button-row">
-        <Link className="ghost-button" href="/store/orders">
-          発注入力・履歴へ戻る
-        </Link>
-      </div>
       <h2>発注入力</h2>
       <p className="muted">
-        登録した発注は下書きとして保存されます。卸売業者・基幹システムへの送信は行いません。
+        登録した発注は開発用の基幹システムへ送信されます。本物の卸売業者には送信されません。
       </p>
       <div className="workspace-fields order-catalog-filters">
         <label className="field">

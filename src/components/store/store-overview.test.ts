@@ -45,12 +45,56 @@ describe("店舗概況（FR-005/006・AT-03/10 表示基盤）", () => {
               status: "imported",
             },
           ],
+          metrics: {
+            inventory_alert_count: 2,
+            notice_count: 5,
+            campaign_pending_count: 3,
+          },
+          notices: [
+            {
+              id: "notice-1",
+              title: "営業時間変更のお知らせ",
+              message: "本日は18時に閉店します。",
+              created_at: "2026-10-21T01:00:00.000Z",
+            },
+          ],
         },
       }),
     );
     expect(html).not.toContain("締め前");
     expect(html).not.toContain("未取込");
     expect(html).not.toContain('<th scope="col">状態</th>');
+    expect(html).toContain('href="/store/sales-inventory"');
+    expect(html).toContain('href="/store/notices"');
+    expect(html).toContain('href="/store/campaigns"');
+    expect(html).toContain(">2件</strong>");
+    expect(html).toContain(">5件</strong>");
+    expect(html).toContain(">3件</strong>");
+    expect(html).toContain("お知らせ");
+    expect(html).toContain("営業時間変更のお知らせ");
+    expect(html).toContain("本日は18時に閉店します。");
+    expect(html).toContain("2026/10/21");
+  });
+
+  it("接続ポータルの見出しを既存ヘッダー内に配置する", () => {
+    const html = renderToStaticMarkup(
+      PageLayout({
+        page: "dashboard",
+        headerContent: createElement(
+          "div",
+          null,
+          createElement("p", null, "STORE OVERVIEW"),
+          createElement("h1", null, "デモ店"),
+          createElement("p", null, "直近営業日 2026-10-21"),
+        ),
+        children: "ポータル内容",
+      }),
+    );
+    const header = html.match(/<header class="page-topbar[^>]*>(.*?)<\/header>/)?.[1] ?? "";
+    expect(header).toContain("STORE OVERVIEW");
+    expect(header).toContain("デモ店");
+    expect(header).toContain("直近営業日 2026-10-21");
+    expect(html.indexOf("STORE OVERVIEW")).toBeLessThan(html.indexOf("ポータル内容"));
   });
 
   it("自店舗の売上・在庫ページに戻るボタンを表示しない", () => {

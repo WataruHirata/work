@@ -396,17 +396,16 @@ export class MysqlRepository implements BusinessRepository {
         return null;
       }
       case "createOrder": {
-        if (
-          !session.roles.some((role) =>
-            ["staff", "department_lead", "store_manager"].includes(role),
-          )
-        )
-          throw new Error("発注を登録する権限がありません。");
         const storeId = String(input.p_store_id ?? "");
         const departmentId = String(input.p_department_id ?? "");
         const deliveryDate = String(input.p_delivery_date ?? "");
+        const requestId = String(input.p_request_id ?? "");
         const rawItems = input.p_items;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) || !Array.isArray(rawItems))
+        if (
+          !/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) ||
+          !/^[0-9a-f-]{36}$/i.test(requestId) ||
+          !Array.isArray(rawItems)
+        )
           throw new Error("発注内容が不正です。");
         const items = rawItems.map((line) => {
           if (!line || typeof line !== "object" || Array.isArray(line))
@@ -429,36 +428,56 @@ export class MysqlRepository implements BusinessRepository {
         )
           throw new Error("発注明細が不正です。");
         return mysqlTransaction(async (db) => {
-          const [assignments] = await db.execute<RowDataPacket[]>(
-            "SELECT 1 FROM user_role_assignments WHERE user_id=? AND store_id=? AND (role='store_manager' OR (role IN ('staff','department_lead') AND department_id=?)) LIMIT 1",
-            [session.userId, storeId, departmentId],
+          const idempotencyKey = `order:${requestId}`;
+          const [existingJobs] = await db.execute<
+            (RowDataPacket & { order_id: string | null; requested_by: string | null })[]
+          >(
+            "SELECT JSON_UNQUOTE(JSON_EXTRACT(payload,'$.orderId')) AS order_id,JSON_UNQUOTE(JSON_EXTRACT(payload,'$.requestedBy')) AS requested_by FROM integration_jobs WHERE idempotency_key=? FOR UPDATE",
+            [idempotencyKey],
           );
-          if (!assignments.length) throw new Error("指定店舗・部門への発注権限がありません。");
-          const [departments] = await db.execute<RowDataPacket[]>(
-            "SELECT 1 FROM store_departments WHERE id=? AND store_id=? AND active=1",
+          if (existingJobs[0]) {
+            if (existingJobs[0].requested_by !== session.userId || !existingJobs[0].order_id)
+              throw new Error("同じ発注要求に異なる内容が指定されました。");
+            return existingJobs[0].order_id;
+          }
+          const [departments] = await db.execute<(RowDataPacket & { code: string })[]>(
+            "SELECT code FROM store_departments WHERE id=? AND store_id=? AND active=1",
             [departmentId, storeId],
           );
           if (!departments.length) throw new Error("指定部門が見つかりません。");
+          const [stores] = await db.execute<(RowDataPacket & { code: string })[]>(
+            "SELECT code FROM stores WHERE id=? AND status='active'",
+            [storeId],
+          );
+          if (!stores.length) throw new Error("指定店舗が見つかりません。");
           const pricedItems: {
             productId: string;
+            productCode: string;
             quantity: number;
             unitPriceYen: number;
             lineTotalYen: number;
           }[] = [];
           for (const item of items) {
-            const [products] = await db.execute<(RowDataPacket & { price_yen: number | null })[]>(
-              "SELECT price.price_yen FROM products product JOIN store_products stock ON stock.product_id=product.id AND stock.store_id=? AND stock.active=1 LEFT JOIN product_prices price ON price.id=(SELECT candidate.id FROM product_prices candidate WHERE candidate.product_id=product.id AND (candidate.store_id=? OR candidate.store_id IS NULL) AND candidate.valid_from<=CURRENT_TIMESTAMP(3) AND (candidate.valid_until IS NULL OR candidate.valid_until>CURRENT_TIMESTAMP(3)) ORDER BY (candidate.store_id IS NOT NULL) DESC,candidate.valid_from DESC LIMIT 1) WHERE product.id=? AND product.active=1",
+            const [products] = await db.execute<
+              (RowDataPacket & { code: string; price_yen: number | null })[]
+            >(
+              "SELECT product.code,price.price_yen FROM products product JOIN store_products stock ON stock.product_id=product.id AND stock.store_id=? AND stock.active=1 LEFT JOIN product_prices price ON price.id=(SELECT candidate.id FROM product_prices candidate WHERE candidate.product_id=product.id AND (candidate.store_id=? OR candidate.store_id IS NULL) AND candidate.valid_from<=CURRENT_TIMESTAMP(3) AND (candidate.valid_until IS NULL OR candidate.valid_until>CURRENT_TIMESTAMP(3)) ORDER BY (candidate.store_id IS NOT NULL) DESC,candidate.valid_from DESC LIMIT 1) WHERE product.id=? AND product.active=1",
               [storeId, storeId, item.productId],
             );
             const unitPriceYen = Number(products[0]?.price_yen);
             if (!Number.isSafeInteger(unitPriceYen) || unitPriceYen < 0)
               throw new Error("発注可能な価格がない商品が含まれています。");
-            pricedItems.push({ ...item, unitPriceYen, lineTotalYen: unitPriceYen * item.quantity });
+            pricedItems.push({
+              ...item,
+              productCode: products[0].code,
+              unitPriceYen,
+              lineTotalYen: unitPriceYen * item.quantity,
+            });
           }
           const orderId = randomUUID();
           const total = pricedItems.reduce((sum, item) => sum + item.lineTotalYen, 0);
           await db.execute(
-            "INSERT INTO orders(id,store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by) VALUES(?,?,?,CURRENT_DATE,?,?,'draft',?)",
+            "INSERT INTO orders(id,store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by) VALUES(?,?,?,CURRENT_DATE,?,?,'submitted',?)",
             [orderId, storeId, departmentId, deliveryDate, total, session.userId],
           );
           for (const item of pricedItems)
@@ -473,6 +492,31 @@ export class MysqlRepository implements BusinessRepository {
                 item.lineTotalYen,
               ],
             );
+          await db.execute(
+            "INSERT INTO integration_jobs(id,kind,idempotency_key,payload,status) VALUES(?,'order',?,?,'pending')",
+            [
+              randomUUID(),
+              idempotencyKey,
+              JSON.stringify({
+                version: 1,
+                orderId,
+                storeId,
+                storeCode: stores[0].code,
+                departmentId,
+                departmentCode: departments[0].code,
+                deliveryDate,
+                totalYen: total,
+                requestedBy: session.userId,
+                items: pricedItems.map((item) => ({
+                  productId: item.productId,
+                  productCode: item.productCode,
+                  quantity: item.quantity,
+                  unitPriceYen: item.unitPriceYen,
+                  lineTotalYen: item.lineTotalYen,
+                })),
+              }),
+            ],
+          );
           return orderId;
         });
       }
@@ -520,6 +564,10 @@ export class MysqlRepository implements BusinessRepository {
       "SELECT department.name,SUM(line.amount_yen) AS sales FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id JOIN store_departments department ON department.id=line.department_id WHERE day.store_id=? AND day.business_date=(SELECT MAX(business_date) FROM sales_days WHERE store_id=?) GROUP BY department.id,department.name",
       [storeId, storeId],
     );
+    const [metricRows] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT (SELECT COUNT(*) FROM inventory_snapshots WHERE store_id=? AND quantity<=0) AS inventory_alert_count, (SELECT COUNT(*) FROM store_announcements WHERE store_id=?) AS notice_count, (SELECT COUNT(DISTINCT campaign.id) FROM campaigns campaign JOIN campaign_store_targets target ON target.campaign_id=campaign.id JOIN campaign_items item ON item.campaign_id=campaign.id AND item.eligibility_status='eligible' LEFT JOIN campaign_item_store_tasks task ON task.campaign_item_id=item.id AND task.store_id=target.store_id WHERE target.store_id=? AND campaign.status<>'draft' AND ((campaign.status='completed' AND (COALESCE(task.pos_restore_status,'not_configured') NOT IN ('restored','manual_confirmed') OR task.price_label_restored_at IS NULL OR task.pop_restored_at IS NULL OR task.display_restored_at IS NULL)) OR (campaign.status<>'completed' AND (COALESCE(task.pos_promotion_status,'not_configured') NOT IN ('applied','manual_confirmed') OR task.price_label_changed_at IS NULL OR task.pop_changed_at IS NULL OR task.display_changed_at IS NULL)))) AS campaign_pending_count",
+      [storeId, storeId, storeId],
+    );
     const jsonRows = (rows: RowDataPacket[]) =>
       rows.map(
         (row) =>
@@ -542,6 +590,11 @@ export class MysqlRepository implements BusinessRepository {
       notices: jsonRows(notices),
       orders: jsonRows(orders),
       departments: jsonRows(departments),
+      metrics: jsonRows(metricRows)[0] ?? {
+        inventory_alert_count: 0,
+        notice_count: 0,
+        campaign_pending_count: 0,
+      },
     };
   }
 }

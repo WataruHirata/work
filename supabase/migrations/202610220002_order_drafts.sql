@@ -1,0 +1,15 @@
+create or replace function public.submit_store_order(p_store_id uuid,p_department_id uuid,p_delivery_date date,p_items jsonb,p_request_id uuid)
+returns uuid language plpgsql security definer set search_path='' as $$
+declare v_id uuid; v_total bigint;
+begin
+  if not public.can_access_department(p_store_id,p_department_id,array['staff','department_lead','store_manager']::public.app_role[]) then raise insufficient_privilege; end if;
+  if p_request_id is null or p_delivery_date is null or p_delivery_date < (now() at time zone 'Asia/Tokyo')::date or jsonb_typeof(p_items) is distinct from 'array' then raise exception 'Invalid order'; end if;
+  if jsonb_array_length(p_items) not between 1 and 500 then raise exception 'Invalid line count'; end if;
+  if exists(select 1 from jsonb_to_recordset(p_items) as line(product_id uuid,quantity integer) left join public.store_products sp on sp.product_id=line.product_id and sp.store_id=p_store_id and sp.active left join public.products product on product.id=line.product_id and product.active where line.product_id is null or line.quantity is null or line.quantity not between 1 and 99999 or sp.product_id is null or product.id is null) then raise exception 'Invalid product or quantity'; end if;
+  if (select count(distinct line.product_id) from jsonb_to_recordset(p_items) as line(product_id uuid)) <> jsonb_array_length(p_items) then raise exception 'Duplicate product'; end if;
+  select coalesce(sum(line.quantity * price.price_yen),0) into v_total from jsonb_to_recordset(p_items) as line(product_id uuid,quantity integer) cross join lateral (select candidate.price_yen from public.product_prices candidate where candidate.product_id=line.product_id and (candidate.store_id=p_store_id or candidate.store_id is null) and candidate.valid_from<=now() and (candidate.valid_until is null or candidate.valid_until>now()) order by (candidate.store_id is not null) desc,candidate.valid_from desc limit 1) price;
+  if v_total = 0 and exists(select 1 from jsonb_to_recordset(p_items) as line(product_id uuid,quantity integer) where line.quantity > 0) then raise exception 'Price missing'; end if;
+  insert into public.orders(store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by) values(p_store_id,p_department_id,(now() at time zone 'Asia/Tokyo')::date,p_delivery_date,v_total,'draft',(select auth.uid())) returning id into v_id;
+  insert into public.order_lines(order_id,product_id,quantity,unit_price_yen,line_total_yen) select v_id,line.product_id,line.quantity,price.price_yen,line.quantity*price.price_yen from jsonb_to_recordset(p_items) as line(product_id uuid,quantity integer) cross join lateral (select candidate.price_yen from public.product_prices candidate where candidate.product_id=line.product_id and (candidate.store_id=p_store_id or candidate.store_id is null) and candidate.valid_from<=now() and (candidate.valid_until is null or candidate.valid_until>now()) order by (candidate.store_id is not null) desc,candidate.valid_from desc limit 1) price;
+  return v_id;
+end; $$;

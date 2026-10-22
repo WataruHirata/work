@@ -401,6 +401,54 @@ export const responsiveStyles = `@media (max-width: 1180px) {
   }
 }
 @media (max-width: 700px) {
+  .loading-content {
+    grid-template-columns: 1fr;
+  }
+  .loading-chart {
+    min-height: 220px;
+  }
+  .global-shell {
+    display: block;
+  }
+  .global-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: min(82vw, var(--sidebar-width));
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    flex-basis: min(82vw, var(--sidebar-width));
+    transform: translateX(-105%);
+  }
+  .sidebar-open .global-sidebar {
+    width: min(82vw, var(--sidebar-width));
+    flex-basis: min(82vw, var(--sidebar-width));
+    transform: translateX(0);
+  }
+  .sidebar-collapsed .global-sidebar {
+    width: min(82vw, var(--sidebar-width));
+    flex-basis: min(82vw, var(--sidebar-width));
+    padding-inline: var(--size-16px);
+    transform: translateX(-105%);
+  }
+  .global-main {
+    width: 100%;
+    min-height: 100vh;
+    padding-inline: var(--size-12px);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    display: block;
+    width: 100%;
+    border: 0;
+    background: rgb(11 24 40 / 32%);
+  }
+  .sidebar-collapsed .sidebar-backdrop {
+    display: none;
+  }
   .page-grid,
   .page-grid.double,
   .stat-row,
@@ -512,6 +560,7 @@ export const responsiveStyles = `@media (max-width: 1180px) {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .metric-card:hover, .campaign-card:hover, .list-card:hover { transform: none !important; }
 }`;
 
 export type WorkspaceField = {

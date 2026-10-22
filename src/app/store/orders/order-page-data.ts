@@ -6,20 +6,13 @@ import { allRecords } from "@/server/queries/workspaces";
 import { identity } from "@/server/container";
 import type { DataRecord } from "@/domain/contracts";
 import type { OrderCatalogItem, OrderHistoryItem } from "@/components/store/order-workspace";
+import { fictionalSupplierForProduct } from "@/domain/order-catalog";
 
-const supplierByCategory: Record<string, string> = {
-  BAKERY: "あおば食品卸",
-  DELI: "ひかり惣菜流通",
-  GOODS: "北斗日用品",
-  DRINK: "清流飲料販売",
-  FROZEN: "みなと冷凍食品",
-};
-
-function text(row: DataRecord, key: string) {
+function text(row: Record<string, unknown>, key: string) {
   return String(row[key] ?? "");
 }
 
-function number(row: DataRecord, key: string) {
+function number(row: Record<string, unknown>, key: string) {
   return Number(row[key] ?? 0);
 }
 
@@ -31,10 +24,23 @@ export async function orderPageData() {
   const session = await identity().session();
   if (!session?.active) redirect("/login?next=%2Fstore%2Forders");
   if (session.mustChangePassword) redirect("/account/password");
-  if (!session.roles.some((role) => ["staff", "department_lead", "store_manager"].includes(role)))
-    throw new Error("発注入力を利用する権限がありません。");
-  const storeId = session.storeIds?.[0];
-  if (!storeId) throw new Error("発注対象の店舗が割り当てられていません。");
+  const stores = await allRecords("stores");
+  const assignedStoreId = session.storeIds?.[0];
+  const assignedStore = stores.find(
+    (store) => store.id === assignedStoreId && String(store.status) === "active",
+  );
+  const storeId =
+    assignedStore?.id ?? stores.find((store) => String(store.status) === "active")?.id;
+  if (!storeId)
+    return {
+      catalog: [],
+      departmentId: null,
+      history: [],
+      requestId: randomUUID(),
+      storeId: null,
+      canCreateOrder: false,
+      unavailableReason: "表示対象の店舗がありません。",
+    };
   const [orders, lines, products, prices, departments, users] = await Promise.all([
     allRecords("orders", { storeId }),
     allRecords("orderLines", { storeId }),
@@ -63,6 +69,7 @@ export async function orderPageData() {
       ),
       itemCount: orderLines.length,
       totalYen: number(order, "order_total_yen") || fallbackTotal,
+      status: text(order, "status"),
     };
   });
   const priceFor = (productId: string) => {
@@ -80,17 +87,26 @@ export async function orderPageData() {
     .filter((product) => Boolean(product.active))
     .map((product) => {
       const category = text(product, "category_code") || "その他";
+      const code = text(product, "code");
       return {
         id: product.id,
-        code: text(product, "code"),
+        code,
         name: text(product, "name"),
         category,
-        supplier: supplierByCategory[category] ?? "みのり総合卸",
+        supplier: fictionalSupplierForProduct(code),
         priceYen: priceFor(product.id),
       };
     })
-    .filter((product) => product.priceYen >= 0);
+    .filter((product) => product.priceYen > 0);
   const department = departments.find((candidate) => Boolean(candidate.active));
-  if (!department) throw new Error("発注対象の部門が割り当てられていません。");
-  return { catalog, departmentId: department.id, history, requestId: randomUUID(), storeId };
+  const unavailableReason = !department ? "発注対象の部門が登録されていません。" : null;
+  return {
+    catalog,
+    departmentId: department?.id ?? null,
+    history,
+    requestId: randomUUID(),
+    storeId,
+    canCreateOrder: !unavailableReason,
+    unavailableReason,
+  };
 }

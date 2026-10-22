@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { identity, repository } from "@/server/container";
 import { activeSession, requireRoles } from "@/server/auth/session";
 import { date, integer, japanDateTime, parseMaster, text, uuid } from "@/server/validation";
+import { runConfiguredIntegrations } from "@/server/integrations/run";
 import type { ActionResult, Json, Resource } from "@/domain/contracts";
 
 function message(error: unknown) {
@@ -48,6 +49,7 @@ export async function executeOperation(
   try {
     await activeSession();
     const repo = repository();
+    let orderTransferred = false;
     switch (operation) {
       case "confirmSales":
         await requireRoles(["store_manager"]);
@@ -92,7 +94,6 @@ export async function executeOperation(
         break;
       }
       case "createOrder": {
-        await requireRoles(["staff", "department_lead", "store_manager"]);
         const raw: unknown = JSON.parse(String(data.get("items")));
         if (!Array.isArray(raw) || raw.length < 1 || raw.length > 500)
           throw new Error("発注商品を指定してください。");
@@ -109,6 +110,12 @@ export async function executeOperation(
           p_items: items,
           p_request_id: uuid(data.get("requestId")),
         });
+        try {
+          const result = await runConfiguredIntegrations();
+          orderTransferred = result.completed > 0;
+        } catch {
+          orderTransferred = false;
+        }
         break;
       }
       case "markRead":
@@ -224,7 +231,9 @@ export async function executeOperation(
             : operation === "createUser"
               ? "利用者を登録しました。続けてロールと担当範囲を割り当ててください。"
               : operation === "createOrder"
-                ? "発注を保存し、基幹連携待ちに登録しました。送信結果は履歴で確認してください。"
+                ? orderTransferred
+                  ? "発注を登録し、基幹システムが受け付けました。"
+                  : "発注を登録しました。基幹システムへの送信は連携待ちです。"
                 : "処理を保存しました。",
     };
   } catch (error) {

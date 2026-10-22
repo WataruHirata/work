@@ -56,9 +56,10 @@ const prefixes = {
 };
 const fid = (kind, index) => `${prefixes[kind]}-0000-4000-8000-${String(index).padStart(12, "0")}`;
 const externalId = (prefix, index) => `${prefix}-0000-4000-8000-${String(index).padStart(12, "0")}`;
-// UIの一覧、グラフ、改行、ページ送りを確認できるよう、基準fixtureの5倍を作る。
-const scaleStoreCount = 60;
-const scaleProductCount = 120;
+// 大量データ時の一覧、グラフ、改行、ページ送り、発注検索を確認する。
+// 売上系は直前fixtureの約3倍、商品は約10倍にする。
+const scaleStoreCount = 180;
+const scaleProductCount = 1200;
 const scaleSalesDaysPerStore = 30;
 const scaleStoreAreas = ["北", "東", "西", "南", "中央", "湾岸", "山間", "駅前"];
 const scaleStoreFormats = ["食品館", "駅前店", "郊外大型店", "モール店", "24時間店", "小型店"];
@@ -246,20 +247,27 @@ try {
     );
   }
 
-  for (let index = 0; index < products.length; index += 1) {
+  for (let productNumber = 1; productNumber <= scaleProductCount; productNumber += 1) {
+    const baseProduct = products[productNumber - 1];
+    const active = baseProduct ? baseProduct[5] : productNumber % 11 === 0 ? 0 : 1;
     await q(
       "INSERT INTO store_products(store_id,product_id,shelf_location,active) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE shelf_location=VALUES(shelf_location),active=VALUES(active)",
-      [fid("store", 1), fid("product", index + 1), `デモ棚 ${index + 1}-A`, products[index][5]],
+      [
+        fid("store", 1),
+        fid("product", productNumber),
+        `デモ棚 ${Math.ceil(productNumber / 20)}-${String.fromCharCode(65 + (productNumber % 20))}`,
+        active,
+      ],
     );
     await q(
       "INSERT INTO product_prices(id,product_id,store_id,price_yen,valid_from,valid_until,created_by) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE price_yen=VALUES(price_yen),valid_from=VALUES(valid_from),valid_until=VALUES(valid_until)",
       [
-        fid("price", index + 1),
-        fid("product", index + 1),
-        index % 2 ? null : fid("store", 1),
-        118 + index * 80,
+        fid("price", productNumber),
+        fid("product", productNumber),
+        productNumber % 2 ? null : fid("store", 1),
+        98 + ((productNumber * 73) % 4900),
         "2026-10-01 00:00:00.000",
-        index === 5 ? "2026-10-15 23:59:59.000" : null,
+        productNumber === 6 ? "2026-10-15 23:59:59.000" : null,
         fid("user", 6),
       ],
     );
@@ -610,8 +618,11 @@ try {
   for (let index = 0; index < orderStates.length; index += 1) {
     const storeNumber = (index % 2) + 1;
     const departmentNumber = storeNumber === 1 ? (index % 2) + 1 : 4;
+    const quantity = [12, 24, 6, 18, 3][index];
+    const unitPriceYen = 118 + index * 80;
+    const lineTotalYen = quantity * unitPriceYen;
     await q(
-      "INSERT INTO orders(id,store_id,department_id,order_date,status,requested_by,requested_delivery_date) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),department_id=VALUES(department_id),status=VALUES(status),requested_delivery_date=VALUES(requested_delivery_date),updated_at=CURRENT_TIMESTAMP(3)",
+      "INSERT INTO orders(id,store_id,department_id,order_date,status,requested_by,requested_delivery_date,order_total_yen) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),department_id=VALUES(department_id),status=VALUES(status),requested_delivery_date=VALUES(requested_delivery_date),order_total_yen=VALUES(order_total_yen),updated_at=CURRENT_TIMESTAMP(3)",
       [
         fid("order", index + 1),
         fid("store", storeNumber),
@@ -620,15 +631,18 @@ try {
         orderStates[index],
         fid("user", 5),
         `2026-10-${24 + index}`,
+        lineTotalYen,
       ],
     );
     await q(
-      "INSERT INTO order_lines(id,order_id,product_id,quantity) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE product_id=VALUES(product_id),quantity=VALUES(quantity)",
+      "INSERT INTO order_lines(id,order_id,product_id,quantity,unit_price_yen,line_total_yen) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE product_id=VALUES(product_id),quantity=VALUES(quantity),unit_price_yen=VALUES(unit_price_yen),line_total_yen=VALUES(line_total_yen)",
       [
         fid("orderLine", index + 1),
         fid("order", index + 1),
         fid("product", index + 1),
-        [12, 24, 6, 18, 3][index],
+        quantity,
+        unitPriceYen,
+        lineTotalYen,
       ],
     );
   }

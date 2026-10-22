@@ -5,6 +5,8 @@ import { backendConfigured } from "@/server/container";
 import { deviceSnapshot } from "@/server/auth/store-context";
 import { LiveStoreOverview } from "@/components/store/live-store-overview";
 import { FeatureNotice } from "@/components/ui/feature-notice";
+import { storeSummary } from "@/domain/store-summary";
+import { StateBadge } from "@/components/ui/state-badge";
 
 export default async function Home() {
   if (!backendConfigured())
@@ -28,12 +30,30 @@ export default async function Home() {
         </FeatureNotice>
       </PageLayout>
     );
-  if (result.snapshot)
+  if (result.snapshot) {
+    const summary = storeSummary(result.snapshot);
     return (
-      <PageLayout page="dashboard">
+      <PageLayout
+        page="dashboard"
+        headerContent={
+          <div className="store-portal-header">
+            <div>
+              <p className="eyebrow">STORE OVERVIEW</p>
+              <h1>{summary.storeName}</h1>
+            </div>
+            <p className="store-portal-header-meta">
+              直近営業日 {summary.latest?.date ?? "データなし"} · 税込売上
+            </p>
+            {summary.latest && summary.latest.status !== "imported" && (
+              <StateBadge state={summary.latest.status} />
+            )}
+          </div>
+        }
+      >
         <LiveStoreOverview snapshot={result.snapshot} />
       </PageLayout>
     );
+  }
   return (
     <PageLayout page="dashboard">
       <FeatureNotice title="店舗端末を接続すると、自店舗の概況を表示します">
