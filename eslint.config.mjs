@@ -26,5 +26,5 @@ export default defineConfig([
       reportUnusedDisableDirectives: "error",
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([".local/**", "work/**", ".next/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);

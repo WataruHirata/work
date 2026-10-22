@@ -1,4 +1,6 @@
 import "server-only";
+import { executeMysqlCampaign } from "./campaigns";
+import { executeMysqlInstruction } from "./instructions";
 import { randomUUID, scryptSync, timingSafeEqual, createHmac, createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import type {
@@ -135,6 +137,10 @@ export class MysqlRepository implements BusinessRepository {
     const globalRoles = ["information_systems", "product_office", "store_operations", "accounting"];
     const clauses: string[] = [];
     const values: unknown[] = [];
+    if (resource === "notifications") {
+      clauses.push("user_id=?");
+      values.push(session.userId);
+    }
     if (options.correctionId && resource === "corrections") {
       clauses.push("id=?");
       values.push(options.correctionId);
@@ -163,6 +169,17 @@ export class MysqlRepository implements BusinessRepository {
           .slice(0, 100)
           .toLowerCase()}%`,
       );
+    }
+    if (
+      ["stores", "areas"].includes(resource) &&
+      !session.roles.some((role) => globalRoles.includes(role))
+    ) {
+      clauses.push(
+        resource === "stores"
+          ? "EXISTS (SELECT 1 FROM user_role_assignments ura WHERE ura.user_id=? AND (ura.store_id=stores.id OR ura.area_id=stores.area_id))"
+          : "EXISTS (SELECT 1 FROM user_role_assignments ura LEFT JOIN stores assigned_store ON assigned_store.id=ura.store_id WHERE ura.user_id=? AND (ura.area_id=areas.id OR assigned_store.area_id=areas.id))",
+      );
+      values.push(session.userId);
     }
     if (spec.scoped && !session.roles.some((role) => globalRoles.includes(role))) {
       clauses.push(
@@ -361,15 +378,17 @@ export class MysqlRepository implements BusinessRepository {
           throw new Error("有効な端末が見つかりません。");
         return null;
       }
+      case "sendInstruction":
+      case "confirmInstruction": {
+        return mysqlTransaction((db) => executeMysqlInstruction(db, session, command, input));
+      }
+      case "createCampaign":
+      case "editCampaign":
+      case "publishCampaign":
+      case "confirmCampaign":
+      case "updateCampaignTask":
       case "changeCampaignEligibility": {
-        if (!session.roles.includes("product_office")) throw new Error("商品部権限が必要です。");
-        const [result] = await mysqlPool().execute(
-          "UPDATE campaign_items item JOIN campaigns campaign ON campaign.id=item.campaign_id JOIN products product ON product.id=item.product_id SET item.eligibility_status=product.promotion_eligibility WHERE item.id=? AND campaign.status='draft'",
-          [input.p_campaign_item_id],
-        );
-        if (!(result as { affectedRows: number }).affectedRows)
-          throw new Error("編集中の特売商品が見つかりません。");
-        return null;
+        return mysqlTransaction((db) => executeMysqlCampaign(db, session, command, input));
       }
       case "retryJob": {
         if (!session.roles.some((role) => ["information_systems", "product_office"].includes(role)))

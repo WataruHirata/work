@@ -12,6 +12,7 @@ function errorMessage(error: unknown) {
 function refresh() {
   revalidatePath("/admin/campaigns");
   revalidatePath("/store/campaigns");
+  revalidatePath("/store/notices");
 }
 function japanTime(raw: FormDataEntryValue | null): string {
   if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw))
@@ -65,12 +66,14 @@ export async function publishCampaignDraftAction(
 ): Promise<CampaignActionState> {
   try {
     await requireRoles(["product_office"]);
+    if (data.get("confirmed") !== "true")
+      throw new Error("期間・商品・価格・対象店舗を確認してください。");
     await repository().execute("publishCampaign", {
       p_campaign_id: uuid(data.get("campaignId")),
     });
     refresh();
     return {
-      success: "対象店舗へ公開しました。POS連携の結果は店舗別状況で確認できます。",
+      success: "対象店舗のお知らせへPOS・値札の変更依頼を送信しました。",
     };
   } catch (error) {
     return { error: errorMessage(error) };
@@ -87,6 +90,7 @@ export async function updateCampaignProgressAction(
     if (
       ![
         "confirmed",
+        "pos_changed",
         "price_label_changed",
         "pop_changed",
         "display_changed",

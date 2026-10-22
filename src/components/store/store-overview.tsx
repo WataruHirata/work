@@ -1,3 +1,5 @@
+"use client";
+
 import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
 import { StateBadge } from "@/components/ui/state-badge";
 

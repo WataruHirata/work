@@ -63,3 +63,23 @@
 python -m unittest discover -s tests -v
 npm test
 ```
+
+管理トップの `src/app/admin/page.test.ts` は申請・承認を除く管理9機能の初期表示、申請・承認ボタンの非表示、通知本文の重複非表示を検証する。`src/components/notifications/admin-notifications.test.ts` は全通知の取得・未読件数・取得失敗・未接続状態を検証する（FR-028/029、AT-10）。
+
+特売指示は `src/components/campaigns/instruction-workspace.test.ts` で店舗お知らせに商品・期間・価格、POS変更と商品値札変更の個別タスクが表示されることを検証する。`src/server/actions/campaigns.test.ts`、`tests/database-schema.test.ts`、`tests/mysql-campaigns.integration.test.ts` で担当店舗のPOS手動確認と値札完了の認可・保存・監査境界を検証する（FR-020/029、AT-07/10）。
+
+2026-10-22 特売指示のEdge（ヘッドレス実ブラウザ）確認: 1440×1000の管理画面で商品・開始日時・終了日時・価格・対象店舗の入力欄が初期表示されることを確認した。1280×1000と390×844の店舗お知らせで、商品・価格・期間を含む「POS・商品値札の変更依頼」、POS変更と商品値札変更の個別完了・取消、横スクロールなし、JavaScript例外なしを確認した。証跡は `.local/design-check/campaign-ideal-*.png` と `campaign-ideal-results.json`（Git対象外）。
+
+2026-10-22 管理トップのEdge（ヘッドレス実ブラウザ）確認: 架空デモ利用者でログインし、1440×900、1280×800、768×1024、390×844、640×400（1280×800の200%表示相当のCSS表示領域）を確認。全幅で横スクロール・ボタン文字のはみ出しなし、管理機能と通知の上下順を確認。PC幅では管理機能が初期画面内に収まる。Tab移動、3pxのフォーカス枠、JavaScript例外なしを確認。狭幅で本文を圧迫していたサイドバーは管理トップの700px以下で本文の後ろに配置する。申請・承認ボタン削除後は、1440×900でカード9個、申請・承認カード0個、特売管理カードから `/admin/campaigns` への遷移、横スクロールなし、JavaScript例外なしを再確認した。証跡は `.local/design-check/`（ローカル保存、Git対象外）。実ブラウザのズーム操作・画面読み上げは未検証。
+
+管理画面追加分（FR-005/006/020/028/029、AT-03/07/10）: `sales-report.test.ts` は整数金額・巨大金額・返品負額・客数ゼロ・日付・不正値、`sales-workspace.test.ts` は担当範囲・絞り込み・認可前取得禁止・失敗/空状態を検証する。`campaign-list.test.ts` と `campaign-workspace.test.ts` は20件超の一覧・複合絞り込み・対象店舗・管理ロール・認可前取得禁止を検証する。既存の特売更新・公開制約は `tests/connected-workspaces.test.ts` を利用する。
+
+MySQL実DB試験は `MINORIYA_MYSQL_TEST=1` を明示して `node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/mysql-campaigns.integration.test.ts` を実行する。通常の `npm test` では実DB試験はskipする。架空の利用者・店舗・商品・特売だけをトランザクション内に作成し、成功/失敗ともロールバックする。2026-10-22実行時は7件成功（作成/監査、権限・入力拒否、競合編集、対象区分/公開通知、重複期間、担当店舗作業、指示の再送重複排除/確認）。画面・通知・集計の関連単体テスト22件も成功。既存 `tests/connected-workspaces.test.ts` は初期化時のSQL `@` 構文エラーで失敗し11件未実行、既存UIトークン検査の `--space-14px` 未定義も別途残る。
+
+Edge実ブラウザでは通知ボタンの初期閉状態・開く/閉じる・Esc・フォーカス復帰、売上の店舗/期間絞り込みと詳細、特売の名称/状態絞り込み・空状態・下書き保存/編集を確認した。管理トップ・売上・特売の390px幅で横はみ出しなく通知一覧を開けることを確認した。下書き確認用の架空データはローカルデモDBに保存し、本番送信・POS価格変更は実行していない。画面キャプチャ/実行結果は `.local/design-check/` に保存する。
+
+2026-10-22 特売→店舗の実ブラウザ受入確認: ローカルの架空デモ商品で2026/12/10 09:00～12/12 22:00・123円の特売を作成し、対象区分確認→送信内容確認→POS・値札変更依頼送信→店長で `/store/notices` を開く→店舗確認、まで成功。価格・開始/終了日時・POSと値札の依頼文を確認し、JavaScript例外は0件。証跡は `.local/design-check/campaign-e2e-results.json`、`store-change-request.png`。追加の `campaign-change-requests.test.ts` と `campaigns.test.ts` はPostgreSQLの通知内容/対象/複数商品/再更新時の重複防止と送信確認の必須化を検証し3件成功。MySQL実DBの7件も更新した依頼内容で成功。
+
+クローン先ブランチでの最終検証：format:check、lint、typecheck、build、関連25件のテスト、要件追跡5件が成功。MySQL実DB試験7件も同一コードで成功。PGliteのWASM初期化を含む単一DB試験だけ20秒の制限を設定し、ビルドとの並行実行で既定5秒を超える環境に対応した。既存の全体DB初期化SQLエラーとCSSトークン未定義は前述の通り残る。
+
+マージ後の検証は、別Gitリポジトリの `work/` とローカル作業・生成物の `.local/` をTypeScript・ESLint・整形チェックの対象から除外する。各リポジトリをそのルートで個別に検証し、入れ子の別版ソースと生成物を混在させない。

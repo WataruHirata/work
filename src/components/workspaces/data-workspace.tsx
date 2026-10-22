@@ -302,7 +302,12 @@ export async function DataWorkspace({
       {feature === "storeNotices" && (
         <section className="page-panel">
           {noticeStoreId ? (
-            <InstructionWorkspace storeId={noticeStoreId} />
+            <InstructionWorkspace
+              storeId={noticeStoreId}
+              canRecordStoreWork={roles.some((role) =>
+                ["store_manager", "department_lead", "staff"].includes(role),
+              )}
+            />
           ) : (
             <p className="empty-state">表示できる登録店舗がありません。</p>
           )}

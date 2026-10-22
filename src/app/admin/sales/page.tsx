@@ -1,7 +1,7 @@
-import { DataWorkspace, type WorkspaceSearch } from "@/components/workspaces/data-workspace";
+﻿import { SalesWorkspace, type SalesSearch } from "@/components/sales/sales-workspace";
 import { requireAdminFeature } from "@/server/auth/admin-access";
 
-export default async function Page({ searchParams }: { searchParams: Promise<WorkspaceSearch> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<SalesSearch> }) {
   await requireAdminFeature("sales");
-  return <DataWorkspace feature="sales" search={await searchParams} />;
+  return <SalesWorkspace search={await searchParams} />;
 }

@@ -399,6 +399,29 @@ export const responsiveStyles = `@media (max-width: 1180px) {
   }
 }
 @media (max-width: 700px) {
+  .global-shell {
+    flex-direction: column;
+  }
+  .global-shell > .global-sidebar {
+    order: 1;
+    position: static;
+    width: 100%;
+    height: auto;
+    flex-basis: auto;
+  }
+  .global-shell > .global-main {
+    width: 100%;
+  }
+  .admin-menu-panel .admin-menu-grid {
+    grid-template-columns: 1fr;
+  }
+  .global-shell .page-topbar {
+    height: auto;
+    min-height: var(--size-54px);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+  }
   .page-grid,
   .page-grid.double,
   .stat-row,
