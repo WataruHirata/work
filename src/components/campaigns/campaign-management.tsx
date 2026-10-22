@@ -46,7 +46,6 @@ type CampaignView = {
   }[];
 };
 type Props = {
-  instructionPanel?: ReactNode;
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
@@ -396,7 +395,6 @@ function eligibilityLabel(value: string) {
 }
 
 export function CampaignManagement({
-  instructionPanel,
   isConfigured,
   canManage,
   canRecordStoreWork = false,

@@ -42,7 +42,7 @@ const roleFeatures: Record<string, readonly AdminFeature[]> = {
   store_operations: ["sales", "products", "campaigns", "orders", "approvals"],
   accounting: ["sales", "approvals", "monthly"],
   product_office: ["sales", "products", "campaigns"],
-  information_systems: ["stores", "imports", "users", "audit"],
+  information_systems: ["stores", "imports", "users", "audit", "campaigns"],
 };
 
 export function canUseAdminFeature(roles: readonly string[], feature: AdminFeature): boolean {

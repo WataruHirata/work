@@ -1,15 +1,18 @@
 ﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({ authorize: vi.fn(), records: vi.fn(), session: vi.fn() }));
 vi.mock("@/server/auth/admin-access", () => ({ requireAdminFeature: mocks.authorize }));
 vi.mock("@/server/container", () => ({
   backendConfigured: () => true,
   identity: () => ({ session: mocks.session }),
 }));
-vi.mock("@/server/queries/workspaces", () => ({ allRecords: mocks.records }));
-vi.mock("@/components/campaigns/campaign-management", () => ({ CampaignManagement: () => null }));
-vi.mock("@/components/campaigns/instruction-workspace", () => ({
-  InstructionWorkspace: () => null,
+vi.mock("@/server/queries/workspaces", () => ({
+  allRecords: mocks.records,
+  featureResources: {
+    campaigns: ["campaigns", "campaignItems", "campaignTargets", "campaignTasks"],
+  },
 }));
+vi.mock("@/components/campaigns/campaign-management", () => ({ CampaignManagement: () => null }));
 vi.mock("@/components/preview/preview-workspace", () => ({ PreviewWorkspace: () => null }));
 import { CampaignWorkspace } from "@/components/campaigns/campaign-workspace";
 describe("特売画面 FR-020/028 AT-07/10", () => {
@@ -47,9 +50,23 @@ describe("特売画面 FR-020/028 AT-07/10", () => {
     const result = await CampaignWorkspace({});
     expect(result.props.children.props.canManage).toBe(false);
   });
+  it("店舗の特売画面にはお知らせ用の作業依頼パネルを重複表示しない", async () => {
+    mocks.session.mockResolvedValue({ active: true, roles: ["store_manager"] });
+    const result = await CampaignWorkspace({ storeMode: true, storeId: "store1" });
+    expect(result.props).not.toHaveProperty("instructionPanel");
+    expect(result.props.basePath).toBe("/store/campaigns");
+  });
   it("権限確認前に業務データを取得しない", async () => {
     mocks.authorize.mockRejectedValue(new Error("denied"));
     await expect(CampaignWorkspace({})).rejects.toThrow("denied");
     expect(mocks.records).not.toHaveBeenCalled();
+  });
+  it("特売データの取得失敗を空画面にせず再試行案内にする", async () => {
+    mocks.records.mockRejectedValue(new Error("database unavailable"));
+    const html = renderToStaticMarkup(await CampaignWorkspace({}));
+    expect(html).toContain("特売情報を読み込めませんでした");
+    expect(html).toContain("データベース接続と特売用マイグレーション");
+    expect(html).toContain('href="/admin/campaigns"');
+    expect(html).not.toContain("database unavailable");
   });
 });

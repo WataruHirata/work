@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdminFeature } from "@/server/auth/admin-access";
 import { CampaignManagement, type CampaignTask } from "@/components/campaigns/campaign-management";
+import { FeatureNotice } from "@/components/ui/feature-notice";
+import { PageLayout } from "@/components/ui/page-layout";
 import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
