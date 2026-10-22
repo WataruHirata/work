@@ -2,6 +2,7 @@ import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
 import { storeSummary } from "@/domain/store-summary";
 import type { Json } from "@/domain/contracts";
 import { StateBadge } from "@/components/ui/state-badge";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
 export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json> }) {
   const summary = storeSummary(snapshot);
   const yen = (value: number) => `¥${Math.round(value).toLocaleString("ja-JP")}`;
@@ -11,17 +12,15 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
   const y = (value: number) => 220 - (value / max) * 180;
   const points = summary.days.map((day, index) => `${x(index)},${y(day.sales)}`).join(" ");
   return (
-    <div className="content store-overview">
+    <div className="content">
       <section className="page-heading">
         <div>
           <p className="eyebrow">STORE OVERVIEW</p>
           <h2>{summary.storeName}</h2>
           <p>直近営業日 {summary.latest?.date ?? "データなし"} · 税込売上</p>
         </div>
-        {summary.latest ? (
+        {summary.latest && summary.latest.status !== "imported" && (
           <StateBadge state={summary.latest.status} />
-        ) : (
-          <StateBadge state="not_configured" label="未取込" />
         )}
       </section>
       <section className="metrics-grid" aria-label="接続店舗の営業指標">
@@ -94,31 +93,24 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
                 </g>
               ))}
             </svg>
-            <div className="workspace-table">
-              <table className="data-table">
-                <caption>DBに保存された営業日別データ（税込・円）</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">営業日</th>
-                    <th scope="col">売上</th>
-                    <th scope="col">客数</th>
-                    <th scope="col">状態</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.days.map((day) => (
-                    <tr key={day.date}>
-                      <th scope="row">{day.date}</th>
-                      <td>{yen(day.sales)}</td>
-                      <td>{day.customers}</td>
-                      <td>
-                        <StateBadge state={day.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CollapsibleTable
+              caption="DBに保存された営業日別データ（税込・円）"
+              head={
+                <tr>
+                  <th scope="col">営業日</th>
+                  <th scope="col">売上</th>
+                  <th scope="col">客数</th>
+                </tr>
+              }
+            >
+              {summary.days.map((day) => (
+                <tr key={day.date}>
+                  <th scope="row">{day.date}</th>
+                  <td>{yen(day.sales)}</td>
+                  <td>{day.customers}</td>
+                </tr>
+              ))}
+            </CollapsibleTable>
           </>
         ) : (
           <p>まだ売上データが取り込まれていません。</p>

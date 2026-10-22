@@ -49,16 +49,17 @@ export class MysqlIdentity implements IdentityProvider {
       })[]
     >("SELECT display_name,active,must_change_password FROM app_users WHERE id=?", [userId]);
     if (!users[0]) return null;
-    const [roles] = await mysqlPool().execute<(RowDataPacket & { role: string })[]>(
-      "SELECT role FROM user_role_assignments WHERE user_id=?",
-      [userId],
-    );
+    const [roles] = await mysqlPool().execute<
+      (RowDataPacket & { role: string; store_id: string | null; area_id: string | null })[]
+    >("SELECT role,store_id,area_id FROM user_role_assignments WHERE user_id=?", [userId]);
     return {
       userId,
       displayName: users[0].display_name,
       active: Boolean(users[0].active),
       mustChangePassword: Boolean(users[0].must_change_password),
       roles: roles.map(({ role }) => role),
+      storeIds: [...new Set(roles.flatMap(({ store_id }) => (store_id ? [store_id] : [])))],
+      areaIds: [...new Set(roles.flatMap(({ area_id }) => (area_id ? [area_id] : [])))],
     };
   }
   async signIn(email: string, password: string) {
@@ -145,6 +146,18 @@ export class MysqlRepository implements BusinessRepository {
     }
     if (options.storeId && spec.scoped) {
       clauses.push("store_id=?");
+      values.push(options.storeId);
+    }
+    if (options.storeId && resource === "corrections") {
+      clauses.push(
+        "EXISTS (SELECT 1 FROM sales_days scoped_sales WHERE scoped_sales.id=sales_corrections.sales_day_id AND scoped_sales.store_id=?)",
+      );
+      values.push(options.storeId);
+    }
+    if (options.storeId && resource === "orderLines") {
+      clauses.push(
+        "EXISTS (SELECT 1 FROM orders scoped_order WHERE scoped_order.id=order_lines.order_id AND scoped_order.store_id=?)",
+      );
       values.push(options.storeId);
     }
     if (options.from && spec.dated) {
@@ -381,6 +394,87 @@ export class MysqlRepository implements BusinessRepository {
         if (!(result as { affectedRows: number }).affectedRows)
           throw new Error("再実行できる失敗ジョブが見つかりません。");
         return null;
+      }
+      case "createOrder": {
+        if (
+          !session.roles.some((role) =>
+            ["staff", "department_lead", "store_manager"].includes(role),
+          )
+        )
+          throw new Error("発注を登録する権限がありません。");
+        const storeId = String(input.p_store_id ?? "");
+        const departmentId = String(input.p_department_id ?? "");
+        const deliveryDate = String(input.p_delivery_date ?? "");
+        const rawItems = input.p_items;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(deliveryDate) || !Array.isArray(rawItems))
+          throw new Error("発注内容が不正です。");
+        const items = rawItems.map((line) => {
+          if (!line || typeof line !== "object" || Array.isArray(line))
+            throw new Error("発注明細が不正です。");
+          const productId = String(line.product_id ?? "");
+          const quantity = Number(line.quantity);
+          if (
+            !/^[0-9a-f-]{36}$/i.test(productId) ||
+            !Number.isInteger(quantity) ||
+            quantity < 1 ||
+            quantity > 99999
+          )
+            throw new Error("発注明細が不正です。");
+          return { productId, quantity };
+        });
+        if (
+          !items.length ||
+          items.length > 500 ||
+          new Set(items.map((item) => item.productId)).size !== items.length
+        )
+          throw new Error("発注明細が不正です。");
+        return mysqlTransaction(async (db) => {
+          const [assignments] = await db.execute<RowDataPacket[]>(
+            "SELECT 1 FROM user_role_assignments WHERE user_id=? AND store_id=? AND (role='store_manager' OR (role IN ('staff','department_lead') AND department_id=?)) LIMIT 1",
+            [session.userId, storeId, departmentId],
+          );
+          if (!assignments.length) throw new Error("指定店舗・部門への発注権限がありません。");
+          const [departments] = await db.execute<RowDataPacket[]>(
+            "SELECT 1 FROM store_departments WHERE id=? AND store_id=? AND active=1",
+            [departmentId, storeId],
+          );
+          if (!departments.length) throw new Error("指定部門が見つかりません。");
+          const pricedItems: {
+            productId: string;
+            quantity: number;
+            unitPriceYen: number;
+            lineTotalYen: number;
+          }[] = [];
+          for (const item of items) {
+            const [products] = await db.execute<(RowDataPacket & { price_yen: number | null })[]>(
+              "SELECT price.price_yen FROM products product JOIN store_products stock ON stock.product_id=product.id AND stock.store_id=? AND stock.active=1 LEFT JOIN product_prices price ON price.id=(SELECT candidate.id FROM product_prices candidate WHERE candidate.product_id=product.id AND (candidate.store_id=? OR candidate.store_id IS NULL) AND candidate.valid_from<=CURRENT_TIMESTAMP(3) AND (candidate.valid_until IS NULL OR candidate.valid_until>CURRENT_TIMESTAMP(3)) ORDER BY (candidate.store_id IS NOT NULL) DESC,candidate.valid_from DESC LIMIT 1) WHERE product.id=? AND product.active=1",
+              [storeId, storeId, item.productId],
+            );
+            const unitPriceYen = Number(products[0]?.price_yen);
+            if (!Number.isSafeInteger(unitPriceYen) || unitPriceYen < 0)
+              throw new Error("発注可能な価格がない商品が含まれています。");
+            pricedItems.push({ ...item, unitPriceYen, lineTotalYen: unitPriceYen * item.quantity });
+          }
+          const orderId = randomUUID();
+          const total = pricedItems.reduce((sum, item) => sum + item.lineTotalYen, 0);
+          await db.execute(
+            "INSERT INTO orders(id,store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by) VALUES(?,?,?,CURRENT_DATE,?,?,'draft',?)",
+            [orderId, storeId, departmentId, deliveryDate, total, session.userId],
+          );
+          for (const item of pricedItems)
+            await db.execute(
+              "INSERT INTO order_lines(id,order_id,product_id,quantity,unit_price_yen,line_total_yen) VALUES(?,?,?,?,?,?)",
+              [
+                randomUUID(),
+                orderId,
+                item.productId,
+                item.quantity,
+                item.unitPriceYen,
+                item.lineTotalYen,
+              ],
+            );
+          return orderId;
+        });
       }
       default:
         throw new Error(`MySQL移植対象の業務トランザクションが未実装です: ${command}`);

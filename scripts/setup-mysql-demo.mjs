@@ -56,6 +56,29 @@ const prefixes = {
 };
 const fid = (kind, index) => `${prefixes[kind]}-0000-4000-8000-${String(index).padStart(12, "0")}`;
 const externalId = (prefix, index) => `${prefix}-0000-4000-8000-${String(index).padStart(12, "0")}`;
+// UIの一覧、グラフ、改行、ページ送りを確認できるよう、基準fixtureの5倍を作る。
+const scaleStoreCount = 60;
+const scaleProductCount = 120;
+const scaleSalesDaysPerStore = 30;
+const scaleStoreAreas = ["北", "東", "西", "南", "中央", "湾岸", "山間", "駅前"];
+const scaleStoreFormats = ["食品館", "駅前店", "郊外大型店", "モール店", "24時間店", "小型店"];
+const scaleProductNames = [
+  "国産素材を使った週末限定の大容量ファミリー向け詰め合わせセット",
+  "毎日の食卓に便利な小分けパック",
+  "冷凍保存できる業務用サイズ",
+  "季節限定・数量限定の特別仕様商品",
+  "アレルゲン表示と原材料表示を確認するための商品名が長いサンプル（オンライン注文・店舗受取対応）",
+  "朝食向け",
+  "深夜便対応の店舗限定商品",
+  "まとめ買い対象・ケース販売対応商品",
+];
+const departmentForStore = (storeNumber, variant = 0) => {
+  if (storeNumber === 1) return fid("department", variant + 1);
+  if (storeNumber === 2) return fid("department", 4);
+  if (storeNumber === 3) return fid("department", 5);
+  if (storeNumber === 4) return fid("department", 6 + variant);
+  return fid("department", 100 + (storeNumber - 5) * 2 + variant);
+};
 const passwordHash = scryptSync(
   "Demo!4f415f02764eedff91f594ee05862d5e877ba9",
   "minoriya-local-mysql-auth",
@@ -114,16 +137,71 @@ try {
       [id, areaId, code, name, "Asia/Tokyo", status, dineIn, "2024-04-01"],
     );
   }
+  for (let storeNumber = 5; storeNumber <= scaleStoreCount; storeNumber += 1) {
+    const areaNumber = storeNumber % 2 === 0 ? 1 : 2;
+    const status =
+      storeNumber % 13 === 0 ? "closed" : storeNumber % 7 === 0 ? "temporarily_closed" : "active";
+    const openingTime = ["06:00", "08:00", "09:00", "10:00"][storeNumber % 4];
+    const closingTime = ["21:00", "22:30", "23:00", "23:30"][storeNumber % 4];
+    const businessDayStartsAt = ["21:30", "22:30", "00:00"][storeNumber % 3];
+    await q(
+      "INSERT INTO stores(id,area_id,code,name,timezone,opening_time,closing_time,business_day_starts_at,status,has_dine_in,opened_on) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE area_id=VALUES(area_id),name=VALUES(name),opening_time=VALUES(opening_time),closing_time=VALUES(closing_time),business_day_starts_at=VALUES(business_day_starts_at),status=VALUES(status),has_dine_in=VALUES(has_dine_in),opened_on=VALUES(opened_on)",
+      [
+        fid("store", storeNumber),
+        fid("area", areaNumber),
+        `DEMO-${String(storeNumber).padStart(3, "0")}`,
+        `架空みのり${scaleStoreAreas[storeNumber % scaleStoreAreas.length]}${scaleStoreFormats[storeNumber % scaleStoreFormats.length]} ${String(storeNumber).padStart(3, "0")}`,
+        "Asia/Tokyo",
+        openingTime,
+        closingTime,
+        businessDayStartsAt,
+        status,
+        storeNumber % 3 === 0 ? 1 : 0,
+        `202${storeNumber % 5}-04-01`,
+      ],
+    );
+  }
   for (const row of departments) {
     await q(
       "INSERT INTO store_departments(id,store_id,code,name,active) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),code=VALUES(code),name=VALUES(name),active=VALUES(active)",
       row,
     );
   }
+  for (let storeNumber = 4; storeNumber <= scaleStoreCount; storeNumber += 1) {
+    const firstDepartment = storeNumber === 4 ? 6 : 100 + (storeNumber - 5) * 2;
+    for (let variant = 0; variant < 2; variant += 1) {
+      await q(
+        "INSERT INTO store_departments(id,store_id,code,name,active) VALUES(?,?,?,?,1) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),code=VALUES(code),name=VALUES(name),active=VALUES(active)",
+        [
+          fid("department", firstDepartment + variant),
+          fid("store", storeNumber),
+          variant ? "FIXTURE-GROCERY" : "FIXTURE-DELI",
+          variant ? "食品" : "惣菜",
+        ],
+      );
+    }
+  }
   for (const row of products) {
     await q(
       "INSERT INTO products(id,code,name,category_code,tax_rate,active,promotion_eligibility) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE code=VALUES(code),name=VALUES(name),category_code=VALUES(category_code),tax_rate=VALUES(tax_rate),active=VALUES(active),promotion_eligibility=VALUES(promotion_eligibility)",
       row,
+    );
+  }
+  const scaleCategories = ["DELI", "GROCERY", "DRINK", "HOME", "FROZEN", "DAIRY"];
+  const eligibilityStates = ["eligible", "excluded", "not_configured"];
+  for (let productNumber = 7; productNumber <= scaleProductCount; productNumber += 1) {
+    const category = scaleCategories[productNumber % scaleCategories.length];
+    await q(
+      "INSERT INTO products(id,code,name,category_code,tax_rate,active,promotion_eligibility) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE code=VALUES(code),name=VALUES(name),category_code=VALUES(category_code),tax_rate=VALUES(tax_rate),active=VALUES(active),promotion_eligibility=VALUES(promotion_eligibility)",
+      [
+        fid("product", productNumber),
+        `FIXTURE-SCALE-${String(productNumber).padStart(3, "0")}`,
+        `架空 ${scaleProductNames[productNumber % scaleProductNames.length]} ${String(productNumber).padStart(3, "0")}`,
+        category,
+        productNumber % 4 === 0 ? 10 : 8,
+        productNumber % 11 === 0 ? 0 : 1,
+        eligibilityStates[productNumber % eligibilityStates.length],
+      ],
     );
   }
   for (const [id, employeeCode, name, affiliation, active, changePassword] of users) {
@@ -299,6 +377,78 @@ try {
     }
   }
 
+  const scaleLineTypes = ["sale", "discount", "void", "return"];
+  for (let storeNumber = 1; storeNumber <= scaleStoreCount; storeNumber += 1) {
+    for (let dayNumber = 0; dayNumber < scaleSalesDaysPerStore; dayNumber += 1) {
+      const date = new Date(Date.UTC(2026, 5, dayNumber + 1)).toISOString().slice(0, 10);
+      const sequence = (storeNumber - 1) * scaleSalesDaysPerStore + dayNumber;
+      const stateIndex = (storeNumber + dayNumber) % 10;
+      const status =
+        stateIndex < 3 ? "imported" : stateIndex < 8 ? "confirmed" : "monthly_finalized";
+      const confirmedAt = status === "imported" ? null : `${date} 23:30:00.000`;
+      const finalizedAt = status === "monthly_finalized" ? `${date} 23:50:00.000` : null;
+      const gross =
+        78000 + storeNumber * 9413 + dayNumber * 2371 + ((storeNumber * dayNumber * 37) % 19000);
+      const net = Math.floor(gross * (0.84 + ((storeNumber + dayNumber) % 10) / 100));
+      const dayId = 10000 + sequence;
+      await q(
+        "INSERT INTO sales_days(id,store_id,business_date,status,gross_sales_yen,net_sales_yen,transaction_count,customer_count,imported_at,confirmed_by,confirmed_at,monthly_finalized_by,monthly_finalized_at,import_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),business_date=VALUES(business_date),status=VALUES(status),gross_sales_yen=VALUES(gross_sales_yen),net_sales_yen=VALUES(net_sales_yen),transaction_count=VALUES(transaction_count),customer_count=VALUES(customer_count),imported_at=VALUES(imported_at),confirmed_by=VALUES(confirmed_by),confirmed_at=VALUES(confirmed_at),monthly_finalized_by=VALUES(monthly_finalized_by),monthly_finalized_at=VALUES(monthly_finalized_at),import_id=VALUES(import_id)",
+        [
+          fid("salesDay", dayId),
+          fid("store", storeNumber),
+          date,
+          status,
+          gross,
+          net,
+          90 + ((storeNumber * 19 + dayNumber * 13) % 520),
+          65 + ((storeNumber * 11 + dayNumber * 7) % 430),
+          `${date} 23:00:00.000`,
+          confirmedAt ? fid("user", 3) : null,
+          confirmedAt,
+          finalizedAt ? fid("user", 8) : null,
+          finalizedAt,
+          fid("import", 3),
+        ],
+      );
+      for (let lineNumber = 0; lineNumber < 6; lineNumber += 1) {
+        const productNumber =
+          ((storeNumber * 5 + dayNumber * 3 + lineNumber * 7) % scaleProductCount) + 1;
+        const baseProduct = products[productNumber - 1];
+        const category =
+          baseProduct?.[3] ?? scaleCategories[productNumber % scaleCategories.length];
+        const productCode =
+          baseProduct?.[1] ?? `FIXTURE-SCALE-${String(productNumber).padStart(3, "0")}`;
+        const productName =
+          baseProduct?.[2] ??
+          `架空 ${scaleProductNames[productNumber % scaleProductNames.length]} ${String(productNumber).padStart(3, "0")}`;
+        const lineType =
+          scaleLineTypes[(storeNumber + dayNumber + lineNumber) % scaleLineTypes.length];
+        const quantity = 1 + ((storeNumber * 3 + dayNumber + lineNumber * 2) % 12);
+        const amount = Math.floor((900 + productNumber * 137 + dayNumber * 19) * quantity);
+        await q(
+          "INSERT INTO sales_lines(id,sales_day_id,product_id,product_code_snapshot,product_name_snapshot,department_id,quantity,amount_yen,tax_rate,transaction_time,line_type,source_row_key,import_id,receipt_key,receipt_customer_count) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE sales_day_id=VALUES(sales_day_id),product_id=VALUES(product_id),department_id=VALUES(department_id),quantity=VALUES(quantity),amount_yen=VALUES(amount_yen),line_type=VALUES(line_type)",
+          [
+            fid("salesLine", 100000 + sequence * 6 + lineNumber),
+            fid("salesDay", dayId),
+            fid("product", productNumber),
+            productCode,
+            productName,
+            departmentForStore(storeNumber, lineNumber % 2),
+            lineType === "return" ? -quantity : quantity,
+            lineType === "return" || lineType === "void" ? -amount : amount,
+            category === "HOME" ? 10 : 8,
+            `${date} ${String(8 + ((lineNumber * 2 + dayNumber) % 14)).padStart(2, "0")}:${String((lineNumber * 11 + dayNumber * 7) % 60).padStart(2, "0")}:00.000`,
+            lineType,
+            `scale-${storeNumber}-${dayNumber}-${lineNumber}`,
+            fid("import", 3),
+            `SCALE-${storeNumber}-${dayNumber}-${Math.floor(lineNumber / 2)}`,
+            lineNumber % 2 ? 0 : 1,
+          ],
+        );
+      }
+    }
+  }
+
   for (let index = 0; index < 8; index += 1) {
     const storeNumber = index < 4 ? 1 : index < 6 ? 2 : 3;
     const departmentNumber = storeNumber === 1 ? (index % 2) + 1 : storeNumber === 2 ? 4 : 5;
@@ -314,6 +464,26 @@ try {
         "fictional-mysql-demo-v2",
       ],
     );
+  }
+
+  for (let storeNumber = 1; storeNumber <= scaleStoreCount; storeNumber += 1) {
+    for (let productOffset = 0; productOffset < 8; productOffset += 1) {
+      let productNumber = ((storeNumber * 3 + productOffset * 5) % scaleProductCount) + 1;
+      if (storeNumber === 3 && productNumber <= 2) productNumber += 2;
+      const inventoryIndex = (storeNumber - 1) * 8 + productOffset;
+      await q(
+        "INSERT INTO inventory_snapshots(id,store_id,department_id,product_id,quantity,observed_at,source_reference) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),department_id=VALUES(department_id),product_id=VALUES(product_id),quantity=VALUES(quantity),observed_at=VALUES(observed_at),source_reference=VALUES(source_reference)",
+        [
+          fid("inventory", 10000 + inventoryIndex),
+          fid("store", storeNumber),
+          departmentForStore(storeNumber, productOffset % 2),
+          fid("product", productNumber),
+          [0, 0.5, 2, 7, 15, 28, 64, 140][(storeNumber + productOffset) % 8],
+          `2026-06-${String(20 + (storeNumber % 10)).padStart(2, "0")} 07:30:00.000`,
+          `fictional-mysql-scale-${storeNumber}-${productOffset}`,
+        ],
+      );
+    }
   }
 
   const corrections = [
@@ -722,7 +892,7 @@ try {
 
   await db.commit();
   console.log(
-    "MySQL rich demo fixtures ready: 4 stores, 6 products, 8 sales days, and full status variations (fictional records).",
+    `MySQL rich demo fixtures ready: ${scaleStoreCount} stores, ${scaleProductCount} products, ${8 + scaleStoreCount * scaleSalesDaysPerStore} sales days, and ${16 + scaleStoreCount * scaleSalesDaysPerStore * 6} sales lines (fictional records).`,
   );
 } catch (error) {
   await db.rollback();

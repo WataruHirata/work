@@ -55,6 +55,8 @@ export type Session = {
   active: boolean;
   mustChangePassword: boolean;
   roles: string[];
+  storeIds?: string[];
+  areaIds?: string[];
 };
 export type QueryOptions = {
   storeId?: string;

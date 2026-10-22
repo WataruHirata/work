@@ -6,7 +6,6 @@ import { useState, type ReactNode } from "react";
 import {
   ArrowRight,
   ClipboardCheck,
-  LayoutDashboard,
   LogIn,
   Package,
   PanelLeftClose,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { uiConfig } from "@/config/ui";
 import { isAdminPath } from "@/domain/access-policy";
+import { disconnectStation } from "@/server/actions/station";
 import { logout } from "@/server/actions/auth";
 
 const icons = {
@@ -27,7 +27,13 @@ const icons = {
   storeNotices: Bell,
 };
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  stationConnected,
+}: {
+  children: ReactNode;
+  stationConnected: boolean;
+}) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const admin = isAdminPath(pathname);
@@ -47,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {sidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
           </button>
-          <Link className="brand" href="/" aria-label="みのり屋 店舗ポータル">
+          <Link className="brand" href="/" aria-label="みのり屋">
             <span className="brand-mark">
               <ShoppingBasket size={21} />
             </span>
@@ -59,14 +65,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <div className="workspace-label">{admin ? "管理機能" : "店舗機能"}</div>
         <nav className="nav-list" aria-label="店舗機能">
-          <Link
-            className={`nav-item ${pathname === "/" ? "active" : ""}`}
-            href="/"
-            aria-current={pathname === "/" ? "page" : undefined}
-          >
-            <LayoutDashboard size={18} />
-            <span>{uiConfig.pages.dashboard.label}</span>
-          </Link>
           {uiConfig.navigation.map((id) => {
             const page = uiConfig.pages[id];
             const Icon = icons[id];
@@ -85,25 +83,36 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="sidebar-bottom">
-          <Link className="support-card" href={admin ? "/admin" : "/login?next=%2Fadmin"}>
+          <Link className="support-card" href="/login?next=%2Fadmin">
             <span className="support-icon">
               <LogIn size={18} />
             </span>
             <span>
-              <strong>{admin ? uiConfig.pages.admin.label : uiConfig.pages.login.label}</strong>
-              <small>本部・上位権限の機能</small>
+              <strong>権限機能にログイン</strong>
+              <small>個人アカウント</small>
             </span>
             <ArrowRight className="support-arrow" size={15} />
           </Link>
-          <Link className="ghost-button" href="/station">
-            店舗端末の接続
-          </Link>
-          <form action={logout}>
-            <button type="submit" className="ghost-button">
-              個人ログインを終了
-            </button>
-          </form>
-          <p className="muted">通常の店舗メニューはログイン不要です</p>
+          {admin && (
+            <>
+              <form action={logout}>
+                <button type="submit" className="ghost-button station-sidebar-action">
+                  個人ログインを終了
+                </button>
+              </form>
+            </>
+          )}
+          {stationConnected ? (
+            <form action={disconnectStation}>
+              <button type="submit" className="ghost-button station-sidebar-action">
+                店舗端末の登録を解除
+              </button>
+            </form>
+          ) : (
+            <Link className="ghost-button station-sidebar-action" href="/station">
+              店舗端末を登録
+            </Link>
+          )}
         </div>
       </aside>
       <div className="global-main">{children}</div>

@@ -8,6 +8,7 @@ import { PreviewCorrections } from "@/components/preview/preview-corrections";
 import { filterPreviewRows, previewSpecs, type PreviewRow } from "@/mocks/workspaces";
 import { uiConfig, type PageId } from "@/config/ui";
 import { StateBadge } from "@/components/ui/state-badge";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
 
 export function PreviewWorkspace({ feature }: { feature: PageId }) {
   const spec = previewSpecs[feature];
@@ -18,6 +19,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
   const [message, setMessage] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const visible = filterPreviewRows(rows, search, store, status);
+  const hasFilters = !["storeSales", "storeOrders"].includes(feature);
   function addRow(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -48,7 +50,6 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
             未接続機能の操作プレビューです。すべて架空データで、操作は実業務に反映されません。
           </span>
         </div>
-        <p className="muted">データ連携後は、この一覧に担当範囲のデータ・処理結果を表示します。</p>
       </section>
       {feature === "storeOperations" || feature === "approvals" ? (
         <section className="page-panel">
@@ -60,47 +61,49 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
         </section>
       ) : spec ? (
         <>
-          <section className="page-panel">
-            <form className="workspace-fields" onSubmit={(e) => e.preventDefault()}>
-              <label className="field">
-                名称・内容を検索
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="名称・コードを入力"
-                />
-              </label>
-              <label className="field">
-                店舗
-                <select value={store} onChange={(e) => setStore(e.target.value)}>
-                  <option value="">すべて</option>
-                  {[...new Set(rows.map((r) => r.store))].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                状態
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  <option value="">すべて</option>
-                  {[...new Set(rows.map((r) => r.status))].map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setStore("");
-                  setStatus("");
-                }}
-              >
-                絞り込みを解除
-              </button>
-            </form>
-          </section>
+          {hasFilters && (
+            <section className="page-panel">
+              <form className="workspace-fields" onSubmit={(e) => e.preventDefault()}>
+                <label className="field">
+                  名称・内容を検索
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="名称・コードを入力"
+                  />
+                </label>
+                <label className="field">
+                  店舗
+                  <select value={store} onChange={(e) => setStore(e.target.value)}>
+                    <option value="">すべて</option>
+                    {[...new Set(rows.map((r) => r.store))].map((s) => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  状態
+                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <option value="">すべて</option>
+                    {[...new Set(rows.map((r) => r.status))].map((s) => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setStore("");
+                    setStatus("");
+                  }}
+                >
+                  絞り込みを解除
+                </button>
+              </form>
+            </section>
+          )}
           <section className="page-panel">
             <div className="stat-row">
               <div>
@@ -115,51 +118,57 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
                 </strong>
               </div>
             </div>
-            <div className="workspace-table">
-              <table className="data-table">
-                <caption>{uiConfig.pages[feature].label}の表示例</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">{spec.columns[0]}</th>
-                    <th scope="col">店舗</th>
-                    <th scope="col">{spec.columns[1]}</th>
-                    <th scope="col">状態</th>
-                    <th scope="col">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((r) => (
-                    <tr key={r.id}>
-                      <th scope="row">{r.name}</th>
-                      <td>{r.store}</td>
-                      <td>
-                        {r.value.toLocaleString("ja-JP")}
-                        {spec.unit}
-                      </td>
-                      <td>
-                        <StateBadge
-                          state={r.status}
-                          tone={r.status === spec.nextStatus ? "success" : "warning"}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          className="ghost-button"
-                          type="button"
-                          aria-expanded={selected === r.id}
-                          onClick={() => setSelected(selected === r.id ? null : r.id)}
-                        >
-                          {selected === r.id ? "詳細を閉じる" : "詳細"}
-                          <span className="sr-only">：{r.name}</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CollapsibleTable
+              caption={`${uiConfig.pages[feature].label}の表示例`}
+              head={
+                <tr>
+                  <th scope="col">{spec.columns[0]}</th>
+                  <th scope="col">店舗</th>
+                  <th scope="col">{spec.columns[1]}</th>
+                  <th scope="col">状態</th>
+                  <th scope="col">操作</th>
+                </tr>
+              }
+            >
+              {visible.map((r) => (
+                <tr key={r.id}>
+                  <th scope="row">{r.name}</th>
+                  <td>{r.store}</td>
+                  <td>
+                    {r.value.toLocaleString("ja-JP")}
+                    {spec.unit}
+                  </td>
+                  <td>
+                    <StateBadge
+                      state={
+                        feature === "storeSales" && r.status === "締め前"
+                          ? "not_configured"
+                          : r.status
+                      }
+                      label={feature === "storeSales" && r.status === "締め前" ? "—" : undefined}
+                      tone={r.status === spec.nextStatus ? "success" : "warning"}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      aria-expanded={selected === r.id}
+                      onClick={() => setSelected(selected === r.id ? null : r.id)}
+                    >
+                      {selected === r.id ? "詳細を閉じる" : "詳細"}
+                      <span className="sr-only">：{r.name}</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </CollapsibleTable>
             {!visible.length && (
-              <p role="status">条件に一致するデータはありません。絞り込みを変更してください。</p>
+              <p role="status">
+                {hasFilters
+                  ? "条件に一致するデータはありません。絞り込みを変更してください。"
+                  : "表示できるデータはありません。"}
+              </p>
             )}
             {selected &&
               rows

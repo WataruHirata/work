@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { allRecords } from "@/server/queries/workspaces";
 import { InstructionForm, InstructionConfirmation } from "@/components/campaigns/instruction-form";
 import { StateBadge } from "@/components/ui/state-badge";
+import { CollapsibleList } from "@/components/ui/collapsible-list";
 
 export async function InstructionWorkspace({
   canManage = false,
@@ -20,7 +21,6 @@ export async function InstructionWorkspace({
   const visibleInstructions = storeId
     ? instructions.filter((instruction) => targetedInstructionIds.has(instruction.id))
     : instructions;
-  const selectedStore = storeId ? stores.find((store) => store.id === storeId) : undefined;
   const name = (id: unknown, rows: typeof stores) =>
     String(rows.find((row) => row.id === id)?.name ?? "参照権限のない項目");
   const instructionCards = visibleInstructions.map((instruction) => (
@@ -64,10 +64,6 @@ export async function InstructionWorkspace({
         <h2>本部からの特売・価格変更指示</h2>
         <StateBadge state="draft" label={`全${visibleInstructions.length}件`} />
       </div>
-      <p className="muted">
-        指示の通知と店舗確認を管理します。指示価格はPOS・通常売価マスタへの反映結果とは別に表示します。
-      </p>
-      {selectedStore && <p className="muted">対象店舗: {String(selectedStore.name)}</p>}
       {canManage && (
         <details>
           <summary>変更指示を作成する</summary>
@@ -83,13 +79,7 @@ export async function InstructionWorkspace({
         </details>
       )}
       {!visibleInstructions.length && <p>現在、対象の変更指示はありません。</p>}
-      <div className="notice-list">{instructionCards.slice(0, 3)}</div>
-      {instructionCards.length > 3 && (
-        <details className="notice-expander">
-          <summary>全{instructionCards.length}件を表示</summary>
-          <div className="notice-list">{instructionCards.slice(3)}</div>
-        </details>
-      )}
+      <CollapsibleList className="notice-list">{instructionCards}</CollapsibleList>
     </section>
   );
 }

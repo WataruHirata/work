@@ -49,18 +49,9 @@ export default async function StoreFeaturePage({
   return (
     <PageLayout page={page}>
       <FeatureNotice title="店舗端末を接続してください">
-        <p>
-          店舗端末の接続後はログインせず自店舗の情報を参照できます。保存・金額操作は個人ログインで実行します。
-        </p>
         <div className="button-row">
           <Link className="primary-button" href="/station">
             店舗端末の接続
-          </Link>
-          <Link
-            className="ghost-button"
-            href={`/login?next=${encodeURIComponent(uiConfig.pages[page].href)}`}
-          >
-            個人ログイン
           </Link>
         </div>
       </FeatureNotice>

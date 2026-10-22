@@ -105,7 +105,6 @@ export function PreviewCorrections({ mode }: { mode: "store" | "headquarters" | 
       <h2>
         {mode === "headquarters" ? "店舗からの売上修正依頼・通知" : "売上修正依頼と結果のお知らせ"}
       </h2>
-      <p>店舗の申請 → エリア一次承認 → 本部最終承認 → 店舗への結果通知を、同じタブで試せます。</p>
       {mode === "headquarters" ? (
         <label className="field">
           操作する承認段階（デモ）

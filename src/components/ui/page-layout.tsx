@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { uiConfig, type PageId } from "@/config/ui";
+import { MaterialLinkButton } from "@/components/ui/material-link-button";
 
 export function PageLayout({ page, children }: { page: PageId; children: ReactNode }) {
   const { label, title } = uiConfig.pages[page];
@@ -14,10 +14,8 @@ export function PageLayout({ page, children }: { page: PageId; children: ReactNo
           <p className="eyebrow">{label}</p>
           <h1>{title}</h1>
         </div>
-        {page !== "dashboard" && (
-          <Link href={back.href} className="ghost-button">
-            {back.label}へ戻る
-          </Link>
+        {page !== "dashboard" && page !== "storeSales" && (
+          <MaterialLinkButton href={back.href}>{back.label}へ戻る</MaterialLinkButton>
         )}
       </header>
       {children}

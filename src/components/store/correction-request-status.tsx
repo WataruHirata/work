@@ -5,11 +5,9 @@ const yen = (value: unknown) =>
   `${Number(value ?? 0).toLocaleString("ja-JP", { maximumFractionDigits: 0 })}円`;
 
 export function CorrectionRequestStatus({
-  storeName,
   corrections,
   salesDays,
 }: {
-  storeName: string;
   corrections: DataRecord[];
   salesDays: DataRecord[];
 }) {
@@ -24,7 +22,6 @@ export function CorrectionRequestStatus({
       <div className="panel-head">
         <div>
           <h2 id="correction-status-title">売上修正依頼の申請状況</h2>
-          <p className="muted">{storeName}から本部へ申請した変更のみ表示しています。</p>
         </div>
         <StateBadge
           state={pending ? "pending" : "completed"}

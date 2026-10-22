@@ -1,5 +1,6 @@
 "use server";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { repository } from "@/server/container";
 import { stationCookie } from "@/server/auth/store-context";
@@ -23,14 +24,12 @@ export async function connectStation(
       path: "/",
     });
     revalidatePath("/", "layout");
-    return {
-      success: "店舗端末を接続しました。店舗ポータルへ戻ると自店舗のデータを確認できます。",
-    };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "接続できませんでした。",
     };
   }
+  redirect("/");
 }
 export async function disconnectStation() {
   (await cookies()).delete(stationCookie);

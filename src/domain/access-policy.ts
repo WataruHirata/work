@@ -31,6 +31,17 @@ export function hasAdminAccess(roles: readonly string[]): boolean {
   return adminFeatures.some((feature) => canUseAdminFeature(roles, feature));
 }
 
+/** Store pages never accept an unassigned store from the URL for store-level roles. */
+export function resolveStorePageStoreId(
+  roles: readonly string[],
+  assignedStoreIds: readonly string[],
+  requestedStoreId?: string,
+): string | undefined {
+  if (hasAdminAccess(roles)) return requestedStoreId;
+  if (requestedStoreId && assignedStoreIds.includes(requestedStoreId)) return requestedStoreId;
+  return assignedStoreIds[0];
+}
+
 export function isAdminPath(pathname: string): boolean {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }

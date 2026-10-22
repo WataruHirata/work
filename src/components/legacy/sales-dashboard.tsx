@@ -13,9 +13,11 @@ import {
   CloudDownload,
   Package,
   ShoppingBasket,
+  Sun,
   Store,
   TrendingUp,
 } from "lucide-react";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -80,7 +82,7 @@ export function SalesDashboard() {
               <span className="heading-time">· 09:00 更新</span>
             </div>
             <h1>
-              おはようございます<span className="heading-emoji">、</span>
+              おはようございます <Sun className="heading-icon" size={22} aria-hidden="true" />
               <br className="mobile-break" />
               本部スタッフさん
             </h1>
@@ -387,53 +389,50 @@ export function SalesDashboard() {
               全店舗の状況を見る <ArrowRight size={15} />
             </button>
           </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>店舗</th>
-                  <th>店舗コード</th>
-                  <th>最終連携</th>
-                  <th>ステータス</th>
-                  <th>
-                    <span className="sr-only">詳細</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {imports.map((item, index) => (
-                  <tr key={item.code} className={`table-row row-${index}`}>
-                    <td>
-                      <span className="store-avatar">
-                        <Store size={15} />
-                      </span>
-                      <strong>{item.store}</strong>
-                    </td>
-                    <td className="code-cell">{item.code}</td>
-                    <td className="time-cell">{item.time}</td>
-                    <td>
-                      <span
-                        className={`status-badge ${index === 2 ? "needs-attention" : "complete"}`}
-                      >
-                        <i />
-                        {item.state}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="row-action"
-                        aria-label={`${item.store}の詳細を見る`}
-                        onClick={() => goTo("/imports")}
-                      >
-                        <ArrowRight size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <CollapsibleTable
+            className=""
+            containerClassName="table-scroll"
+            head={
+              <tr>
+                <th>店舗</th>
+                <th>店舗コード</th>
+                <th>最終連携</th>
+                <th>ステータス</th>
+                <th>
+                  <span className="sr-only">詳細</span>
+                </th>
+              </tr>
+            }
+          >
+            {imports.map((item, index) => (
+              <tr key={item.code} className={`table-row row-${index}`}>
+                <td>
+                  <span className="store-avatar">
+                    <Store size={15} />
+                  </span>
+                  <strong>{item.store}</strong>
+                </td>
+                <td className="code-cell">{item.code}</td>
+                <td className="time-cell">{item.time}</td>
+                <td>
+                  <span className={`status-badge ${index === 2 ? "needs-attention" : "complete"}`}>
+                    <i />
+                    {item.state}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="row-action"
+                    aria-label={`${item.store}の詳細を見る`}
+                    onClick={() => goTo("/imports")}
+                  >
+                    <ArrowRight size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </CollapsibleTable>
           <div className="table-footer">
             <CircleAlert size={14} />
             <span>この一覧はデモ用の架空データです。実連携は接続設定後に有効になります。</span>

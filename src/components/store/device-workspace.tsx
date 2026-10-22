@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { PageLayout } from "@/components/ui/page-layout";
 import { columnLabels, type PageId } from "@/config/ui";
 import type { Json } from "@/domain/contracts";
 import { StateBadge } from "@/components/ui/state-badge";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
 
 export function DeviceWorkspace({
   feature,
@@ -33,12 +33,6 @@ export function DeviceWorkspace({
     <PageLayout page={feature}>
       <section className="page-panel">
         <p>{store?.name ?? "接続店舗"} · 閲覧用の店舗端末</p>
-        <Link
-          className="ghost-button"
-          href={`/login?next=${encodeURIComponent(feature === "storeSales" ? "/store/operations" : "/store/" + (feature === "storeOrders" ? "orders" : feature === "storeCampaigns" ? "campaigns" : feature === "storeNotices" ? "notices" : "operations"))}`}
-        >
-          個人ログインして操作する
-        </Link>
       </section>
       {groups.map((group) => {
         const rows = (snapshot[group] ?? []) as Record<string, Json>[];
@@ -47,36 +41,37 @@ export function DeviceWorkspace({
           <section key={group} className="page-panel">
             <h2>{titles[group]}</h2>
             {rows.length ? (
-              <div className="workspace-table">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      {columns.map((key) => (
-                        <th key={key} scope="col">
-                          {columnLabels[key] ?? key}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, index) => (
-                      <tr key={index}>
-                        {columns.map((key) => (
-                          <td key={key}>
-                            {key === "status" || key.endsWith("_status") ? (
-                              <StateBadge state={String(row[key])} />
-                            ) : typeof row[key] === "object" && row[key] !== null ? (
-                              JSON.stringify(row[key])
-                            ) : (
-                              String(row[key] ?? "—")
-                            )}
-                          </td>
-                        ))}
-                      </tr>
+              <CollapsibleTable
+                head={
+                  <tr>
+                    {columns.map((key) => (
+                      <th key={key} scope="col">
+                        {columnLabels[key] ?? key}
+                      </th>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </tr>
+                }
+              >
+                {rows.map((row, index) => (
+                  <tr key={index}>
+                    {columns.map((key) => (
+                      <td key={key}>
+                        {key === "status" || key.endsWith("_status") ? (
+                          feature === "storeSales" && row[key] === "imported" ? (
+                            "—"
+                          ) : (
+                            <StateBadge state={String(row[key])} />
+                          )
+                        ) : typeof row[key] === "object" && row[key] !== null ? (
+                          JSON.stringify(row[key])
+                        ) : (
+                          String(row[key] ?? "—")
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </CollapsibleTable>
             ) : (
               <p>対象データはありません。</p>
             )}

@@ -1,5 +1,6 @@
 import { PageLayout } from "@/components/ui/page-layout";
 import { getSalesDaysForList, getStoresForList } from "@/server/queries/compatibility";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
 
 const trendData = {
   day: [42, 58, 51, 66, 62, 81, 74],
@@ -83,8 +84,8 @@ export default async function SalesPage() {
           </div>
         </div>
 
-        <table className="data-table">
-          <thead>
+        <CollapsibleTable
+          head={
             <tr>
               <th>店舗</th>
               <th>営業日</th>
@@ -92,26 +93,25 @@ export default async function SalesPage() {
               <th>客数</th>
               <th>状態</th>
             </tr>
-          </thead>
-          <tbody>
-            {salesRows.map((row) => {
-              const store = storeMap.get(row.store_id);
-              return (
-                <tr key={row.id}>
-                  <td>{store?.name ?? "不明店舗"}</td>
-                  <td>{new Date(row.business_date).toLocaleDateString("ja-JP")}</td>
-                  <td>¥{Number(row.net_sales_yen ?? 0).toLocaleString()}</td>
-                  <td>{Number(row.customer_count ?? 0).toLocaleString()}人</td>
-                  <td>
-                    <span className={`status ${row.status === "confirmed" ? "ok" : "warning"}`}>
-                      {row.status}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          }
+        >
+          {salesRows.map((row) => {
+            const store = storeMap.get(row.store_id);
+            return (
+              <tr key={row.id}>
+                <td>{store?.name ?? "不明店舗"}</td>
+                <td>{new Date(row.business_date).toLocaleDateString("ja-JP")}</td>
+                <td>¥{Number(row.net_sales_yen ?? 0).toLocaleString()}</td>
+                <td>{Number(row.customer_count ?? 0).toLocaleString()}人</td>
+                <td>
+                  <span className={`status ${row.status === "confirmed" ? "ok" : "warning"}`}>
+                    {row.status}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </CollapsibleTable>
       </section>
     </PageLayout>
   );

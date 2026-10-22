@@ -46,4 +46,18 @@ describe("MySQL rich demo fixtures", () => {
     expect(verifier).toContain("read_at IS NOT NULL");
     expect(verifier).toContain('authUser.role !== "information_systems"');
   });
+
+  it("generates a deterministic multi-store, multi-product MySQL scale fixture", async () => {
+    const seed = await readFile("scripts/setup-mysql-demo.mjs", "utf8");
+    const verifier = await readFile("scripts/verify-mysql-demo.mjs", "utf8");
+    expect(seed).toContain("const scaleStoreCount = 60");
+    expect(seed).toContain("const scaleProductCount = 120");
+    expect(seed).toContain("const scaleSalesDaysPerStore = 30");
+    expect(seed).toContain("const scaleProductNames");
+    expect(seed).toContain("const openingTime");
+    expect(seed).toContain("`scale-${storeNumber}-${dayNumber}-${lineNumber}`");
+    expect(verifier).toContain('["sales_lines", "61000000-%", 10800]');
+    expect(verifier).toContain('["inventory_snapshots", "62000000-%", 480]');
+    expect(verifier).toContain("scale_fixture.diversity");
+  });
 });

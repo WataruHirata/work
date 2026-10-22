@@ -1,5 +1,6 @@
 import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
 import { StateBadge } from "@/components/ui/state-badge";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
 
 // Fictional preview only: store identification and production data access are pending.
 const days = [
@@ -28,7 +29,7 @@ const points = days
 
 export function StoreOverview() {
   return (
-    <div className="content store-overview">
+    <div className="content">
       <div className="demo-banner" role="status">
         <span className="demo-badge">SAMPLE</span>
         <span>架空のサンプルデータです。実店舗・POSデータには接続していません。</span>
@@ -136,27 +137,26 @@ export function StoreOverview() {
           </svg>
           <details className="store-data">
             <summary>売上データを表で確認</summary>
-            <div className="table-scroll">
-              <table>
-                <caption>デモ店舗の日次データ（税込・サンプル）</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">営業日（2026年）</th>
-                    <th scope="col">売上（円）</th>
-                    <th scope="col">客数（人）</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {days.map((day) => (
-                    <tr key={day.date}>
-                      <th scope="row">{day.date}</th>
-                      <td>{yen(day.sales)}</td>
-                      <td>{day.customers}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CollapsibleTable
+              className=""
+              containerClassName="table-scroll"
+              caption="デモ店舗の日次データ（税込・サンプル）"
+              head={
+                <tr>
+                  <th scope="col">営業日（2026年）</th>
+                  <th scope="col">売上（円）</th>
+                  <th scope="col">客数（人）</th>
+                </tr>
+              }
+            >
+              {days.map((day) => (
+                <tr key={day.date}>
+                  <th scope="row">{day.date}</th>
+                  <td>{yen(day.sales)}</td>
+                  <td>{day.customers}</td>
+                </tr>
+              ))}
+            </CollapsibleTable>
           </details>
         </article>
         <article className="panel sales-panel">

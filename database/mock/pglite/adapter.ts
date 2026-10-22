@@ -80,13 +80,13 @@ export const tableSpecs: Record<
   orders: {
     table: "orders",
     fields:
-      "id,store_id,department_id,order_date,requested_delivery_date,status,requested_by,updated_at",
+      "id,store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by,updated_at",
     order: "created_at",
     scoped: true,
   },
   orderLines: {
     table: "order_lines",
-    fields: "id,order_id,product_id,quantity",
+    fields: "id,order_id,product_id,quantity,unit_price_yen,line_total_yen",
     order: "created_at",
   },
   inventory: {
@@ -236,6 +236,18 @@ export class LocalRepository implements BusinessRepository {
     if (options.correctionId && resource === "approvals")
       add("correction_id=?", options.correctionId);
     if (options.storeId && spec.scoped) add("store_id=?", options.storeId);
+    if (options.storeId && resource === "corrections") {
+      params.push(options.storeId);
+      predicates.push(
+        `exists (select 1 from public.sales_days scoped_sales where scoped_sales.id=sales_corrections.sales_day_id and scoped_sales.store_id=$${params.length})`,
+      );
+    }
+    if (options.storeId && resource === "orderLines") {
+      params.push(options.storeId);
+      predicates.push(
+        `exists (select 1 from public.orders scoped_order where scoped_order.id=order_lines.order_id and scoped_order.store_id=$${params.length})`,
+      );
+    }
     if (options.from && spec.dated) add(`${spec.dated}>=?`, options.from);
     if (options.to && spec.dated) add(`${spec.dated}<=?`, options.to);
     if (options.search && spec.search)
@@ -319,16 +331,25 @@ export class LocalIdentity implements IdentityProvider {
         userId,
       ]);
       if (!profile.rows[0]) return null;
-      const assignments = await db.query<{ role: string }>(
-        "select role::text from public.user_role_assignments where user_id=$1",
-        [userId],
-      );
+      const assignments = await db.query<{
+        role: string;
+        store_id: string | null;
+        area_id: string | null;
+      }>("select role::text,store_id,area_id from public.user_role_assignments where user_id=$1", [
+        userId,
+      ]);
       return {
         userId,
         displayName: profile.rows[0].display_name,
         active: profile.rows[0].active,
         mustChangePassword: profile.rows[0].must_change_password,
         roles: assignments.rows.map((row) => row.role),
+        storeIds: [
+          ...new Set(assignments.rows.flatMap((row) => (row.store_id ? [row.store_id] : []))),
+        ],
+        areaIds: [
+          ...new Set(assignments.rows.flatMap((row) => (row.area_id ? [row.area_id] : []))),
+        ],
       };
     });
   }

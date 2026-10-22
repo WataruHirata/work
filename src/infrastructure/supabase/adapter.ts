@@ -75,13 +75,13 @@ const tables: Record<
   orders: {
     table: "orders",
     fields:
-      "id,store_id,department_id,order_date,requested_delivery_date,status,requested_by,updated_at",
+      "id,store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by,updated_at",
     order: "created_at",
     scoped: true,
   },
   orderLines: {
     table: "order_lines",
-    fields: "id,order_id,product_id,quantity",
+    fields: "id,order_id,product_id,quantity,unit_price_yen,line_total_yen",
     order: "created_at",
   },
   inventory: {
@@ -293,7 +293,7 @@ export class SupabaseIdentity implements IdentityProvider {
         .select("display_name,active,must_change_password")
         .eq("id", user.id)
         .maybeSingle(),
-      client.from("user_role_assignments").select("role").eq("user_id", user.id),
+      client.from("user_role_assignments").select("role,store_id,area_id").eq("user_id", user.id),
     ]);
     if (error || profile.error || assignments.error)
       throw new Error("利用者情報を確認できません。DBの接続と版を確認してください。");
@@ -303,6 +303,20 @@ export class SupabaseIdentity implements IdentityProvider {
       active: Boolean(profile.data?.active),
       mustChangePassword: Boolean(profile.data?.must_change_password),
       roles: (assignments.data ?? []).map((row: { role: string }) => row.role),
+      storeIds: [
+        ...new Set(
+          (assignments.data ?? []).flatMap((row: { store_id: string | null }) =>
+            row.store_id ? [row.store_id] : [],
+          ),
+        ),
+      ],
+      areaIds: [
+        ...new Set(
+          (assignments.data ?? []).flatMap((row: { area_id: string | null }) =>
+            row.area_id ? [row.area_id] : [],
+          ),
+        ),
+      ],
     };
   }
   async signIn(email: string, password: string) {

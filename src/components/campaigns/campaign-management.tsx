@@ -3,17 +3,9 @@
 import Link from "next/link";
 import { useActionState, useState, type ReactNode } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
+import { MaterialLinkButton } from "@/components/ui/material-link-button";
 import { DraftEditor } from "./draft-editor";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronDown,
-  CircleAlert,
-  Plus,
-  Tag,
-  Store,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "lucide-react";
 import {
   createCampaignDraftAction,
   publishCampaignDraftAction,
@@ -385,7 +377,6 @@ export function CampaignManagement({
   selectedStoreId,
   basePath = "/admin/campaigns",
 }: Props) {
-  const selectedStore = stores.find((store) => store.id === selectedStoreId);
   const [showAllCampaigns, setShowAllCampaigns] = useState(false);
   const [expandedCampaignId, setExpandedCampaignId] = useState<string | null>(null);
   const visibleCampaigns = showAllCampaigns ? campaigns : campaigns.slice(0, 8);
@@ -399,10 +390,7 @@ export function CampaignManagement({
         >
           <ArrowLeft size={16} /> メニューへ戻る
         </Link>
-        <div className={isConfigured ? "campaign-env-pill live" : "campaign-env-pill"}>
-          <span />
-          {isConfigured ? "Supabase接続" : "プレビュー"}
-        </div>
+        <MaterialLinkButton href="/">店舗ポータルへ戻る</MaterialLinkButton>
       </header>
       <div className="campaign-content">
         {!isConfigured ? (
@@ -420,59 +408,26 @@ export function CampaignManagement({
           <div>
             <div className="campaign-eyebrow">PROMOTION OPERATIONS</div>
             <h1>特売管理</h1>
-            <p>POS価格反映と店舗の売場作業を分けて確認します。</p>
           </div>
         </div>
 
-        {isConfigured && !selectedStore ? (
+        {isConfigured && !selectedStoreId ? (
           <div className="campaign-notice" role="status">
             <CircleAlert size={17} />
             <span>参照できる店舗がありません。情報システム部へ権限の割当を依頼してください。</span>
           </div>
         ) : null}
 
-        {isConfigured && selectedStore ? (
-          <form className="campaign-store-filter" action={basePath} method="get">
-            <label htmlFor="campaign-store-select">
-              <Store size={16} /> 作業対象店舗
-            </label>
-            <select id="campaign-store-select" name="store" defaultValue={selectedStoreId}>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.code} · {store.name}
-                </option>
-              ))}
-            </select>
-            <button type="submit">表示</button>
-          </form>
-        ) : null}
-
         {instructionPanel}
         {isConfigured && canManage ? (
           <CampaignDraftForm stores={stores} products={products} />
         ) : null}
-        {isConfigured && !canManage ? (
-          <div className="campaign-note">
-            <CircleAlert size={15} />
-            <span>
-              本部特売の登録・公開は商品本部の権限が必要です。店舗の確認と売場作業は、対象店舗を選択して記録できます。
-            </span>
-          </div>
-        ) : null}
-
         {isConfigured ? (
           <section className="campaign-list-section" aria-labelledby="campaign-list-heading">
             <div className="campaign-list-heading">
-              <div>
-                <div className="campaign-eyebrow">CAMPAIGN TRACKING</div>
-                <h2 id="campaign-list-heading">特売と店舗対応状況</h2>
-                <p>
-                  {selectedStore
-                    ? `${selectedStore.code} · ${selectedStore.name}`
-                    : "対象店舗を選択してください"}{" "}
-                  · 直近20件
-                </p>
-              </div>
+              <h2 id="campaign-list-heading" className="sr-only">
+                特売一覧
+              </h2>
               <span className="campaign-count">{campaigns.length}件</span>
             </div>
 
