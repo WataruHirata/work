@@ -5,12 +5,9 @@ import { backendConfigured, identity } from "@/server/container";
 import { safeAdminReturnPath } from "@/domain/access-policy";
 import type { ActionResult } from "@/domain/contracts";
 
-export async function signIn(
-  data: FormData,
-): Promise<ActionResult & { next?: string }> {
+export async function signIn(data: FormData): Promise<ActionResult & { next?: string }> {
   try {
-    if (!backendConfigured())
-      throw new Error("認証サービスの接続設定がありません。");
+    if (!backendConfigured()) throw new Error("認証サービスの接続設定がありません。");
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
     if (!email || !password || email.length > 254 || password.length > 1024)
@@ -25,8 +22,7 @@ export async function signIn(
     };
   } catch (error) {
     return {
-      error:
-        error instanceof Error ? error.message : "ログインできませんでした。",
+      error: error instanceof Error ? error.message : "ログインできませんでした。",
     };
   }
 }
@@ -40,16 +36,11 @@ export async function changePassword(
     const session = await provider.session();
     if (!session?.active) throw new Error("再度ログインしてください。");
     const password = String(data.get("password") ?? "");
-    if (
-      password.length < 12 ||
-      password.length > 128 ||
-      password !== data.get("confirmation")
-    )
+    if (password.length < 12 || password.length > 128 || password !== data.get("confirmation"))
       throw new Error("12～128文字の同じパスワードを2回入力してください。");
     await provider.changePassword(password);
     return {
-      success:
-        "パスワードを変更しました。店舗ポータルまたは管理メニューへ移動できます。",
+      success: "パスワードを変更しました。店舗ポータルまたは管理メニューへ移動できます。",
     };
   } catch (error) {
     return {
@@ -74,13 +65,11 @@ export async function resetPassword(
       new URL("/auth/callback?next=/account/password", origin).toString(),
     );
     return {
-      success:
-        "登録されている場合、再設定メールを送信します。メールをご確認ください。",
+      success: "登録されている場合、再設定メールを送信します。メールをご確認ください。",
     };
   } catch (error) {
     return {
-      error:
-        error instanceof Error ? error.message : "受け付けられませんでした。",
+      error: error instanceof Error ? error.message : "受け付けられませんでした。",
     };
   }
 }

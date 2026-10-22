@@ -8,14 +8,14 @@
 
 同ワークフローの `deploy-production` は、mainへのpush、前段CIの全成功、リポジトリ変数 `ENABLE_PRODUCTION_DEPLOY=true` と `APP_RELEASE_READY=true` を満たした場合だけ動く。招待制ログインと初期アクセスガードは実装済みだが、現在の画面はデモ用で、実データ接続・ロール管理・全業務機能は未完成のため、業務機能と本番運用が受入されるまで両変数を有効にしない。GitHubの `production` environmentで必須レビュアーを設定し、以下を登録する。
 
-| 種類 | 名前 | 内容 |
-|---|---|---|
-| Secret | `SUPABASE_ACCESS_TOKEN` | Supabase CLI用アクセストークン |
-| Secret | `SUPABASE_DB_PASSWORD` | 対象プロジェクトのDBパスワード |
-| Variable | `SUPABASE_PROJECT_ID` | Supabase project ref |
-| Secret | `VERCEL_TOKEN` | 対象プロジェクトに制限したVercelトークン |
-| Variable | `VERCEL_ORG_ID` | Vercel team/user ID |
-| Variable | `VERCEL_PROJECT_ID` | Vercel project ID |
+| 種類     | 名前                    | 内容                                     |
+| -------- | ----------------------- | ---------------------------------------- |
+| Secret   | `SUPABASE_ACCESS_TOKEN` | Supabase CLI用アクセストークン           |
+| Secret   | `SUPABASE_DB_PASSWORD`  | 対象プロジェクトのDBパスワード           |
+| Variable | `SUPABASE_PROJECT_ID`   | Supabase project ref                     |
+| Secret   | `VERCEL_TOKEN`          | 対象プロジェクトに制限したVercelトークン |
+| Variable | `VERCEL_ORG_ID`         | Vercel team/user ID                      |
+| Variable | `VERCEL_PROJECT_ID`     | Vercel project ID                        |
 
 また、リポジトリ変数 `ENABLE_PRODUCTION_DEPLOY=true` と `APP_RELEASE_READY=true` を登録する。後者は実データ接続、利用者・ロール管理、業務受入、セキュリティ・運用確認が完了し、本番リリースを承認した後にのみ有効にする。初期状態では未設定とし、Productionデプロイは無効。
 

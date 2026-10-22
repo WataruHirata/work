@@ -22,8 +22,6 @@ describe("AT-03 実店舗集計", () => {
     expect(result.total).toBe(3000);
     expect(result.unitPrice).toBe(500);
     expect(result.change).toBe(100);
-    expect(
-      storeSummary({ store: { name: "Fictional" }, sales: [] }).unitPrice,
-    ).toBeNull();
+    expect(storeSummary({ store: { name: "Fictional" }, sales: [] }).unitPrice).toBeNull();
   });
 });

@@ -1,10 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  sendInstruction,
-  confirmInstruction,
-} from "@/server/actions/instructions";
+import { sendInstruction, confirmInstruction } from "@/server/actions/instructions";
 import type { ActionResult } from "@/domain/contracts";
 type Option = { id: string; name: string };
 
@@ -17,10 +14,7 @@ export function InstructionForm({
   products: Option[];
   requestId: string;
 }) {
-  const [state, action, pending] = useActionState(
-    sendInstruction,
-    {} as ActionResult,
-  );
+  const [state, action, pending] = useActionState(sendInstruction, {} as ActionResult);
   return (
     <form action={action} className="instruction-form">
       <input name="requestId" type="hidden" value={requestId} />
@@ -49,14 +43,7 @@ export function InstructionForm({
         </label>
         <label className="field">
           指示価格（円）
-          <input
-            name="priceYen"
-            type="number"
-            min="0"
-            max="2147483647"
-            step="1"
-            required
-          />
+          <input name="priceYen" type="number" min="0" max="2147483647" step="1" required />
         </label>
         <label className="field">
           実施日時（日本時間）
@@ -82,12 +69,7 @@ export function InstructionForm({
       </label>
       <button
         className="primary-button"
-        disabled={
-          pending ||
-          Boolean(state.success) ||
-          !stores.length ||
-          !products.length
-        }
+        disabled={pending || Boolean(state.success) || !stores.length || !products.length}
       >
         {pending ? "発行中…" : "指示を発行して店舗へ通知"}
       </button>
@@ -97,9 +79,7 @@ export function InstructionForm({
         </p>
       )}
       {state.success && (
-        <p role="status">
-          {state.success} 続けて作成する場合は画面を再読み込みしてください。
-        </p>
+        <p role="status">{state.success} 続けて作成する場合は画面を再読み込みしてください。</p>
       )}
     </form>
   );
@@ -112,10 +92,7 @@ export function InstructionConfirmation({
   instructionId: string;
   storeId: string;
 }) {
-  const [state, action, pending] = useActionState(
-    confirmInstruction,
-    {} as ActionResult,
-  );
+  const [state, action, pending] = useActionState(confirmInstruction, {} as ActionResult);
   return (
     <form action={action}>
       <input type="hidden" name="instructionId" value={instructionId} />

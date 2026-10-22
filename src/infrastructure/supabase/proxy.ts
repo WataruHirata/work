@@ -4,8 +4,7 @@ import { isAdminPath, safeAdminReturnPath } from "@/domain/access-policy";
 
 /** Provider-specific cookie refresh only. Data authorization belongs to repository/use cases. */
 export async function refreshSupabaseSession(request: NextRequest) {
-  if (process.env.DATABASE_PROVIDER !== "supabase")
-    return NextResponse.next({ request });
+  if (process.env.DATABASE_PROVIDER !== "supabase") return NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
     key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url && !key) return NextResponse.next({ request });
@@ -20,11 +19,9 @@ export async function refreshSupabaseSession(request: NextRequest) {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(values) {
-        for (const value of values)
-          request.cookies.set(value.name, value.value);
+        for (const value of values) request.cookies.set(value.name, value.value);
         response = NextResponse.next({ request });
-        for (const value of values)
-          response.cookies.set(value.name, value.value, value.options);
+        for (const value of values) response.cookies.set(value.name, value.value, value.options);
       },
     },
   });
@@ -33,19 +30,12 @@ export async function refreshSupabaseSession(request: NextRequest) {
     error,
   } = await client.auth.getUser();
   if (error && error.name !== "AuthSessionMissingError")
-    return new NextResponse(
-      "認証サービスを確認できません。再度お試しください。",
-      { status: 503 },
-    );
+    return new NextResponse("認証サービスを確認できません。再度お試しください。", { status: 503 });
   if (!user && isAdminPath(request.nextUrl.pathname)) {
     const login = new URL("/login", request.url);
-    login.searchParams.set(
-      "next",
-      safeAdminReturnPath(request.nextUrl.pathname),
-    );
+    login.searchParams.set("next", safeAdminReturnPath(request.nextUrl.pathname));
     const redirect = NextResponse.redirect(login);
-    for (const cookie of response.cookies.getAll())
-      redirect.cookies.set(cookie);
+    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
     return redirect;
   }
   return response;

@@ -1,10 +1,5 @@
 import "server-only";
-import {
-  createHash,
-  scryptSync,
-  timingSafeEqual,
-  createHmac,
-} from "node:crypto";
+import { createHash, scryptSync, timingSafeEqual, createHmac } from "node:crypto";
 import type { Transaction } from "@electric-sql/pglite";
 import { cookies } from "next/headers";
 import type {
@@ -35,8 +30,7 @@ export const tableSpecs: Record<
 > = {
   instructions: {
     table: "store_instructions",
-    fields:
-      "id,kind,title,message,product_id,price_yen,effective_at,created_at",
+    fields: "id,kind,title,message,product_id,price_yen,effective_at,created_at",
     order: "created_at",
   },
   instructionTargets: {
@@ -47,8 +41,7 @@ export const tableSpecs: Record<
   },
   products: {
     table: "products",
-    fields:
-      "id,code,name,category_code,tax_rate,active,promotion_eligibility,updated_at",
+    fields: "id,code,name,category_code,tax_rate,active,promotion_eligibility,updated_at",
     order: "code",
     search: "name",
   },
@@ -76,8 +69,7 @@ export const tableSpecs: Record<
   },
   corrections: {
     table: "sales_corrections",
-    fields:
-      "id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_at",
+    fields: "id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_at",
     order: "requested_at",
   },
   approvals: {
@@ -99,15 +91,13 @@ export const tableSpecs: Record<
   },
   inventory: {
     table: "inventory_snapshots",
-    fields:
-      "id,store_id,department_id,product_id,quantity,observed_at,source_reference",
+    fields: "id,store_id,department_id,product_id,quantity,observed_at,source_reference",
     order: "observed_at",
     scoped: true,
   },
   notifications: {
     table: "notifications",
-    fields:
-      "id,title,message,notification_type,correction_id,read_at,created_at",
+    fields: "id,title,message,notification_type,correction_id,read_at,created_at",
     order: "created_at",
   },
   announcements: {
@@ -130,22 +120,19 @@ export const tableSpecs: Record<
   },
   audit: {
     table: "audit_logs",
-    fields:
-      "id,table_name,record_id,operation,actor_id,occurred_at,before_data,after_data",
+    fields: "id,table_name,record_id,operation,actor_id,occurred_at,before_data,after_data",
     order: "occurred_at",
     dated: "occurred_at",
     search: "table_name",
   },
   imports: {
     table: "sales_imports",
-    fields:
-      "id,source_file_name,source_checksum,status,rows_received,error_summary,received_at",
+    fields: "id,source_file_name,source_checksum,status,rows_received,error_summary,received_at",
     order: "received_at",
   },
   jobs: {
     table: "integration_jobs",
-    fields:
-      "id,kind,idempotency_key,status,attempts,last_error,available_at,created_at",
+    fields: "id,kind,idempotency_key,status,attempts,last_error,available_at,created_at",
     order: "created_at",
   },
   devices: {
@@ -160,8 +147,7 @@ export const tableSpecs: Record<
   },
   campaigns: {
     table: "campaigns",
-    fields:
-      "id,name,starts_at,ends_at,status,published_at,created_at,updated_at",
+    fields: "id,name,starts_at,ends_at,status,published_at,created_at,updated_at",
     order: "starts_at",
   },
   campaignItems: {
@@ -215,9 +201,7 @@ async function authenticated<T>(
   return withLocalDatabase((db) =>
     db.transaction(async (tx) => {
       await tx.exec("set local role authenticated");
-      await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [
-        userId,
-      ]);
+      await tx.query("select set_config('request.jwt.claim.sub',$1,true)", [userId]);
       return operation(tx);
     }),
   );
@@ -227,8 +211,7 @@ async function currentUserId() {
   const token = (await cookies()).get("minoriya-local-session")?.value;
   if (!token) return null;
   const [userId, expiry, signature] = token.split(".");
-  if (!userId || !expiry || !signature || Number(expiry) < Date.now())
-    return null;
+  if (!userId || !expiry || !signature || Number(expiry) < Date.now()) return null;
   const expected = createHmac("sha256", "minoriya-local-mock-session-only")
     .update(`${userId}.${expiry}`)
     .digest("hex");
@@ -239,10 +222,7 @@ async function currentUserId() {
 }
 
 export class LocalRepository implements BusinessRepository {
-  async list(
-    resource: Resource,
-    options: QueryOptions = {},
-  ): Promise<DataPage> {
+  async list(resource: Resource, options: QueryOptions = {}): Promise<DataPage> {
     const spec = tableSpecs[resource];
     const page = Math.max(1, Math.min(10000, Math.trunc(options.page || 1)));
     const pageSize = resource === "notifications" ? 100 : 50;
@@ -252,8 +232,7 @@ export class LocalRepository implements BusinessRepository {
       params.push(value);
       predicates.push(sql.replace("?", `$${params.length}`));
     };
-    if (options.correctionId && resource === "corrections")
-      add("id=?", options.correctionId);
+    if (options.correctionId && resource === "corrections") add("id=?", options.correctionId);
     if (options.correctionId && resource === "approvals")
       add("correction_id=?", options.correctionId);
     if (options.storeId && spec.scoped) add("store_id=?", options.storeId);
@@ -306,9 +285,7 @@ export class LocalRepository implements BusinessRepository {
     if (!userId) throw new Error("ログインしてください。");
     const fn = rpc[command];
     const entries = Object.entries(input);
-    const args = entries
-      .map(([key], index) => `${key} => $${index + 1}`)
-      .join(",");
+    const args = entries.map(([key], index) => `${key} => $${index + 1}`).join(",");
     const values = entries.map(([, value]) => value);
     return authenticated(userId, async (tx) => {
       const result = await tx.query<{ value: Json }>(
@@ -338,10 +315,9 @@ export class LocalIdentity implements IdentityProvider {
         display_name: string;
         active: boolean;
         must_change_password: boolean;
-      }>(
-        "select display_name,active,must_change_password from public.app_users where id=$1",
-        [userId],
-      );
+      }>("select display_name,active,must_change_password from public.app_users where id=$1", [
+        userId,
+      ]);
       if (!profile.rows[0]) return null;
       const assignments = await db.query<{ role: string }>(
         "select role::text from public.user_role_assignments where user_id=$1",
@@ -375,27 +351,22 @@ export class LocalIdentity implements IdentityProvider {
         "select active from public.app_users where id=$1",
         [user.id],
       );
-      const roles = await db.query(
-        "select 1 from public.user_role_assignments where user_id=$1",
-        [user.id],
-      );
+      const roles = await db.query("select 1 from public.user_role_assignments where user_id=$1", [
+        user.id,
+      ]);
       if (!profile.rows[0]?.active || !roles.rows.length)
         throw new Error("このアカウントは利用できません。");
       const expiry = String(Date.now() + 8 * 60 * 60 * 1000);
       const signature = createHmac("sha256", "minoriya-local-mock-session-only")
         .update(`${user.id}.${expiry}`)
         .digest("hex");
-      (await cookies()).set(
-        "minoriya-local-session",
-        `${user.id}.${expiry}.${signature}`,
-        {
-          httpOnly: true,
-          sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
-          path: "/",
-          maxAge: 8 * 60 * 60,
-        },
-      );
+      (await cookies()).set("minoriya-local-session", `${user.id}.${expiry}.${signature}`, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 8 * 60 * 60,
+      });
     });
   }
   async signOut() {
@@ -405,13 +376,10 @@ export class LocalIdentity implements IdentityProvider {
     const userId = await currentUserId();
     if (!userId) throw new Error("ログインしてください。");
     await withLocalDatabase(async (db) => {
-      await db.query(
-        "update auth.users set encrypted_password=$2,updated_at=now() where id=$1",
-        [
-          userId,
-          scryptSync(password, "minoriya-local-mock-auth", 64).toString("hex"),
-        ],
-      );
+      await db.query("update auth.users set encrypted_password=$2,updated_at=now() where id=$1", [
+        userId,
+        scryptSync(password, "minoriya-local-mock-auth", 64).toString("hex"),
+      ]);
     });
   }
   async resetPassword() {
@@ -422,12 +390,7 @@ export class LocalIdentity implements IdentityProvider {
   async exchangeCode() {
     throw new Error("ローカルモックではメール認証リンクを使用しません。");
   }
-  async provisionUser(
-    email: string,
-    password: string,
-    employeeCode: string,
-    displayName: string,
-  ) {
+  async provisionUser(email: string, password: string, employeeCode: string, displayName: string) {
     const session = await this.session();
     if (
       !session?.active ||
@@ -439,11 +402,7 @@ export class LocalIdentity implements IdentityProvider {
     await withLocalDatabase(async (db) => {
       await db.query(
         "insert into auth.users(id,email,encrypted_password,email_confirmed_at) values($1,$2,$3,now())",
-        [
-          id,
-          email,
-          scryptSync(password, "minoriya-local-mock-auth", 64).toString("hex"),
-        ],
+        [id, email, scryptSync(password, "minoriya-local-mock-auth", 64).toString("hex")],
       );
       await db.query(
         "insert into public.app_users(id,email,employee_code,display_name,active,must_change_password) values($1,$2,$3,$4,true,true)",
@@ -472,12 +431,7 @@ export class LocalIntegrationStore implements IntegrationJobStore {
       }));
     });
   }
-  async finish(
-    job: IntegrationJob,
-    success: boolean,
-    result: Json,
-    error?: string,
-  ) {
+  async finish(job: IntegrationJob, success: boolean, result: Json, error?: string) {
     await withLocalDatabase((db) =>
       db
         .query("select public.finish_integration_job($1,$2,$3,$4,$5)", [
@@ -496,10 +450,7 @@ export class LocalIntegrationStore implements IntegrationJobStore {
         (
           await db.query<{
             value: { priceYen: number; revision: string } | null;
-          }>("select public.resolve_restore_price_quote($1,$2) as value", [
-            productId,
-            storeId,
-          ])
+          }>("select public.resolve_restore_price_quote($1,$2) as value", [productId, storeId])
         ).rows[0]?.value ?? null,
     );
   }
@@ -528,8 +479,7 @@ export class LocalIntegrationStore implements IntegrationJobStore {
   }
 }
 
-export const mockDeviceCode =
-  "6ac6881e515326727cdeb8e78e544d2e575d1f5fb1988c6b604eb357fa6bad69";
+export const mockDeviceCode = "6ac6881e515326727cdeb8e78e544d2e575d1f5fb1988c6b604eb357fa6bad69";
 export const mockIngestToken = createHash("sha256")
   .update("minoriya local mock ingest token only")
   .digest("hex");

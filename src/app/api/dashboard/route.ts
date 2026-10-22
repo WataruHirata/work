@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getDashboardSnapshot,
-  getMockApiKey,
-} from "@/server/queries/dashboard";
+import { getDashboardSnapshot, getMockApiKey } from "@/server/queries/dashboard";
 import { getAdminSession } from "@/server/auth/admin-access";
 import { canUseAdminFeature } from "@/domain/access-policy";
 
@@ -15,10 +12,7 @@ export async function GET(request: Request) {
     );
   }
   if (!canUseAdminFeature(session.roles, "sales")) {
-    return NextResponse.json(
-      { error: "売上参照権限が必要です。" },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "売上参照権限が必要です。" }, { status: 403 });
   }
   const apiKey =
     request.headers.get("x-api-key") ??

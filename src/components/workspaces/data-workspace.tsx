@@ -24,16 +24,13 @@ import {
 import { backendConfigured, identity, repository } from "@/server/container";
 import { allRecords, featureResources } from "@/server/queries/workspaces";
 import { date, uuid } from "@/server/validation";
-import type {
-  DataPage,
-  Json,
-  QueryOptions,
-  Resource,
-} from "@/domain/contracts";
+import type { DataPage, DataRecord, Json, QueryOptions, Resource } from "@/domain/contracts";
 import { SalesImportForm } from "@/components/workspaces/sales-import-form";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
 import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 import { NotificationInbox } from "@/components/notifications/notification-inbox";
+import { StateBadge } from "@/components/ui/state-badge";
+import { CorrectionRequestStatus } from "@/components/store/correction-request-status";
 
 export type WorkspaceSearch = {
   page?: string;
@@ -43,12 +40,12 @@ export type WorkspaceSearch = {
   search?: string;
   correction?: string;
 };
-const field = (
-  key: string,
-  label: string,
-  lookup?: Resource,
-  required = true,
-): WorkspaceField => ({ key, label, lookup, required });
+const field = (key: string, label: string, lookup?: Resource, required = true): WorkspaceField => ({
+  key,
+  label,
+  lookup,
+  required,
+});
 
 function display(key: string, value: Json, lookups: Lookups): React.ReactNode {
   if (value == null || value === "") return "—";
@@ -69,22 +66,18 @@ function display(key: string, value: Json, lookups: Lookups): React.ReactNode {
     requested_by: "users",
     actor_id: "users",
   };
-  const related =
-    lookup[key] && lookups[lookup[key]]?.find((row) => row.id === value);
-  if (related)
-    return String(related.name ?? related.display_name ?? related.code);
+  const related = lookup[key] && lookups[lookup[key]]?.find((row) => row.id === value);
+  if (related) return String(related.name ?? related.display_name ?? related.code);
   if (key.endsWith("yen") && /^-?\d+$/.test(String(value)))
     return new Intl.NumberFormat("ja-JP").format(BigInt(String(value)));
   if (key === "role")
-    return (
-      roleOptions.find((option) => option.value === value)?.label ??
-      String(value)
-    );
-  return ["status", "promotion_eligibility", "kind", "approval_stage"].includes(
-    key,
-  )
-    ? (stateLabels[String(value)] ?? String(value))
-    : String(value);
+    return roleOptions.find((option) => option.value === value)?.label ?? String(value);
+  const text = stateLabels[String(value)] ?? String(value);
+  return key === "status" || key.endsWith("_status") || key === "promotion_eligibility" ? (
+    <StateBadge state={String(value)} label={text} />
+  ) : (
+    text
+  );
 }
 function ResourceTable({
   resource,
@@ -97,8 +90,7 @@ function ResourceTable({
   lookups: Lookups;
   roles: string[];
 }) {
-  if (resource === "notifications")
-    return <NotificationInbox data={data} roles={roles} />;
+  if (resource === "notifications") return <NotificationInbox data={data} roles={roles} />;
   const canEdit =
     Boolean(masterFields[resource]) &&
     (resource === "products"
@@ -130,19 +122,13 @@ function ResourceTable({
               {data.rows.map((row) => (
                 <tr key={`${row.id}:${row.updated_at ?? ""}`}>
                   {columns.map((column) => (
-                    <td key={column}>
-                      {display(column, row[column], lookups)}
-                    </td>
+                    <td key={column}>{display(column, row[column], lookups)}</td>
                   ))}
                   <td>
                     {canEdit && (
                       <details>
                         <summary>編集</summary>
-                        <MasterForm
-                          resource={resource}
-                          row={row}
-                          lookups={lookups}
-                        />
+                        <MasterForm resource={resource} row={row} lookups={lookups} />
                       </details>
                     )}
                     {resource === "sales" &&
@@ -153,16 +139,11 @@ function ResourceTable({
                           label="日次確定"
                           confirm="対象営業日の売上を確認しました"
                         >
-                          <input
-                            type="hidden"
-                            name="salesDayId"
-                            value={row.id}
-                          />
+                          <input type="hidden" name="salesDayId" value={row.id} />
                         </OperationForm>
                       )}
                     {resource === "corrections" &&
-                      ((row.status === "pending_area_approval" &&
-                        roles.includes("area_manager")) ||
+                      ((row.status === "pending_area_approval" && roles.includes("area_manager")) ||
                         (row.status === "pending_operations_approval" &&
                           roles.includes("store_operations"))) && (
                         <details>
@@ -186,28 +167,19 @@ function ResourceTable({
                               },
                             ]}
                           >
-                            <input
-                              type="hidden"
-                              name="correctionId"
-                              value={row.id}
-                            />
+                            <input type="hidden" name="correctionId" value={row.id} />
                           </OperationForm>
                         </details>
                       )}
-                    {resource === "roles" &&
-                      roles.includes("information_systems") && (
-                        <OperationForm
-                          operation="revokeRole"
-                          label="割当を解除"
-                          confirm="この権限割当を解除します"
-                        >
-                          <input
-                            type="hidden"
-                            name="assignmentId"
-                            value={row.id}
-                          />
-                        </OperationForm>
-                      )}
+                    {resource === "roles" && roles.includes("information_systems") && (
+                      <OperationForm
+                        operation="revokeRole"
+                        label="割当を解除"
+                        confirm="この権限割当を解除します"
+                      >
+                        <input type="hidden" name="assignmentId" value={row.id} />
+                      </OperationForm>
+                    )}
                     {resource === "devices" &&
                       row.active &&
                       roles.includes("information_systems") && (
@@ -222,14 +194,9 @@ function ResourceTable({
                     {resource === "jobs" &&
                       row.status === "failed" &&
                       roles.some((role) =>
-                        ["information_systems", "product_office"].includes(
-                          role,
-                        ),
+                        ["information_systems", "product_office"].includes(role),
                       ) && (
-                        <OperationForm
-                          operation="retryJob"
-                          label="再処理を予約"
-                        >
+                        <OperationForm operation="retryJob" label="再処理を予約">
                           <input type="hidden" name="jobId" value={row.id} />
                         </OperationForm>
                       )}
@@ -261,17 +228,17 @@ export async function DataWorkspace({
 }) {
   if (!backendConfigured()) return <PreviewWorkspace feature={feature} />;
   const session = await identity().session();
-  if (!session?.active)
-    redirect(`/login?next=${encodeURIComponent(uiConfig.pages[feature].href)}`);
+  if (!session?.active) redirect(`/login?next=${encodeURIComponent(uiConfig.pages[feature].href)}`);
   if (session.mustChangePassword) redirect("/account/password");
   const roles = session.roles;
   const resources = [
     ...(featureResources[feature] ?? []),
-    ...(["approvals", "storeOperations"].includes(feature)
-      ? ["notifications" as const]
-      : []),
+    ...(["approvals", "storeOperations"].includes(feature) ? ["notifications" as const] : []),
   ];
   let lookups: Lookups, pages: { resource: Resource; data: DataPage }[];
+  let noticeStoreId: string | undefined;
+  let noticeSalesDays: DataRecord[] = [];
+  let noticeCorrections: DataRecord[] = [];
   try {
     const options: QueryOptions = {
       page: Math.max(1, Number(search.page) || 1),
@@ -281,32 +248,46 @@ export async function DataWorkspace({
     if (search.store) options.storeId = uuid(search.store);
     if (search.from) options.from = date(search.from);
     if (search.to) options.to = date(search.to);
-    const lookupResources: Resource[] = [
-      "stores",
-      "areas",
-      "departments",
-      "products",
-    ];
+    const lookupResources: Resource[] = ["stores", "areas", "departments", "products"];
     if (roles.includes("information_systems")) lookupResources.push("users");
     const lookupRows = await Promise.all(
-      lookupResources.map(
-        async (resource) => [resource, await allRecords(resource)] as const,
-      ),
+      lookupResources.map(async (resource) => [resource, await allRecords(resource)] as const),
     );
     lookups = Object.fromEntries(lookupRows);
+    if (feature === "storeNotices") {
+      const requestedStore = search.store
+        ? lookups.stores?.find((store) => store.id === search.store && store.status === "active")
+        : undefined;
+      const registeredStore =
+        requestedStore ?? lookups.stores?.find((store) => store.status === "active");
+      noticeStoreId = registeredStore?.id;
+      if (noticeStoreId) {
+        options.storeId = noticeStoreId;
+        noticeSalesDays = await allRecords("sales", { storeId: noticeStoreId });
+        const salesDayIds = new Set(noticeSalesDays.map((row) => row.id));
+        noticeCorrections = (await allRecords("corrections"))
+          .filter((row) => salesDayIds.has(String(row.sales_day_id)))
+          .sort((a, b) => String(b.requested_at).localeCompare(String(a.requested_at)));
+      }
+    }
     pages = await Promise.all(
       resources.map(async (resource) => ({
         resource,
         data: await repository().list(resource, options),
       })),
     );
+    if (feature === "storeNotices") {
+      pages = pages.map((page) => {
+        if (page.resource !== "notifications") return page;
+        const rows = page.data.rows.filter((row) => !row.correction_id);
+        return { ...page, data: { ...page.data, rows, total: rows.length } };
+      });
+    }
   } catch (error) {
     return (
       <PageLayout page={feature}>
         <FeatureNotice title="データを取得できませんでした">
-          {error instanceof Error
-            ? error.message
-            : "接続設定を確認して再度お試しください。"}
+          {error instanceof Error ? error.message : "接続設定を確認して再度お試しください。"}
           <p>
             <Link className="ghost-button" href={uiConfig.pages[feature].href}>
               再読み込み
@@ -320,27 +301,42 @@ export async function DataWorkspace({
     <PageLayout page={feature}>
       {feature === "storeNotices" && (
         <section className="page-panel">
-          <InstructionWorkspace />
+          {noticeStoreId ? (
+            <InstructionWorkspace storeId={noticeStoreId} />
+          ) : (
+            <p className="empty-state">表示できる登録店舗がありません。</p>
+          )}
         </section>
       )}
-      <section className="page-panel">
-        <p>操作者：{session.displayName} · DB接続中</p>
-        <form method="get" className="workspace-fields">
-          <Fields
-            fields={[
-              field("store", "店舗", "stores", false),
-              { key: "from", label: "開始日", type: "date" },
-              { key: "to", label: "終了日", type: "date" },
-              { key: "search", label: "名称・対象検索" },
-            ]}
-            values={search}
-            lookups={lookups}
-          />
-          <button className="ghost-button" type="submit">
-            絞り込み
-          </button>
-        </form>
-      </section>
+      {feature !== "storeNotices" && (
+        <section className="page-panel">
+          <p>操作者：{session.displayName} · DB接続中</p>
+          <form method="get" className="workspace-fields">
+            <Fields
+              fields={[
+                field("store", "店舗", "stores", false),
+                { key: "from", label: "開始日", type: "date" },
+                { key: "to", label: "終了日", type: "date" },
+                { key: "search", label: "名称・対象検索" },
+              ]}
+              values={search}
+              lookups={lookups}
+            />
+            <button className="ghost-button" type="submit">
+              絞り込み
+            </button>
+          </form>
+        </section>
+      )}
+      {feature === "storeNotices" && noticeStoreId && (
+        <CorrectionRequestStatus
+          storeName={String(
+            lookups.stores?.find((store) => store.id === noticeStoreId)?.name ?? "登録店舗",
+          )}
+          corrections={noticeCorrections}
+          salesDays={noticeSalesDays}
+        />
+      )}
       {(feature === "approvals" || feature === "storeOperations") && (
         <section className="page-panel">
           <h2>売上修正依頼と通知</h2>
@@ -388,9 +384,7 @@ export async function DataWorkspace({
         </section>
       )}
       {feature === "storeOrders" &&
-        roles.some((role) =>
-          ["staff", "department_lead", "store_manager"].includes(role),
-        ) && (
+        roles.some((role) => ["staff", "department_lead", "store_manager"].includes(role)) && (
           <section className="page-panel">
             <h2>発注入力</h2>
             <OrderForm lookups={lookups} requestId={randomUUID()} />
@@ -403,10 +397,7 @@ export async function DataWorkspace({
             operation="finalizeMonth"
             label="月次確定を実行"
             confirm="未処理を確認しました。確定後は本システムで修正できません"
-            fields={[
-              field("storeId", "対象店舗", "stores"),
-              field("month", "対象年月（YYYY-MM）"),
-            ]}
+            fields={[field("storeId", "対象店舗", "stores"), field("month", "対象年月（YYYY-MM）")]}
             lookups={lookups}
           />
         </section>
@@ -417,10 +408,7 @@ export async function DataWorkspace({
           <OperationForm
             operation="registerDevice"
             label="接続コードを発行"
-            fields={[
-              field("storeId", "対象店舗", "stores"),
-              field("name", "端末名"),
-            ]}
+            fields={[field("storeId", "対象店舗", "stores"), field("name", "端末名")]}
             lookups={lookups}
           />
         </section>

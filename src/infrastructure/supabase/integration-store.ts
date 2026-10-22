@@ -35,12 +35,7 @@ export class SupabaseIntegrationStore implements IntegrationJobStore {
       }),
     );
   }
-  async finish(
-    job: IntegrationJob,
-    success: boolean,
-    result: Json,
-    errorMessage?: string,
-  ) {
+  async finish(job: IntegrationJob, success: boolean, result: Json, errorMessage?: string) {
     const { error } = await this.client().rpc("finish_integration_job", {
       p_job_id: job.id,
       p_lease_id: job.leaseId,
@@ -49,22 +44,15 @@ export class SupabaseIntegrationStore implements IntegrationJobStore {
       p_error: errorMessage ?? null,
     });
     if (error)
-      throw new Error(
-        "連携結果を確定できませんでした。処理識別子を確認して再処理してください。",
-      );
+      throw new Error("連携結果を確定できませんでした。処理識別子を確認して再処理してください。");
   }
-  async restorePrice(
-    productId: string,
-    storeId: string,
-  ): Promise<NormalPriceQuote | null> {
-    const { data, error } = await this.client().rpc(
-      "resolve_restore_price_quote",
-      { p_product_id: productId, p_store_id: storeId },
-    );
+  async restorePrice(productId: string, storeId: string): Promise<NormalPriceQuote | null> {
+    const { data, error } = await this.client().rpc("resolve_restore_price_quote", {
+      p_product_id: productId,
+      p_store_id: storeId,
+    });
     if (error) throw new Error("通常売価の参照に失敗しました。");
-    return data &&
-      typeof data.priceYen === "number" &&
-      typeof data.revision === "string"
+    return data && typeof data.priceYen === "number" && typeof data.revision === "string"
       ? (data as NormalPriceQuote)
       : null;
   }
@@ -78,14 +66,12 @@ export class SupabaseIntegrationStore implements IntegrationJobStore {
     return Boolean(data?.active && data.promotion_eligibility === "eligible");
   }
   async ingest(eventId: string, kind: string, rows: Json[]): Promise<Json> {
-    const { data, error } = await this.client().rpc(
-      "ingest_external_snapshot",
-      { p_event_id: eventId, p_kind: kind, p_rows: rows },
-    );
-    if (error)
-      throw new Error(
-        "データ形式・参照マスタ・イベントの重複内容を確認してください。",
-      );
+    const { data, error } = await this.client().rpc("ingest_external_snapshot", {
+      p_event_id: eventId,
+      p_kind: kind,
+      p_rows: rows,
+    });
+    if (error) throw new Error("データ形式・参照マスタ・イベントの重複内容を確認してください。");
     return data as Json;
   }
 }

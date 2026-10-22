@@ -3,9 +3,7 @@ import type { Json, Resource } from "@/domain/contracts";
 export function uuid(value: unknown): string {
   if (
     typeof value !== "string" ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      value,
-    )
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
   )
     throw new Error("対象を選択してください。");
   return value;
@@ -15,15 +13,8 @@ export function text(value: unknown, max = 500): string {
     throw new Error(`必須項目を${max}文字以内で入力してください。`);
   return value.trim();
 }
-export function integer(
-  value: unknown,
-  min = 0,
-  max = Number.MAX_SAFE_INTEGER,
-): number {
-  if (
-    (typeof value !== "string" && typeof value !== "number") ||
-    !/^\d+$/.test(String(value))
-  )
+export function integer(value: unknown, min = 0, max = Number.MAX_SAFE_INTEGER): number {
+  if ((typeof value !== "string" && typeof value !== "number") || !/^\d+$/.test(String(value)))
     throw new Error("整数を入力してください。");
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < min || number > max)
@@ -41,32 +32,22 @@ export function date(value: unknown): string {
   return value;
 }
 function clock(value: unknown): string {
-  if (
-    typeof value !== "string" ||
-    !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value)
-  )
+  if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value))
     throw new Error("正しい時刻を入力してください。");
   return value;
 }
 export function japanDateTime(value: unknown): string {
-  if (
-    typeof value !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
-  )
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value))
     throw new Error("日時を指定してください。");
   const instant = new Date(`${value}:00+09:00`);
   if (
     Number.isNaN(instant.getTime()) ||
-    new Date(instant.getTime() + 9 * 3600000).toISOString().slice(0, 16) !==
-      value
+    new Date(instant.getTime() + 9 * 3600000).toISOString().slice(0, 16) !== value
   )
     throw new Error("日時が不正です。");
   return instant.toISOString();
 }
-export function parseMaster(
-  resource: Resource,
-  input: FormData,
-): Record<string, Json> {
+export function parseMaster(resource: Resource, input: FormData): Record<string, Json> {
   if (resource === "products") {
     const tax = integer(input.get("tax_rate"), 8, 10);
     if (tax !== 8 && tax !== 10) throw new Error("税率は8%または10%です。");

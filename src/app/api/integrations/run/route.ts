@@ -12,8 +12,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       {
-        error:
-          "連携処理を完了できませんでした。連携監視で状態を確認してください。",
+        error: "連携処理を完了できませんでした。連携監視で状態を確認してください。",
       },
       { status: 503 },
     );

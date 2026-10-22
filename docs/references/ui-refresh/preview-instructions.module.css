@@ -1,0 +1,254 @@
+.workspace {
+  display: grid;
+  gap: 24px;
+  color: #172720;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e9efec;
+}
+
+.heading h2 {
+  margin: 0;
+  color: #0b2f57;
+  font-size: 28px;
+  line-height: 1.3;
+}
+
+.heading p {
+  margin: 8px 0 0;
+  color: #68766f;
+  font-size: 15px;
+}
+
+.summary {
+  min-width: 112px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: #fff2e6;
+  color: #b96c38;
+  text-align: center;
+}
+
+.summary strong,
+.summary span {
+  display: block;
+}
+
+.summary strong {
+  font-size: 28px;
+}
+
+.summary span {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.list {
+  display: grid;
+  gap: 16px;
+}
+
+.notice,
+.task,
+.detail {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid #e4ebe7;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.notice {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.noticeMain h3,
+.task h3,
+.detail h3 {
+  margin: 10px 0 0;
+  color: #0b2f57;
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kind,
+.pending,
+.done {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kind {
+  color: #0b2f57;
+  background: #edf3f8;
+}
+
+.pending {
+  color: #b96c38;
+  background: #fff2e6;
+}
+
+.done {
+  color: #2c7a5f;
+  background: #ebf7f0;
+}
+
+.meta {
+  margin: 6px 0 0;
+  color: #68766f;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.detailButton,
+.primaryLink,
+.completeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detailButton {
+  border: 1px solid #2e75b6;
+  color: #0b2f57;
+  background: #fff;
+}
+
+.primaryLink,
+.completeButton {
+  width: fit-content;
+  border: 0;
+  color: #fff;
+  background: #0b2f57;
+}
+
+.completeButton:disabled {
+  color: #68766f;
+  background: #e9efec;
+  cursor: not-allowed;
+}
+
+.expanded {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid #e9efec;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.expanded p,
+.instruction,
+.price {
+  margin: 0;
+}
+
+.price {
+  font-weight: 700;
+}
+
+.instruction {
+  color: #32463d;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid #2e75b6;
+  border-radius: 10px;
+  color: #0b2f57;
+  background: #f8fafc;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.check input {
+  width: 22px;
+  height: 22px;
+}
+
+.message,
+.empty {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.message {
+  color: #2c7a5f;
+  background: #ebf7f0;
+}
+
+.empty {
+  color: #68766f;
+  background: #f8fafc;
+}
+
+.createPanel {
+  padding: 18px;
+  border: 1px solid #e4ebe7;
+  border-radius: 10px;
+}
+
+.createPanel summary {
+  color: #0b2f57;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .heading,
+  .notice {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .summary {
+    width: 100%;
+  }
+
+  .detailButton,
+  .primaryLink,
+  .completeButton {
+    width: 100%;
+  }
+}
+
+/* お知らせ・特売画面では共通のプレビュー案内を表示しない。 */
+:global(.page-panel:has(.demo-banner)) {
+  display: none;
+}

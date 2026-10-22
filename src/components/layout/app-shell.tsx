@@ -32,9 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const admin = isAdminPath(pathname);
   return (
-    <div
-      className={`global-shell ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}
-    >
+    <div className={`global-shell ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
       <a className="skip-link" href="#main-content">
         本文へ移動
       </a>
@@ -47,11 +45,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-expanded={sidebarOpen}
             onClick={() => setSidebarOpen((current) => !current)}
           >
-            {sidebarOpen ? (
-              <PanelLeftClose size={16} />
-            ) : (
-              <PanelLeftOpen size={16} />
-            )}
+            {sidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
           </button>
           <Link className="brand" href="/" aria-label="みのり屋 店舗ポータル">
             <span className="brand-mark">
@@ -91,19 +85,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="sidebar-bottom">
-          <Link
-            className="support-card"
-            href={admin ? "/admin" : "/login?next=%2Fadmin"}
-          >
+          <Link className="support-card" href={admin ? "/admin" : "/login?next=%2Fadmin"}>
             <span className="support-icon">
               <LogIn size={18} />
             </span>
             <span>
-              <strong>
-                {admin
-                  ? uiConfig.pages.admin.label
-                  : uiConfig.pages.login.label}
-              </strong>
+              <strong>{admin ? uiConfig.pages.admin.label : uiConfig.pages.login.label}</strong>
               <small>本部・上位権限の機能</small>
             </span>
             <ArrowRight className="support-arrow" size={15} />

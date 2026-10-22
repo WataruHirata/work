@@ -1,23 +1,15 @@
 import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
 import { storeSummary } from "@/domain/store-summary";
-import { stateLabels } from "@/config/ui";
 import type { Json } from "@/domain/contracts";
-export function LiveStoreOverview({
-  snapshot,
-}: {
-  snapshot: Record<string, Json>;
-}) {
+import { StateBadge } from "@/components/ui/state-badge";
+export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json> }) {
   const summary = storeSummary(snapshot);
-  const yen = (value: number) =>
-    `¥${Math.round(value).toLocaleString("ja-JP")}`;
+  const yen = (value: number) => `¥${Math.round(value).toLocaleString("ja-JP")}`;
   const max = Math.max(1, ...summary.days.map((day) => day.sales));
   const x = (index: number) =>
-    50 +
-    (summary.days.length > 1 ? (index * 600) / (summary.days.length - 1) : 300);
+    50 + (summary.days.length > 1 ? (index * 600) / (summary.days.length - 1) : 300);
   const y = (value: number) => 220 - (value / max) * 180;
-  const points = summary.days
-    .map((day, index) => `${x(index)},${y(day.sales)}`)
-    .join(" ");
+  const points = summary.days.map((day, index) => `${x(index)},${y(day.sales)}`).join(" ");
   return (
     <div className="content store-overview">
       <section className="page-heading">
@@ -26,11 +18,11 @@ export function LiveStoreOverview({
           <h2>{summary.storeName}</h2>
           <p>直近営業日 {summary.latest?.date ?? "データなし"} · 税込売上</p>
         </div>
-        <span className="status">
-          {summary.latest
-            ? (stateLabels[summary.latest.status] ?? summary.latest.status)
-            : "未取込"}
-        </span>
+        {summary.latest ? (
+          <StateBadge state={summary.latest.status} />
+        ) : (
+          <StateBadge state="not_configured" label="未取込" />
+        )}
       </section>
       <section className="metrics-grid" aria-label="接続店舗の営業指標">
         {[
@@ -38,16 +30,12 @@ export function LiveStoreOverview({
             label: "直近営業日の売上",
             value: summary.latest ? yen(summary.latest.sales) : "—",
             note:
-              summary.change === null
-                ? "比較対象なし"
-                : `前営業日比 ${summary.change.toFixed(1)}%`,
+              summary.change === null ? "比較対象なし" : `前営業日比 ${summary.change.toFixed(1)}%`,
             Icon: TrendingUp,
           },
           {
             label: "客数",
-            value: summary.latest
-              ? `${summary.latest.customers.toLocaleString("ja-JP")}人`
-              : "—",
+            value: summary.latest ? `${summary.latest.customers.toLocaleString("ja-JP")}人` : "—",
             note: "同営業日",
             Icon: ShoppingBasket,
           },
@@ -95,12 +83,7 @@ export function LiveStoreOverview({
               <polyline points={points} className="chart-line" />
               {summary.days.map((day, index) => (
                 <g key={day.date}>
-                  <circle
-                    cx={x(index)}
-                    cy={y(day.sales)}
-                    r="4"
-                    className="chart-point"
-                  >
+                  <circle cx={x(index)} cy={y(day.sales)} r="4" className="chart-point">
                     <title>
                       {day.date}: {yen(day.sales)}
                     </title>
@@ -128,7 +111,9 @@ export function LiveStoreOverview({
                       <th scope="row">{day.date}</th>
                       <td>{yen(day.sales)}</td>
                       <td>{day.customers}</td>
-                      <td>{stateLabels[day.status] ?? day.status}</td>
+                      <td>
+                        <StateBadge state={day.status} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>

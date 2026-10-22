@@ -1,8 +1,23 @@
 # みのり屋 販売管理システム
 
+## ローカルMySQLモック：すぐに試す情報
+
+| 用途               | 値                                                                 |
+| ------------------ | ------------------------------------------------------------------ |
+| アプリ             | `http://localhost:3000`                                            |
+| 管理ログイン       | `minoriya-demo+information_systems@example.invalid`                |
+| 管理パスワード     | `Demo!4f415f02764eedff91f594ee05862d5e877ba9`                      |
+| 管理権限           | `information_systems`                                              |
+| 店舗               | `DEMO-001`（架空デモ店舗）                                         |
+| 店舗端末接続コード | `6ac6881e515326727cdeb8e78e544d2e575d1f5fb1988c6b604eb357fa6bad69` |
+| 売場の例           | `FIXTURE-FOOD`、`FIXTURE-GROCERY`                                  |
+| 商品の例           | `FIXTURE-V1-FOOD`、`FIXTURE-V1-DELI`、`FIXTURE-V1-HOME`            |
+
+MySQLのテーブルと架空データを作成するには、`npm run db:mysql:migrate`、続けて `npm run db:mysql:demo` を実行します。
+
 初回起動は下の「はじめてのローカル起動」から始められます。クラウド開発DBへの接続は「ほかの開発者向け Supabase 設定」、操作範囲は [接続手順書](./docs/connected-backend.md)、API提供側の要件は [外部連携契約](./docs/integration-api.md) を参照してください。既存の開発用DBには架空データを登録し、8ロールの実ログインを確認済みです。
 
-112店舗の売上取込、店舗別営業日、締め・修正承認、特売・価格変更指示、発注・通知を扱う販売管理システムです。業務要件は[統合要件書v3](./みのり屋_販売管理システム_統合要件書_v3.md)の第25章と最新の明示指示を優先します。
+112店舗の売上取込、店舗別営業日、締め・修正承認、特売・価格変更指示、発注・通知を扱う販売管理システムです。業務要件は[統合要件書v3](./docs/requirements/みのり屋_販売管理システム_統合要件書_v3.md)の第25章と最新の明示指示を優先します。
 
 ## はじめてのローカル起動（Windows / PowerShell）
 
@@ -17,6 +32,7 @@
    ```
 
    2行目で**Supabase CLI 2.121.0を取得**し、バージョンを確認します。CLIは`npx`で起動するため、全員のPCへグローバルインストールする必要はありません。DBマイグレーション用スクリプトも同じ版を使います。[CLIの公式導入手順](https://supabase.com/docs/guides/local-development/cli/getting-started)も参照できます。
+
 3. 手元のSupabase（DB・認証）を起動します。初回は時間がかかります。起動時にこのリポジトリのマイグレーションと `supabase/seed.sql` が適用されます。
 
    ```powershell
@@ -30,16 +46,17 @@
    Copy-Item .env.example .env.local
    ```
 
-   | `.env.local` の項目 | 設定する値 |
-   | --- | --- |
-   | `NEXT_PUBLIC_SUPABASE_URL` | `Project URL`（既定は `http://127.0.0.1:54321`） |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `Publishable` キー |
-   | `SUPABASE_SERVICE_ROLE_KEY` | `Secret` キー。サーバー専用 |
-   | `APP_ORIGIN` | `http://localhost:3000` |
-   | `AUTO_MIGRATE` | `false` のまま |
-   | `DEV_SUPABASE_PROJECT_REF` | 空欄のまま |
+   | `.env.local` の項目             | 設定する値                                       |
+   | ------------------------------- | ------------------------------------------------ |
+   | `NEXT_PUBLIC_SUPABASE_URL`      | `Project URL`（既定は `http://127.0.0.1:54321`） |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `Publishable` キー                               |
+   | `SUPABASE_SERVICE_ROLE_KEY`     | `Secret` キー。サーバー専用                      |
+   | `APP_ORIGIN`                    | `http://localhost:3000`                          |
+   | `AUTO_MIGRATE`                  | `false` のまま                                   |
+   | `DEV_SUPABASE_PROJECT_REF`      | 空欄のまま                                       |
 
    `AUTO_MIGRATE=true` と `npm run db:migrate` は**リンク済みクラウド開発DB用**です。手元のSupabaseには使用しません。キーやパスワードをREADME、Git、チャットに貼らないでください。
+
 5. ログインや保存操作も試す場合、`.env.local` の `ALLOW_DEMO_DATA_SETUP=true`、`DEMO_SEED_AUTH_USERS=true`、`DEMO_INITIAL_PASSWORD=` に自分で決めた12文字以上の開発用パスワードを設定し、次を実行します。終了後は前者2項目を `false` に戻します。ログインには `minoriya-demo+information_systems@example.invalid` と、**自分で設定した** `DEMO_INITIAL_PASSWORD` の値を使います。下の「初期ログイン情報」のパスワードは既存の開発DB用であり、手元に新規作成したDBのパスワードではありません。
 
    ```powershell
@@ -204,3 +221,33 @@ npx --yes supabase@2.121.0 db lint --local --fail-on error
 テストのためにDBを作り直す場合だけ `npx --yes supabase@2.121.0 db reset` を実行します。ローカルDBの既存データが初期化されます。
 
 手順と検証範囲は[テスト方針](./docs/testing.md)、DB変更は[マイグレーション方針](./docs/data-migrations.md)、PR・本番配備は[CI/CD](./docs/ci-cd.md)を参照してください。初期技術基盤の判断は[ADR-0001](./docs/adr/0001-platform.md)に記録しています。
+
+## ローカルMySQLのデモ店舗端末
+
+`.env.local` に `DATABASE_PROVIDER=mysql` とMySQL接続設定を入れた後、次のコマンドでテーブルと架空のデモ店舗データを作成できます。`DATABASE_PROVIDER=mysql` がない場合はMySQL認証ではなくローカルモック認証が選択されます。標準のローカルDB名は `minoriya_starter` です。`db:mysql:demo` は再実行可能です。
+
+DB自体を作り直す場合は、既存データがすべて消えることを確認してから、MySQLクライアントで次のSQLを上から1文ずつ実行してください。
+
+```sql
+DROP DATABASE `minoriya_starter`;
+CREATE DATABASE `minoriya_starter`
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_0900_ai_ci;
+USE `minoriya_starter`;
+SHOW TABLES;
+```
+
+空のDBを確認した後、アプリ側では次のコマンドを順番に実行します。
+
+```powershell
+npm run db:mysql:migrate
+npm run db:mysql:demo
+npm run db:mysql:demo:check
+npm run dev
+```
+
+`http://localhost:3000/station` で、上の店舗端末表にある `DEMO-001` 専用のモック接続コードを入力してください。端末の接続解除後に再接続する場合も同じコードを使えます。登録データは架空で、実店舗やPOSには接続しません。
+
+初期化後は、店舗4件、商品6件、営業日別売上8件、在庫8件、特売4件、発注5件、お知らせ4件に加え、売上修正・承認・通知・店舗指示・連携ジョブ・監査ログを確認できます。未対応、処理中、対応済み、失敗、差戻し、既読・未読など、画面の条件分岐を確認できる状態を架空データで収録しています。`npm run db:mysql:demo:check` は主要な状態が揃っていることをDBから読み取って検証します。
+
+管理画面は `minoriya-demo+information_systems@example.invalid` とREADME上部の初期パスワードでログインできます。このアカウントには `information_systems` 権限を付与します。

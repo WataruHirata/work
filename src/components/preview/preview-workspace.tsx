@@ -5,12 +5,9 @@ import { useState, type FormEvent } from "react";
 import { PageLayout } from "@/components/ui/page-layout";
 import { PreviewInstructions } from "@/components/preview/preview-instructions";
 import { PreviewCorrections } from "@/components/preview/preview-corrections";
-import {
-  filterPreviewRows,
-  previewSpecs,
-  type PreviewRow,
-} from "@/mocks/workspaces";
+import { filterPreviewRows, previewSpecs, type PreviewRow } from "@/mocks/workspaces";
 import { uiConfig, type PageId } from "@/config/ui";
+import { StateBadge } from "@/components/ui/state-badge";
 
 export function PreviewWorkspace({ feature }: { feature: PageId }) {
   const spec = previewSpecs[feature];
@@ -39,9 +36,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
       },
       ...current,
     ]);
-    setMessage(
-      "プレビューに追加しました。実データへの登録・外部送信は行っていません。",
-    );
+    setMessage("プレビューに追加しました。実データへの登録・外部送信は行っていません。");
     event.currentTarget.reset();
   }
   return (
@@ -53,29 +48,20 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
             未接続機能の操作プレビューです。すべて架空データで、操作は実業務に反映されません。
           </span>
         </div>
-        <p className="muted">
-          データ連携後は、この一覧に担当範囲のデータ・処理結果を表示します。
-        </p>
+        <p className="muted">データ連携後は、この一覧に担当範囲のデータ・処理結果を表示します。</p>
       </section>
       {feature === "storeOperations" || feature === "approvals" ? (
         <section className="page-panel">
-          <PreviewCorrections
-            mode={feature === "approvals" ? "headquarters" : "store"}
-          />
+          <PreviewCorrections mode={feature === "approvals" ? "headquarters" : "store"} />
         </section>
-      ) : feature === "campaigns" ||
-        feature === "storeCampaigns" ||
-        feature === "storeNotices" ? (
+      ) : feature === "campaigns" || feature === "storeCampaigns" || feature === "storeNotices" ? (
         <section className="page-panel">
-          <PreviewInstructions headquarters={feature === "campaigns"} />
+          <PreviewInstructions headquarters={feature === "campaigns"} feature={feature} />
         </section>
       ) : spec ? (
         <>
           <section className="page-panel">
-            <form
-              className="workspace-fields"
-              onSubmit={(e) => e.preventDefault()}
-            >
+            <form className="workspace-fields" onSubmit={(e) => e.preventDefault()}>
               <label className="field">
                 名称・内容を検索
                 <input
@@ -86,10 +72,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
               </label>
               <label className="field">
                 店舗
-                <select
-                  value={store}
-                  onChange={(e) => setStore(e.target.value)}
-                >
+                <select value={store} onChange={(e) => setStore(e.target.value)}>
                   <option value="">すべて</option>
                   {[...new Set(rows.map((r) => r.store))].map((s) => (
                     <option key={s}>{s}</option>
@@ -98,10 +81,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
               </label>
               <label className="field">
                 状態
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
                   <option value="">すべて</option>
                   {[...new Set(rows.map((r) => r.status))].map((s) => (
                     <option key={s}>{s}</option>
@@ -130,9 +110,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
               <div>
                 <span>{spec.columns[1]}の合計（サンプル）</span>
                 <strong>
-                  {visible
-                    .reduce((sum, r) => sum + r.value, 0)
-                    .toLocaleString("ja-JP")}
+                  {visible.reduce((sum, r) => sum + r.value, 0).toLocaleString("ja-JP")}
                   {spec.unit}
                 </strong>
               </div>
@@ -159,16 +137,17 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
                         {spec.unit}
                       </td>
                       <td>
-                        <span className="status">{r.status}</span>
+                        <StateBadge
+                          state={r.status}
+                          tone={r.status === spec.nextStatus ? "success" : "warning"}
+                        />
                       </td>
                       <td>
                         <button
                           className="ghost-button"
                           type="button"
                           aria-expanded={selected === r.id}
-                          onClick={() =>
-                            setSelected(selected === r.id ? null : r.id)
-                          }
+                          onClick={() => setSelected(selected === r.id ? null : r.id)}
                         >
                           {selected === r.id ? "詳細を閉じる" : "詳細"}
                           <span className="sr-only">：{r.name}</span>
@@ -180,9 +159,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
               </table>
             </div>
             {!visible.length && (
-              <p role="status">
-                条件に一致するデータはありません。絞り込みを変更してください。
-              </p>
+              <p role="status">条件に一致するデータはありません。絞り込みを変更してください。</p>
             )}
             {selected &&
               rows
@@ -203,8 +180,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
                               item.id === r.id
                                 ? {
                                     ...item,
-                                    status:
-                                      spec.nextStatus ?? "確認済み（デモ）",
+                                    status: spec.nextStatus ?? "確認済み（デモ）",
                                   }
                                 : item,
                             ),
@@ -218,10 +194,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
                           <input type="checkbox" required />
                           対象と内容を確認しました（デモ）
                         </label>
-                        <button
-                          className="primary-button"
-                          disabled={r.status === spec.nextStatus}
-                        >
+                        <button className="primary-button" disabled={r.status === spec.nextStatus}>
                           {spec.action}（デモ）
                         </button>
                       </form>
@@ -240,14 +213,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
                   </label>
                   <label className="field">
                     {spec.columns[1]}（{spec.unit}）
-                    <input
-                      name="value"
-                      type="number"
-                      min="0"
-                      max="2147483647"
-                      step="1"
-                      required
-                    />
+                    <input name="value" type="number" min="0" max="2147483647" step="1" required />
                   </label>
                   <label className="field">
                     内容・理由
@@ -274,8 +240,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
           <h2>在庫連携の表示例</h2>
           <p>サンプルりんご · デモ中央店 / 青果売場 · 在庫 120個</p>
           <p className="muted">
-            取得日時: 2026/10/21 08:00（架空） ·
-            基幹接続後に在庫と最終取得日時を表示します。
+            取得日時: 2026/10/21 08:00（架空） · 基幹接続後に在庫と最終取得日時を表示します。
           </p>
         </section>
       )}

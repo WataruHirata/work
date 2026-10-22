@@ -103,9 +103,7 @@ export function SalesDashboard() {
             <button
               className="date-button"
               type="button"
-              onClick={() =>
-                setPeriod((current) => (current === "week" ? "month" : "week"))
-              }
+              onClick={() => setPeriod((current) => (current === "week" ? "month" : "week"))}
             >
               <CalendarDays size={16} />
               <span>{period === "week" ? "1週間" : "1か月"}</span>
@@ -156,17 +154,15 @@ export function SalesDashboard() {
               <span>前週同曜日比</span>
             </div>
             <div className="mini-bars" aria-hidden="true">
-              {[34, 45, 39, 54, 42, 63, 51, 72, 58, 82, 65, 91].map(
-                (height, index) => (
-                  <i
-                    key={index}
-                    style={{
-                      height: `${height}%`,
-                      animationDelay: `calc(var(--motion-stagger) * ${index})`,
-                    }}
-                  />
-                ),
-              )}
+              {[34, 45, 39, 54, 42, 63, 51, 72, 58, 82, 65, 91].map((height, index) => (
+                <i
+                  key={index}
+                  style={{
+                    height: `${height}%`,
+                    animationDelay: `calc(var(--motion-stagger) * ${index})`,
+                  }}
+                />
+              ))}
             </div>
           </article>
           <article className="metric-card">
@@ -227,11 +223,7 @@ export function SalesDashboard() {
                 <div className="panel-title">売上の推移</div>
                 <div className="panel-subtitle">全店舗 · 税込売上速報</div>
               </div>
-              <div
-                className="segmented-control"
-                role="group"
-                aria-label="売上表示期間"
-              >
+              <div className="segmented-control" role="group" aria-label="売上表示期間">
                 <button
                   className={period === "week" ? "selected" : ""}
                   type="button"
@@ -278,27 +270,12 @@ export function SalesDashboard() {
                 </desc>
                 <defs>
                   <linearGradient id="sales-fill" x1="0" x2="0" y1="0" y2="1">
-                    <stop
-                      offset="0%"
-                      stopColor="var(--color-2b8f70)"
-                      stopOpacity=".19"
-                    />
-                    <stop
-                      offset="100%"
-                      stopColor="var(--color-2b8f70)"
-                      stopOpacity="0"
-                    />
+                    <stop offset="0%" stopColor="var(--color-2b8f70)" stopOpacity=".19" />
+                    <stop offset="100%" stopColor="var(--color-2b8f70)" stopOpacity="0" />
                   </linearGradient>
                 </defs>
                 {[38, 82, 126, 170, 214].map((y) => (
-                  <line
-                    key={y}
-                    x1="40"
-                    x2="736"
-                    y1={y}
-                    y2={y}
-                    className="chart-gridline"
-                  />
+                  <line key={y} x1="40" x2="736" y1={y} y2={y} className="chart-gridline" />
                 ))}
                 <path d={area} className="chart-area" />
                 <polyline points={points} className="chart-line" />
@@ -309,9 +286,7 @@ export function SalesDashboard() {
                     cy={210 - (value / max) * 164}
                     r={index === chartData.length - 1 ? 5 : 3.2}
                     className={
-                      index === chartData.length - 1
-                        ? "chart-point current"
-                        : "chart-point"
+                      index === chartData.length - 1 ? "chart-point current" : "chart-point"
                     }
                   >
                     <title>{`${["水", "木", "金", "土", "日", "月", "火"][index]}曜日・デモ売上 ¥${formatYen(value * 100000)}`}</title>
@@ -320,15 +295,7 @@ export function SalesDashboard() {
               </svg>
             </div>
             <div className="chart-x-labels" aria-hidden="true">
-              {[
-                "10/15",
-                "10/16",
-                "10/17",
-                "10/18",
-                "10/19",
-                "10/20",
-                "10/21",
-              ].map((day) => (
+              {["10/15", "10/16", "10/17", "10/18", "10/19", "10/20", "10/21"].map((day) => (
                 <span key={day}>{day}</span>
               ))}
             </div>
@@ -360,11 +327,7 @@ export function SalesDashboard() {
               </span>
               <ArrowRight size={16} />
             </button>
-            <button
-              type="button"
-              className="action-item"
-              onClick={() => goTo("/approvals")}
-            >
+            <button type="button" className="action-item" onClick={() => goTo("/approvals")}>
               <span className="action-icon approval-icon">
                 <ClipboardCheck size={17} />
               </span>
@@ -374,11 +337,7 @@ export function SalesDashboard() {
               </span>
               <span className="action-count">2</span>
             </button>
-            <button
-              type="button"
-              className="action-item"
-              onClick={() => goTo("/campaigns")}
-            >
+            <button type="button" className="action-item" onClick={() => goTo("/campaigns")}>
               <span className="action-icon campaign-icon">
                 <Package size={17} />
               </span>
@@ -388,11 +347,7 @@ export function SalesDashboard() {
               </span>
               <ArrowRight size={16} />
             </button>
-            <button
-              type="button"
-              className="all-tasks-link"
-              onClick={() => goTo("/approvals")}
-            >
+            <button type="button" className="all-tasks-link" onClick={() => goTo("/approvals")}>
               すべての確認事項を見る <ArrowRight size={15} />
             </button>
             <div className="completion-card">
@@ -428,11 +383,7 @@ export function SalesDashboard() {
               <div className="panel-title">POSデータ連携状況</div>
               <div className="panel-subtitle">2026年10月20日分 · 前日売上</div>
             </div>
-            <button
-              type="button"
-              className="table-link"
-              onClick={() => goTo("/imports")}
-            >
+            <button type="button" className="table-link" onClick={() => goTo("/imports")}>
               全店舗の状況を見る <ArrowRight size={15} />
             </button>
           </div>
@@ -485,16 +436,13 @@ export function SalesDashboard() {
           </div>
           <div className="table-footer">
             <CircleAlert size={14} />
-            <span>
-              この一覧はデモ用の架空データです。実連携は接続設定後に有効になります。
-            </span>
+            <span>この一覧はデモ用の架空データです。実連携は接続設定後に有効になります。</span>
           </div>
         </section>
 
         <footer className="footer">
           <span>
-            みのり屋 販売管理システム{" "}
-            <span className="footer-separator">·</span> 開発プレビュー
+            みのり屋 販売管理システム <span className="footer-separator">·</span> 開発プレビュー
           </span>
           <span>
             データ表示: デモ <span className="footer-separator">·</span>{" "}

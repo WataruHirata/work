@@ -18,7 +18,7 @@
     "departmentId": "アプリ内売場ID",
     "departmentCode": "FIXTURE-FOOD",
     "deliveryDate": "2026-11-01",
-    "items": [{"productId":"アプリ内商品ID","productCode":"FIXTURE-V1-FOOD","quantity":2}]
+    "items": [{ "productId": "アプリ内商品ID", "productCode": "FIXTURE-V1-FOOD", "quantity": 2 }]
   }
 }
 ```
@@ -37,7 +37,7 @@
 成功応答（発注）:
 
 ```json
-{"ok":true,"idempotencyKey":"受信した識別子","reference":"基幹の受付番号"}
+{ "ok": true, "idempotencyKey": "受信した識別子", "reference": "基幹の受付番号" }
 ```
 
 価格応答は `appliedPriceYen` を追加し、通常売価復帰では `normalPriceRevision` も返す。アプリは要求識別子・実反映価格・通常売価版を照合し、相違を失敗にする。`reference` は空でない200文字以内の処理番号。失敗応答の本文をログ/監査へ転載せず、HTTP状態等の制御された情報を記録する。
@@ -47,18 +47,18 @@
 `POST /api/integrations/ingest`、Bearerに `INTEGRATION_INGEST_TOKEN` を指定する。
 
 ```json
-{"version":1,"eventId":"送信元:一意なイベントID","kind":"inventory","rows":[]}
+{ "version": 1, "eventId": "送信元:一意なイベントID", "kind": "inventory", "rows": [] }
 ```
 
 1要求5MB以内、1～10,000行。大きな日次データの分割・全ファイル受信完了の判定は、正式なPOSファイル/マニフェスト仕様に合わせて接続側と設計する。現行の取込は1標準要求単位の原子的処理であり、140万明細/日の実測・全ファイル完了を証明するものではない。
 
 同一eventId/同一内容は再適用しない。同一eventIdの異なる内容は拒否する。再送時にeventIdを変更しない。行に不正がある場合は、その要求全体をロールバックする。通信が切れた場合はDBコミット済みの可能性を考慮して同じ内容/IDを再送する。
 
-| kind | 各行の必須項目・意味 |
-|---|---|
-| inventory | `store_id,department_id,product_id,quantity,observed_at,source_reference`。IDはアプリのUUID。古いobserved_atは最新在庫を上書きしない。未来時刻を拒否 |
-| prices | `product_id,store_id,price_yen,valid_from,valid_until,promotion_eligibility`。通常売価正本の参照値。区分はeligible/excluded/not_configured。valid_untilはnull可。store_idがnullの全店値と店舗値が競合する場合、優先順位を推測せず復帰を停止 |
-| sales | `store_code,product_code,department_code,business_date,transaction_time,source_row_key,receipt_key,customer_count,quantity,amount_yen,tax_rate,line_type`。金額はPOS確定済みの税込円整数、税率8/10、種別sale/discount/void/return。営業日は店舗境界と照合。取引日時はタイムゾーン必須 |
+| kind      | 各行の必須項目・意味                                                                                                                                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| inventory | `store_id,department_id,product_id,quantity,observed_at,source_reference`。IDはアプリのUUID。古いobserved_atは最新在庫を上書きしない。未来時刻を拒否                                                                                                                                  |
+| prices    | `product_id,store_id,price_yen,valid_from,valid_until,promotion_eligibility`。通常売価正本の参照値。区分はeligible/excluded/not_configured。valid_untilはnull可。store_idがnullの全店値と店舗値が競合する場合、優先順位を推測せず復帰を停止                                           |
+| sales     | `store_code,product_code,department_code,business_date,transaction_time,source_row_key,receipt_key,customer_count,quantity,amount_yen,tax_rate,line_type`。金額はPOS確定済みの税込円整数、税率8/10、種別sale/discount/void/return。営業日は店舗境界と照合。取引日時はタイムゾーン必須 |
 
 商品/店舗/売場は先にマスタへ存在する必要がある。社員・顧客情報、カード番号、ベンダートークンを連携行へ含めない。通常売価の正本・EDLP分類・価格優先順位はQ-17等の決定を踏まえ、接続側で解決する。
 

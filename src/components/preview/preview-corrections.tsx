@@ -9,6 +9,7 @@ import {
   type CorrectionPreview,
 } from "@/mocks/corrections";
 import { demoStores } from "@/mocks/workspaces";
+import { StateBadge } from "@/components/ui/state-badge";
 
 const key = "minoriya-correction-preview-v1";
 const initial = JSON.stringify(initialCorrections);
@@ -51,17 +52,12 @@ function parse(value: string): CorrectionPreview[] {
   }
 }
 
-export function PreviewCorrections({
-  mode,
-}: {
-  mode: "store" | "headquarters" | "notices";
-}) {
+export function PreviewCorrections({ mode }: { mode: "store" | "headquarters" | "notices" }) {
   const rows = parse(useSyncExternalStore(subscribe, snapshot, () => initial));
   const [store, setStore] = useState(demoStores[0]);
   const [stage, setStage] = useState<"area" | "operations">("operations");
   const [message, setMessage] = useState("");
-  const visible =
-    mode === "headquarters" ? rows : rows.filter((row) => row.store === store);
+  const visible = mode === "headquarters" ? rows : rows.filter((row) => row.store === store);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -99,33 +95,21 @@ export function PreviewCorrections({
           String(data.get("comment")),
         ),
       );
-      setMessage(
-        "決定を記録し、次の承認担当または店舗へ通知しました（デモ）。",
-      );
+      setMessage("決定を記録し、次の承認担当または店舗へ通知しました（デモ）。");
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "内容を確認してください。",
-      );
+      setMessage(error instanceof Error ? error.message : "内容を確認してください。");
     }
   }
   return (
     <section>
       <h2>
-        {mode === "headquarters"
-          ? "店舗からの売上修正依頼・通知"
-          : "売上修正依頼と結果のお知らせ"}
+        {mode === "headquarters" ? "店舗からの売上修正依頼・通知" : "売上修正依頼と結果のお知らせ"}
       </h2>
-      <p>
-        店舗の申請 → エリア一次承認 → 本部最終承認 →
-        店舗への結果通知を、同じタブで試せます。
-      </p>
+      <p>店舗の申請 → エリア一次承認 → 本部最終承認 → 店舗への結果通知を、同じタブで試せます。</p>
       {mode === "headquarters" ? (
         <label className="field">
           操作する承認段階（デモ）
-          <select
-            value={stage}
-            onChange={(e) => setStage(e.target.value as "area" | "operations")}
-          >
+          <select value={stage} onChange={(e) => setStage(e.target.value as "area" | "operations")}>
             <option value="operations">店舗運営本部・最終承認</option>
             <option value="area">エリア・一次承認</option>
           </select>
@@ -146,14 +130,7 @@ export function PreviewCorrections({
           <p>{store} · 営業日 2026/10/20 · 変更前 ¥900,000（サンプル）</p>
           <label className="field">
             修正後売上（円）
-            <input
-              name="after"
-              type="number"
-              min="0"
-              max="2147483647"
-              step="1"
-              required
-            />
+            <input name="after" type="number" min="0" max="2147483647" step="1" required />
           </label>
           <label className="field">
             修正理由
@@ -170,14 +147,13 @@ export function PreviewCorrections({
       {!visible.length && <p>この店舗の修正依頼・結果通知はありません。</p>}
       {visible.map((row) => (
         <article className="instruction-card" key={row.id}>
-          <span className="status">{correctionLabels[row.status]}</span>
+          <StateBadge state={row.status} label={correctionLabels[row.status]} />
           <h3>
             {row.store} · {row.date} の売上修正依頼
           </h3>
           <p>
             変更前 ¥{row.before.toLocaleString("ja-JP")} → 変更後 ¥
-            {row.after.toLocaleString("ja-JP")} / 差額{" "}
-            {row.after - row.before >= 0 ? "+" : ""}
+            {row.after.toLocaleString("ja-JP")} / 差額 {row.after - row.before >= 0 ? "+" : ""}
             {(row.after - row.before).toLocaleString("ja-JP")}円
           </p>
           <p className="instruction-message">理由：{row.reason}</p>
@@ -190,12 +166,8 @@ export function PreviewCorrections({
           </p>
           {mode === "headquarters" &&
             ((stage === "area" && row.status === "pending_area") ||
-              (stage === "operations" &&
-                row.status === "pending_operations")) && (
-              <form
-                className="instruction-form"
-                onSubmit={(e) => decide(e, row.id)}
-              >
+              (stage === "operations" && row.status === "pending_operations")) && (
+              <form className="instruction-form" onSubmit={(e) => decide(e, row.id)}>
                 <label className="field">
                   決定
                   <select name="decision">
@@ -211,9 +183,7 @@ export function PreviewCorrections({
                   <input type="checkbox" required />
                   変更前後と理由を確認しました（デモ）
                 </label>
-                <button className="primary-button">
-                  決定して通知する（デモ）
-                </button>
+                <button className="primary-button">決定して通知する（デモ）</button>
               </form>
             )}
         </article>
@@ -223,9 +193,7 @@ export function PreviewCorrections({
           className="ghost-button"
           href={mode === "headquarters" ? "/store/notices" : "/admin/approvals"}
         >
-          {mode === "headquarters"
-            ? "店舗の結果通知を確認"
-            : "本部の承認プレビューへ"}
+          {mode === "headquarters" ? "店舗の結果通知を確認" : "本部の承認プレビューへ"}
         </Link>
         <button
           className="ghost-button"

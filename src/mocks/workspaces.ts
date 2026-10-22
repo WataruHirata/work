@@ -37,28 +37,9 @@ const sales: PreviewSpec = {
   columns: ["営業日・対象", "売上"],
   unit: "円",
   rows: [
-    row(
-      "S-001",
-      "10/21 日次売上",
-      960000,
-      "締め前",
-      "客数800人 / 客単価1,200円",
-    ),
-    row(
-      "S-002",
-      "10/20 日次売上",
-      900000,
-      "日次確定",
-      "客数750人 / 客単価1,200円",
-    ),
-    row(
-      "S-003",
-      "10/21 日次売上",
-      840000,
-      "締め前",
-      "客数700人 / 客単価1,200円",
-      "デモ南店",
-    ),
+    row("S-001", "10/21 日次売上", 960000, "締め前", "客数800人 / 客単価1,200円"),
+    row("S-002", "10/20 日次売上", 900000, "日次確定", "客数750人 / 客単価1,200円"),
+    row("S-003", "10/21 日次売上", 840000, "締め前", "客数700人 / 客単価1,200円", "デモ南店"),
   ],
 };
 const orders: PreviewSpec = {
@@ -68,20 +49,8 @@ const orders: PreviewSpec = {
   nextStatus: "確認済み（デモ）",
   creatable: true,
   rows: [
-    row(
-      "O-001",
-      "サンプルりんご",
-      24,
-      "基幹連携待ち",
-      "希望納期: 10/23 / 青果売場",
-    ),
-    row(
-      "O-002",
-      "サンプル牛乳",
-      48,
-      "連携エラー",
-      "接続先未設定の表示例 / 再送前に内容を確認",
-    ),
+    row("O-001", "サンプルりんご", 24, "基幹連携待ち", "希望納期: 10/23 / 青果売場"),
+    row("O-002", "サンプル牛乳", 48, "連携エラー", "接続先未設定の表示例 / 再送前に内容を確認"),
   ],
 };
 export const previewSpecs: Partial<Record<PageId, PreviewSpec>> = {
@@ -139,13 +108,7 @@ export const previewSpecs: Partial<Record<PageId, PreviewSpec>> = {
     nextStatus: "確認済み（デモ）",
     creatable: true,
     rows: [
-      row(
-        "B-001",
-        "当日の売上確認",
-        960000,
-        "締め前",
-        "日次確定前に売上と客数を確認",
-      ),
+      row("B-001", "当日の売上確認", 960000, "締め前", "日次確定前に売上と客数を確認"),
       row(
         "B-002",
         "返品・売上修正の申請",
@@ -177,21 +140,8 @@ export const previewSpecs: Partial<Record<PageId, PreviewSpec>> = {
     nextStatus: "確認済み（デモ）",
     creatable: true,
     rows: [
-      row(
-        "T-001",
-        "デモ中央店",
-        2,
-        "営業中",
-        "開店09:00 / 締め21:00 / 営業日境界04:00",
-      ),
-      row(
-        "T-002",
-        "デモ南店",
-        1,
-        "営業中",
-        "開店10:00 / 締め20:00 / 営業日境界04:00",
-        "デモ南店",
-      ),
+      row("T-001", "デモ中央店", 2, "営業中", "開店09:00 / 締め21:00 / 営業日境界04:00"),
+      row("T-002", "デモ南店", 1, "営業中", "開店10:00 / 締め20:00 / 営業日境界04:00", "デモ南店"),
     ],
   },
   imports: {
@@ -201,20 +151,8 @@ export const previewSpecs: Partial<Record<PageId, PreviewSpec>> = {
     nextStatus: "再処理待ち（デモ）",
     creatable: true,
     rows: [
-      row(
-        "I-001",
-        "日次売上CSV",
-        120,
-        "取込完了",
-        "受信日時10/21 06:00 / 成功120件",
-      ),
-      row(
-        "I-002",
-        "POS価格連携",
-        3,
-        "連携エラー",
-        "外部接続がない場合のエラー表示例",
-      ),
+      row("I-001", "日次売上CSV", 120, "取込完了", "受信日時10/21 06:00 / 成功120件"),
+      row("I-002", "POS価格連携", 3, "連携エラー", "外部接続がない場合のエラー表示例"),
     ],
   },
   users: {
@@ -291,15 +229,9 @@ export const demoInstructions: DemoInstruction[] = [
 export function targetInstructions(rows: DemoInstruction[], store: string) {
   return rows.filter((row) => row.stores.includes(store));
 }
-export function confirmDemoInstruction(
-  rows: DemoInstruction[],
-  id: string,
-  store: string,
-) {
+export function confirmDemoInstruction(rows: DemoInstruction[], id: string, store: string) {
   return rows.map((row) =>
-    row.id === id &&
-    row.stores.includes(store) &&
-    !row.confirmedStores.includes(store)
+    row.id === id && row.stores.includes(store) && !row.confirmedStores.includes(store)
       ? { ...row, confirmedStores: [...row.confirmedStores, store] }
       : row,
   );

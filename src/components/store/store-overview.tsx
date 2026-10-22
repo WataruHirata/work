@@ -1,4 +1,5 @@
 import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
+import { StateBadge } from "@/components/ui/state-badge";
 
 // Fictional preview only: store identification and production data access are pending.
 const days = [
@@ -30,9 +31,7 @@ export function StoreOverview() {
     <div className="content store-overview">
       <div className="demo-banner" role="status">
         <span className="demo-badge">SAMPLE</span>
-        <span>
-          架空のサンプルデータです。実店舗・POSデータには接続していません。
-        </span>
+        <span>架空のサンプルデータです。実店舗・POSデータには接続していません。</span>
       </div>
       <section className="page-heading">
         <div>
@@ -40,7 +39,7 @@ export function StoreOverview() {
           <h2>店舗のいまを、ひと目で。</h2>
           <p>デモ店舗 · 営業日 2026年10月21日 · 日次売上（税込）の表示例</p>
         </div>
-        <span className="status">サンプル / 未確定</span>
+        <StateBadge state="not_configured" label="サンプル / 未確定" />
       </section>
       <section className="metrics-grid" aria-label="デモ店舗の営業指標">
         {[
@@ -88,11 +87,9 @@ export function StoreOverview() {
           <div className="panel-heading">
             <div>
               <h2 className="panel-title">売上の推移</h2>
-              <p className="panel-subtitle">
-                デモ店舗 · 2026/10/15 − 10/21 · 税込 / 円
-              </p>
+              <p className="panel-subtitle">デモ店舗 · 2026/10/15 − 10/21 · 税込 / 円</p>
             </div>
-            <span className="status">日次売上</span>
+            <StateBadge state="draft" label="日次売上" />
           </div>
           <svg
             className="store-trend"
@@ -100,9 +97,7 @@ export function StoreOverview() {
             role="img"
             aria-labelledby="store-trend-title store-trend-desc"
           >
-            <title id="store-trend-title">
-              直近7日間の売上推移（サンプル）
-            </title>
+            <title id="store-trend-title">直近7日間の売上推移（サンプル）</title>
             <desc id="store-trend-desc">
               10月18日の115万2千円が最大。当日は96万円。各日の正確な値は下の売上データ表で確認できます。
             </desc>
@@ -173,8 +168,7 @@ export function StoreOverview() {
                 <div>
                   <strong>{department.name}</strong>
                   <span>
-                    {yen(department.sales)} ·{" "}
-                    {(department.sales / today.sales) * 100}%
+                    {yen(department.sales)} · {(department.sales / today.sales) * 100}%
                   </span>
                 </div>
                 <div className="department-track" aria-hidden="true">

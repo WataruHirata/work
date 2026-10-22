@@ -79,10 +79,7 @@ export default function CampaignsPage() {
           <div className="chart-bars" aria-label="キャンペーン売上の想定推移">
             {[42, 58, 53, 66, 62, 80, 74].map((value, index) => (
               <div key={`campaign-${index}`} className="bar-wrap">
-                <span
-                  className="bar"
-                  style={{ height: `${Math.max(value, 18)}%` }}
-                />
+                <span className="bar" style={{ height: `${Math.max(value, 18)}%` }} />
                 <small>{index + 1}</small>
               </div>
             ))}

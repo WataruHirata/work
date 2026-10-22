@@ -2,10 +2,7 @@ import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { readIntegrationJson } from "@/server/container";
 
-export function integrationAuthorized(
-  request: Request,
-  secret?: string,
-): boolean {
+export function integrationAuthorized(request: Request, secret?: string): boolean {
   if (!secret || secret.length < 32) return false;
   const actual = request.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!actual) return false;

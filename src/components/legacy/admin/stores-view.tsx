@@ -71,9 +71,7 @@ export default function StoresPage() {
                 </div>
                 <div className="list-meta">
                   <span>{store.area}</span>
-                  <span
-                    className={`badge ${store.status === "要確認" ? "warning" : "ok"}`}
-                  >
+                  <span className={`badge ${store.status === "要確認" ? "warning" : "ok"}`}>
                     {store.status}
                   </span>
                 </div>

@@ -19,9 +19,7 @@ const store = "20000000-0000-4000-8000-000000000001",
 const product = "51000000-0000-4000-8000-000000000001";
 let db: PGlite, department: string;
 async function root() {
-  await db.exec(
-    "reset role; select set_config('request.jwt.claim.sub','',false)",
-  );
+  await db.exec("reset role; select set_config('request.jwt.claim.sub','',false)");
 }
 async function asUser(id: string) {
   await root();
@@ -42,18 +40,13 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     for (const file of (await readdir(resolve("supabase/migrations")))
       .filter((file) => file.endsWith(".sql"))
       .sort())
-      await db.exec(
-        await readFile(resolve("supabase/migrations", file), "utf8"),
-      );
+      await db.exec(await readFile(resolve("supabase/migrations", file), "utf8"));
     await db.exec(await readFile(resolve("supabase/seed.sql"), "utf8"));
     await db.exec(
       "grant select,insert,update,delete on all tables in schema public to authenticated; grant usage,select on all sequences in schema public to authenticated; revoke select on public.store_devices from authenticated; grant select(id,store_id,name,active,created_at) on public.store_devices to authenticated;",
     );
     for (const [name, id] of Object.entries(ids)) {
-      await db.query(
-        "insert into auth.users values($1,'synthetic-unusable-hash')",
-        [id],
-      );
+      await db.query("insert into auth.users values($1,'synthetic-unusable-hash')", [id]);
       await db.query(
         "insert into public.app_users(id,display_name,employee_code) values($1,$2,$2)",
         [id, `Fictional ${name}`],
@@ -74,10 +67,11 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       "insert into public.products(id,code,name,tax_rate,promotion_eligibility) values($1,'MOCK-FOOD','Fictional food',8,'eligible')",
       [product],
     );
-    await db.query(
-      "insert into public.store_products(store_id,product_id) values($1,$3),($2,$3)",
-      [store, otherStore, product],
-    );
+    await db.query("insert into public.store_products(store_id,product_id) values($1,$3),($2,$3)", [
+      store,
+      otherStore,
+      product,
+    ]);
   }, 30000);
   beforeEach(root);
   afterAll(async () => {
@@ -101,17 +95,17 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       [product, JSON.stringify(values), version],
     );
     await expect(
-      db.query(
-        "select public.save_business_master('products',$1,$2::jsonb,$3::timestamptz)",
-        [product, JSON.stringify(values), version],
-      ),
+      db.query("select public.save_business_master('products',$1,$2::jsonb,$3::timestamptz)", [
+        product,
+        JSON.stringify(values),
+        version,
+      ]),
     ).rejects.toThrow("Concurrent");
     await asUser(ids.staff);
     await expect(
-      db.query(
-        "select public.save_business_master('products',null,$1::jsonb,null)",
-        [JSON.stringify(values)],
-      ),
+      db.query("select public.save_business_master('products',null,$1::jsonb,null)", [
+        JSON.stringify(values),
+      ]),
     ).rejects.toThrow();
     await root();
     expect(
@@ -140,12 +134,7 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       ]),
     ).rejects.toThrow("Conflicting order replay");
     await expect(
-      db.query(sql, [
-        otherStore,
-        department,
-        JSON.stringify(items),
-        randomUUID(),
-      ]),
+      db.query(sql, [otherStore, department, JSON.stringify(items), randomUUID()]),
     ).rejects.toThrow();
     await expect(
       db.query(sql, [
@@ -177,9 +166,9 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       "select public.register_store_device($1,'Fictional station',$2) as value",
       [store, token],
     );
-    await expect(
-      db.query("select token_hash from public.store_devices"),
-    ).rejects.toThrow("permission denied");
+    await expect(db.query("select token_hash from public.store_devices")).rejects.toThrow(
+      "permission denied",
+    );
     await root();
     await db.exec("set role anon");
     const snapshot = await scalar<{ store: { id: string }; sales: unknown[] }>(
@@ -189,30 +178,22 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     expect(snapshot.store.id).toBe(store);
     expect(snapshot.sales).toEqual([]);
     await expect(
-      db.query("select public.store_device_snapshot($1)", [
-        randomBytes(32).toString("hex"),
-      ]),
+      db.query("select public.store_device_snapshot($1)", [randomBytes(32).toString("hex")]),
     ).rejects.toThrow();
     await expect(
-      db.query(
-        "select public.register_store_device($1,'Fictional station',$2)",
-        [store, token],
-      ),
+      db.query("select public.register_store_device($1,'Fictional station',$2)", [store, token]),
     ).rejects.toThrow("permission denied");
     await asUser(ids.info);
     await db.query("select public.disable_store_device($1)", [device]);
     await root();
     await db.exec("set role anon");
-    await expect(
-      db.query("select public.store_device_snapshot($1)", [token]),
-    ).rejects.toThrow();
+    await expect(db.query("select public.store_device_snapshot($1)", [token])).rejects.toThrow();
   });
 
   it("初回変更待ちと無効利用者は業務データを取得できず、実パスワード変更時だけ解除される", async () => {
-    await db.query(
-      "update public.app_users set must_change_password=true where id=$1",
-      [ids.initial],
-    );
+    await db.query("update public.app_users set must_change_password=true where id=$1", [
+      ids.initial,
+    ]);
     await asUser(ids.initial);
     expect(
       await scalar<boolean>(
@@ -232,9 +213,7 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       ),
     ).toBe(true);
     await root();
-    await db.query("update public.app_users set active=false where id=$1", [
-      ids.initial,
-    ]);
+    await db.query("update public.app_users set active=false where id=$1", [ids.initial]);
     await asUser(ids.initial);
     expect((await db.query("select * from public.products")).rows).toEqual([]);
   });
@@ -267,26 +246,14 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       },
     ];
     await asUser(ids.info);
-    const sql =
-      "select public.import_canonical_sales('fictional.csv',$1,$2::jsonb) as value";
-    const first = await scalar<{ inserted: number }>(sql, [
-      "a".repeat(64),
-      JSON.stringify(rows),
-    ]);
+    const sql = "select public.import_canonical_sales('fictional.csv',$1,$2::jsonb) as value";
+    const first = await scalar<{ inserted: number }>(sql, ["a".repeat(64), JSON.stringify(rows)]);
     expect(first.inserted).toBe(2);
     expect(
-      (
-        await scalar<{ inserted: number }>(sql, [
-          "b".repeat(64),
-          JSON.stringify(rows),
-        ])
-      ).inserted,
+      (await scalar<{ inserted: number }>(sql, ["b".repeat(64), JSON.stringify(rows)])).inserted,
     ).toBe(0);
     await expect(
-      db.query(sql, [
-        "c".repeat(64),
-        JSON.stringify([{ ...rows[0], amount_yen: -201 }]),
-      ]),
+      db.query(sql, ["c".repeat(64), JSON.stringify([{ ...rows[0], amount_yen: -201 }])]),
     ).rejects.toThrow("Conflicting replay");
     await expect(
       db.query(sql, [
@@ -347,28 +314,20 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       db.query("select public.finalize_sales_month($1,'2020-02-01')", [store]),
     ).rejects.toThrow("Pending corrections");
     await asUser(ids.area);
-    await db.query(
-      "select public.approve_sales_correction($1,true,'Fictional first review')",
-      [correction],
-    );
+    await db.query("select public.approve_sales_correction($1,true,'Fictional first review')", [
+      correction,
+    ]);
     await asUser(ids.operations);
-    await db.query(
-      "select public.approve_sales_correction($1,true,'Fictional final review')",
-      [correction],
-    );
+    await db.query("select public.approve_sales_correction($1,true,'Fictional final review')", [
+      correction,
+    ]);
     await asUser(ids.accounting);
     expect(
-      await scalar<number>(
-        "select public.finalize_sales_month($1,'2020-02-01') as value",
-        [store],
-      ),
+      await scalar<number>("select public.finalize_sales_month($1,'2020-02-01') as value", [store]),
     ).toBe(1);
     await asUser(ids.manager);
     await expect(
-      db.query(
-        "select public.request_sales_correction($1,'Fictional change',1200)",
-        [day],
-      ),
+      db.query("select public.request_sales_correction($1,'Fictional change',1200)", [day]),
     ).rejects.toThrow("Monthly finalized");
   });
 
@@ -384,35 +343,21 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       },
     ];
     await db.exec("set role service_role");
-    const sql =
-      "select public.ingest_external_snapshot($1,'inventory',$2::jsonb) as value";
+    const sql = "select public.ingest_external_snapshot($1,'inventory',$2::jsonb) as value";
     expect(
-      (
-        await scalar<{ duplicate: boolean }>(sql, [
-          "fictional-stock-1",
-          JSON.stringify(rows),
-        ])
-      ).duplicate,
+      (await scalar<{ duplicate: boolean }>(sql, ["fictional-stock-1", JSON.stringify(rows)]))
+        .duplicate,
     ).toBe(false);
     expect(
-      (
-        await scalar<{ duplicate: boolean }>(sql, [
-          "fictional-stock-1",
-          JSON.stringify(rows),
-        ])
-      ).duplicate,
+      (await scalar<{ duplicate: boolean }>(sql, ["fictional-stock-1", JSON.stringify(rows)]))
+        .duplicate,
     ).toBe(true);
     await expect(
-      db.query(sql, [
-        "fictional-stock-1",
-        JSON.stringify([{ ...rows[0], quantity: 99 }]),
-      ]),
+      db.query(sql, ["fictional-stock-1", JSON.stringify([{ ...rows[0], quantity: 99 }])]),
     ).rejects.toThrow("Conflicting event");
     await scalar(sql, [
       "fictional-stock-old",
-      JSON.stringify([
-        { ...rows[0], quantity: 1, observed_at: "2019-01-01T00:00:00Z" },
-      ]),
+      JSON.stringify([{ ...rows[0], quantity: 1, observed_at: "2019-01-01T00:00:00Z" }]),
     ]);
     await root();
     expect(
@@ -423,10 +368,9 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     ).toBe(8);
     await asUser(ids.staff);
     await expect(
-      db.query(
-        "select public.ingest_external_snapshot('not-allowed','inventory',$1::jsonb)",
-        [JSON.stringify(rows)],
-      ),
+      db.query("select public.ingest_external_snapshot('not-allowed','inventory',$1::jsonb)", [
+        JSON.stringify(rows),
+      ]),
     ).rejects.toThrow("permission denied");
   });
 
@@ -450,10 +394,7 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     const job = jobs.find((row) => row.id === jobId)!;
     expect(job).toBeDefined();
     await expect(
-      db.query("select public.finish_integration_job($1,$2,true,null,null)", [
-        jobId,
-        randomUUID(),
-      ]),
+      db.query("select public.finish_integration_job($1,$2,true,null,null)", [jobId, randomUUID()]),
     ).rejects.toThrow("Stale");
     await db.query(
       "select public.finish_integration_job($1,$2,false,null,'Fictional external failure')",
@@ -461,10 +402,9 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     );
     await root();
     expect(
-      await scalar<string>(
-        "select status as value from public.integration_jobs where id=$1",
-        [jobId],
-      ),
+      await scalar<string>("select status as value from public.integration_jobs where id=$1", [
+        jobId,
+      ]),
     ).toBe("failed");
     expect(
       await scalar<number>(
@@ -486,20 +426,17 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       [product],
     );
     expect(
-      await scalar<number>(
-        "select public.resolve_restore_price($1,$2) as value",
-        [product, store],
-      ),
+      await scalar<number>("select public.resolve_restore_price($1,$2) as value", [product, store]),
     ).toBe(120);
     await db.query(
       "insert into public.product_prices(product_id,store_id,price_yen,valid_from) values($1,$2,90,now()-interval '1 hour')",
       [product, store],
     );
     expect(
-      await scalar<number | null>(
-        "select public.resolve_restore_price($1,$2) as value",
-        [product, store],
-      ),
+      await scalar<number | null>("select public.resolve_restore_price($1,$2) as value", [
+        product,
+        store,
+      ]),
     ).toBeNull();
   });
 
@@ -520,16 +457,13 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       },
     ];
     await expect(
-      db.query("select public.import_app_profiles($1::jsonb)", [
-        JSON.stringify(rows),
-      ]),
+      db.query("select public.import_app_profiles($1::jsonb)", [JSON.stringify(rows)]),
     ).rejects.toThrow("identity missing");
     await root();
     expect(
-      await scalar<string>(
-        "select employee_code as value from public.app_users where id=$1",
-        [ids.staff],
-      ),
+      await scalar<string>("select employee_code as value from public.app_users where id=$1", [
+        ids.staff,
+      ]),
     ).toBe("Fictional staff");
   });
 
@@ -548,17 +482,9 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     await db.query("select public.verify_campaign_product($1)", [row.id]);
     const edit =
       "select public.edit_campaign_draft($1,$2,'Fictional edited',now()+interval '1 hour',now()+interval '1 day',$3::jsonb)";
-    await db.query(edit, [
-      campaign,
-      row.version,
-      JSON.stringify([{ id: row.id, price_yen: 90 }]),
-    ]);
+    await db.query(edit, [campaign, row.version, JSON.stringify([{ id: row.id, price_yen: 90 }])]);
     await expect(
-      db.query(edit, [
-        campaign,
-        row.version,
-        JSON.stringify([{ id: row.id, price_yen: 91 }]),
-      ]),
+      db.query(edit, [campaign, row.version, JSON.stringify([{ id: row.id, price_yen: 91 }])]),
     ).rejects.toThrow("version");
     await db.query("select public.publish_campaign_draft($1)", [campaign]);
     const second = await scalar<string>(create, [items, store]);
@@ -567,18 +493,17 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       [second],
     );
     await db.query("select public.verify_campaign_product($1)", [secondItem]);
-    await expect(
-      db.query("select public.publish_campaign_draft($1)", [second]),
-    ).rejects.toThrow("Overlapping");
-    await root();
-    await db.query(
-      "update public.products set promotion_eligibility='excluded' where id=$1",
-      [product],
+    await expect(db.query("select public.publish_campaign_draft($1)", [second])).rejects.toThrow(
+      "Overlapping",
     );
+    await root();
+    await db.query("update public.products set promotion_eligibility='excluded' where id=$1", [
+      product,
+    ]);
     await asUser(ids.product);
-    await expect(
-      db.query("select public.publish_campaign_draft($1)", [second]),
-    ).rejects.toThrow("current source master");
+    await expect(db.query("select public.publish_campaign_draft($1)", [second])).rejects.toThrow(
+      "current source master",
+    );
     await root();
     expect(
       await scalar<number>(

@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
-import {
-  CampaignManagement,
-  type CampaignTask,
-} from "@/components/campaigns/campaign-management";
+import { requireAdminFeature } from "@/server/auth/admin-access";
+import { CampaignManagement, type CampaignTask } from "@/components/campaigns/campaign-management";
 import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
 import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
+
+const timestamp = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
 
 export async function CampaignWorkspace({
   storeId,
@@ -16,56 +16,58 @@ export async function CampaignWorkspace({
   storeId?: string;
   storeMode?: boolean;
 }) {
+  if (!storeMode) await requireAdminFeature("campaigns");
   if (!backendConfigured())
-    return (
-      <PreviewWorkspace feature={storeMode ? "storeCampaigns" : "campaigns"} />
-    );
+    return <PreviewWorkspace feature={storeMode ? "storeCampaigns" : "campaigns"} />;
   const session = await identity().session();
-  if (!session?.active) redirect("/login?next=/store/campaigns");
+  if (!session?.active)
+    redirect(`/login?next=${storeMode ? "/store/campaigns" : "/admin/campaigns"}`);
   if (session.mustChangePassword) redirect("/account/password");
-  const [stores, products, campaigns, items, targets, tasks] =
-    await Promise.all([
-      allRecords("stores"),
-      allRecords("products"),
-      allRecords("campaigns"),
-      allRecords("campaignItems"),
-      allRecords("campaignTargets"),
-      allRecords("campaignTasks"),
-    ]);
+  const [stores, products, campaigns, items, targets, tasks] = await Promise.all([
+    allRecords("stores"),
+    allRecords("products"),
+    allRecords("campaigns"),
+    allRecords("campaignItems"),
+    allRecords("campaignTargets"),
+    allRecords("campaignTasks"),
+  ]);
   if (storeId && !stores.some((store) => store.id === storeId)) notFound();
   const selectedStoreId = storeId ?? stores[0]?.id ?? "";
   const option = (row: DataRecord) => ({
     id: row.id,
     code: String(row.code),
     name: String(row.name),
+    status: typeof row.status === "string" ? row.status : undefined,
   });
   return (
     <CampaignManagement
       instructionPanel={
-        <InstructionWorkspace
-          canManage={!storeMode && session.roles.includes("product_office")}
-        />
+        <InstructionWorkspace canManage={!storeMode && session.roles.includes("product_office")} />
       }
+      canRecordStoreWork={session.roles.some((role) =>
+        ["store_manager", "department_lead", "staff"].includes(role),
+      )}
       isConfigured
       canManage={!storeMode && session.roles.includes("product_office")}
       stores={stores.map(option)}
       products={products.filter((product) => product.active).map(option)}
       selectedStoreId={selectedStoreId}
       basePath={storeMode ? "/store/campaigns" : "/admin/campaigns"}
-      campaigns={campaigns.slice(0, 20).map((campaign) => ({
+      campaigns={campaigns.map((campaign) => ({
         id: campaign.id,
-        updated_at: String(campaign.updated_at),
+        storeIds: targets
+          .filter((target) => target.campaign_id === campaign.id)
+          .map((target) => String(target.store_id)),
+        updated_at: timestamp(campaign.updated_at),
         name: String(campaign.name),
-        starts_at: String(campaign.starts_at),
-        ends_at: String(campaign.ends_at),
+        starts_at: timestamp(campaign.starts_at),
+        ends_at: timestamp(campaign.ends_at),
         status: String(campaign.status),
         published_at: campaign.published_at as string | null,
         created_at: String(campaign.created_at),
         storeConfirmedAt:
           (targets.find(
-            (target) =>
-              target.campaign_id === campaign.id &&
-              target.store_id === selectedStoreId,
+            (target) => target.campaign_id === campaign.id && target.store_id === selectedStoreId,
           )?.store_confirmed_at as string | null) ?? null,
         items: items
           .filter((item) => item.campaign_id === campaign.id)
@@ -74,15 +76,11 @@ export async function CampaignWorkspace({
             priceYen: Number(item.price_yen),
             eligibilityStatus: String(item.eligibility_status),
             product: products.find((product) => product.id === item.product_id)
-              ? option(
-                  products.find((product) => product.id === item.product_id)!,
-                )
+              ? option(products.find((product) => product.id === item.product_id)!)
               : null,
             task:
               (tasks.find(
-                (task) =>
-                  task.campaign_item_id === item.id &&
-                  task.store_id === selectedStoreId,
+                (task) => task.campaign_item_id === item.id && task.store_id === selectedStoreId,
               ) as unknown as CampaignTask | null) ?? null,
           })),
       }))}

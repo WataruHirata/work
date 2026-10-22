@@ -5,14 +5,17 @@ import type {
   IntegrationJobStore,
   IntegrationTransport,
 } from "@/domain/contracts";
-import {
-  SupabaseRepository,
-} from "@/infrastructure/supabase/adapter";
+import { SupabaseRepository } from "@/infrastructure/supabase/adapter";
 import { SupabaseIntegrationStore } from "@/infrastructure/supabase/integration-store";
-import { LocalRepository, LocalIdentity, LocalIntegrationStore } from "@database/mock/pglite/adapter";
+import {
+  LocalRepository,
+  LocalIdentity,
+  LocalIntegrationStore,
+} from "@database/mock/pglite/adapter";
 import { mockCronSecret, mockIngestToken } from "@database/mock/pglite/adapter";
 import { MysqlRepository, MysqlIdentity } from "@database/mysql/repository";
 import { MysqlIntegrationStore } from "@database/mysql/integration-store";
+import { mysqlConnectionConfigured } from "@database/mysql/config";
 export { readBoundedJson as readIntegrationJson } from "@/infrastructure/integrations/bounded-json";
 import {
   configuredTargets,
@@ -63,10 +66,10 @@ export function integrationRuntime(): {
   };
 }
 export function backendConfigured(): boolean {
-  if (isMysqlProvider()) return Boolean(process.env.MYSQL_HOST && process.env.MYSQL_DATABASE && process.env.MYSQL_USER);
-  return !isSupabaseProvider() || Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  if (isMysqlProvider()) return mysqlConnectionConfigured();
+  return (
+    !isSupabaseProvider() ||
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   );
 }
 
@@ -75,5 +78,7 @@ export function integrationRunSecret() {
 }
 
 export function integrationIngestSecret() {
-  return isSupabaseProvider() || isMysqlProvider() ? process.env.INTEGRATION_INGEST_TOKEN : mockIngestToken;
+  return isSupabaseProvider() || isMysqlProvider()
+    ? process.env.INTEGRATION_INGEST_TOKEN
+    : mockIngestToken;
 }

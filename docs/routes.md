@@ -11,23 +11,23 @@ flowchart TD
   A --> O[ログアウトして店舗ポータルへ]
 ```
 
-| 用途 | URL | 内容 |
-|---|---|---|
-| 店舗 | `/store/sales-inventory` | 自店舗 売上・在庫 |
-| 店舗 | `/store/orders` | 発注入力・履歴 |
-| 店舗 | `/store/operations` | 締め・返品・売上修正 |
-| 店舗 | `/store/campaigns` | 特売内容・価格確認 |
-| 店舗 | `/store/notices` | お知らせ一覧・詳細 |
-| 管理 | `/admin/sales` | 売上集計・店舗比較 |
-| 管理 | `/admin/products` | 商品検索・編集 |
-| 管理 | `/admin/campaigns` | 特売一覧・登録 |
-| 管理 | `/admin/orders` | 発注状況・履歴 |
-| 管理 | `/admin/approvals` | 申請・承認 |
-| 管理 | `/admin/monthly` | 月次締め・会計出力 |
-| 管理 | `/admin/stores` | 店舗設定・端末管理 |
-| 管理 | `/admin/imports` | 連携状況・再処理 |
-| 管理 | `/admin/users` | 利用者・権限設定 |
-| 管理 | `/admin/audit` | 監査ログ検索・詳細 |
+| 用途 | URL                      | 内容                 |
+| ---- | ------------------------ | -------------------- |
+| 店舗 | `/store/sales-inventory` | 自店舗 売上・在庫    |
+| 店舗 | `/store/orders`          | 発注入力・履歴       |
+| 店舗 | `/store/operations`      | 締め・返品・売上修正 |
+| 店舗 | `/store/campaigns`       | 特売内容・価格確認   |
+| 店舗 | `/store/notices`         | お知らせ一覧・詳細   |
+| 管理 | `/admin/sales`           | 売上集計・店舗比較   |
+| 管理 | `/admin/products`        | 商品検索・編集       |
+| 管理 | `/admin/campaigns`       | 特売一覧・登録       |
+| 管理 | `/admin/orders`          | 発注状況・履歴       |
+| 管理 | `/admin/approvals`       | 申請・承認           |
+| 管理 | `/admin/monthly`         | 月次締め・会計出力   |
+| 管理 | `/admin/stores`          | 店舗設定・端末管理   |
+| 管理 | `/admin/imports`         | 連携状況・再処理     |
+| 管理 | `/admin/users`           | 利用者・権限設定     |
+| 管理 | `/admin/audit`           | 監査ログ検索・詳細   |
 
 `/store/operations` の後日修正依頼は `/admin` と `/admin/approvals` の個人宛通知から開く。`?correction=<UUID>` で対象依頼・承認履歴に絞り込む。エリア一次承認→本部最終承認を行い、結果を `/store/notices` の店舗お知らせ・個人宛通知に表示する。
 
@@ -44,3 +44,7 @@ flowchart TD
 認可は各管理ページのデータ取得前に `requireAdminFeature` で確認する（layoutだけに依存しない）。未ログインはログインへ、権限不足は404として業務内容を返さない。Supabase未設定では管理機能の設定案内を表示し、業務処理は実行しない。API/Server Actionも別途認可し、DBのRLSは維持する。
 
 管理10機能と店舗5機能のルート存在は、業務機能の完成を意味しない。実装状況と未接続画面は `requirements-v3-audit.md` に記載する。
+
+管理トップ `/admin` は管理10機能を説明付きのボタンで初期表示する。管理画面共通の右上に通知ボタンを置き、押すと個人宛の通知一覧をダイアログ表示する（FR-028/029、AT-10）。未読件数をボタンに表示し、閉じる・Escで終了してボタンにフォーカスを戻す。通知取得失敗は一覧内で案内する。未接続では通知を取得せず接続案内を表示する。
+
+特売の変更依頼: `/admin/campaigns` で期間・商品・特売価格・対象店舗を下書き保存し、商品明細で既存マスタの特売対象区分を反映する。「店舗へ変更依頼を送る」で期間/商品/価格/店舗を確認して送信すると、対象店舗の `/store/notices` と `/store/campaigns` に商品単位のPOS・値札変更依頼が届く。依頼に開始/終了日時と価格を記載し、既存の店舗確認を利用する。店舗端末参照では既存のお知らせ表示を利用する。

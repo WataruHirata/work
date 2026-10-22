@@ -238,7 +238,7 @@ CREATE TABLE IF NOT EXISTS `sales_lines` (
   tax_rate numeric(4, 2) not null check (tax_rate in (8, 10)),
   transaction_time DATETIME(3) not null,
   line_type VARCHAR(191) not null check (line_type in ('sale', 'discount', 'void', 'return')),
-  source_row_key TEXT not null,
+  source_row_key VARCHAR(191) not null,
   import_id CHAR(36) not null ,
   created_at DATETIME(3) not null default CURRENT_TIMESTAMP(3),
   UNIQUE (import_id, source_row_key),
@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS `sales_corrections` (
 CREATE TABLE IF NOT EXISTS `sales_approvals` (
   id CHAR(36) PRIMARY KEY ,
   correction_id CHAR(36) not null ,
-  approval_stage TEXT not null check (approval_stage in ('area', 'operations', 'same_day')),
+  approval_stage VARCHAR(191) not null check (approval_stage in ('area', 'operations', 'same_day')),
   approved TINYINT(1) not null,
   comment TEXT check (comment is null or char_length(comment) <= 500),
   actor_id CHAR(36) not null ,
@@ -282,7 +282,7 @@ CREATE TABLE IF NOT EXISTS `sales_approvals` (
 CREATE TABLE IF NOT EXISTS `notifications` (
   id CHAR(36) PRIMARY KEY ,
   user_id CHAR(36) not null ,
-  notification_type TEXT not null,
+  notification_type VARCHAR(191) not null,
   title TEXT not null,
   message TEXT not null,
   read_at DATETIME(3),
@@ -294,11 +294,11 @@ CREATE TABLE IF NOT EXISTS `notifications` (
 
 CREATE TABLE IF NOT EXISTS `batch_runs` (
   id CHAR(36) PRIMARY KEY ,
-  batch_type TEXT not null,
+  batch_type VARCHAR(191) not null,
   status VARCHAR(40) not null default 'received',
   started_at DATETIME(3) not null default CURRENT_TIMESTAMP(3),
   completed_at DATETIME(3),
-  result_summary JSON not null default '{}'::JSON,
+  result_summary JSON not null DEFAULT ('{}'),
   error_summary TEXT,
   started_by CHAR(36) ,
   FOREIGN KEY (`started_by`) REFERENCES `app_users` (`id`) ON DELETE SET NULL

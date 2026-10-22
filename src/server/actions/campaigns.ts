@@ -7,13 +7,11 @@ import { text, uuid, integer } from "@/server/validation";
 
 export type CampaignActionState = { error?: string; success?: string };
 function errorMessage(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : "特売処理を保存できませんでした。";
+  return error instanceof Error ? error.message : "特売処理を保存できませんでした。";
 }
 function refresh() {
   revalidatePath("/admin/campaigns");
-  revalidatePath("/store/campaigns");
+  revalidatePath("/store", "layout");
 }
 function japanTime(raw: FormDataEntryValue | null): string {
   if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw))
@@ -33,27 +31,19 @@ export async function createCampaignDraftAction(
   try {
     await requireRoles(["product_office"]);
     const raw: unknown = JSON.parse(String(data.get("items")));
-    if (!Array.isArray(raw) || !raw.length)
-      throw new Error("特売商品を指定してください。");
-    const items = raw.map(
-      (line: { productId?: unknown; priceYen?: unknown }) => ({
-        product_id: uuid(line?.productId),
-        price_yen: integer(line?.priceYen, 0, 2147483647),
-      }),
-    );
+    if (!Array.isArray(raw) || !raw.length) throw new Error("特売商品を指定してください。");
+    const items = raw.map((line: { productId?: unknown; priceYen?: unknown }) => ({
+      product_id: uuid(line?.productId),
+      price_yen: integer(line?.priceYen, 0, 2147483647),
+    }));
     if (new Set(items.map((item) => item.product_id)).size !== items.length)
       throw new Error("同じ商品を重複して指定できません。");
     const stores = data.getAll("storeIds").map(uuid);
-    if (
-      stores.length < 1 ||
-      stores.length > 112 ||
-      new Set(stores).size !== stores.length
-    )
+    if (stores.length < 1 || stores.length > 112 || new Set(stores).size !== stores.length)
       throw new Error("対象店舗を確認してください。");
     const starts = japanTime(data.get("startsAt")),
       ends = japanTime(data.get("endsAt"));
-    if (ends <= starts)
-      throw new Error("終了日時は開始日時より後にしてください。");
+    if (ends <= starts) throw new Error("終了日時は開始日時より後にしてください。");
     await repository().execute("createCampaign", {
       p_name: text(data.get("name"), 200),
       p_starts_at: starts,
@@ -63,8 +53,7 @@ export async function createCampaignDraftAction(
     });
     refresh();
     return {
-      success:
-        "特売の下書きを保存しました。既存マスタの対象区分を確認して公開してください。",
+      success: "特売の下書きを保存しました。既存マスタの対象区分を確認して公開してください。",
     };
   } catch (error) {
     return { error: errorMessage(error) };
@@ -76,13 +65,14 @@ export async function publishCampaignDraftAction(
 ): Promise<CampaignActionState> {
   try {
     await requireRoles(["product_office"]);
+    if (data.get("confirmed") !== "true")
+      throw new Error("期間・商品・価格・対象店舗を確認してください。");
     await repository().execute("publishCampaign", {
       p_campaign_id: uuid(data.get("campaignId")),
     });
     refresh();
     return {
-      success:
-        "対象店舗へ公開しました。POS連携の結果は店舗別状況で確認できます。",
+      success: "対象店舗のお知らせへPOS・値札の変更依頼を送信しました。",
     };
   } catch (error) {
     return { error: errorMessage(error) };

@@ -21,14 +21,9 @@ export function configuredTargets(): Record<string, Target> {
 }
 export class HttpIntegrationTransport implements IntegrationTransport {
   constructor(private targets: Record<string, Target>) {}
-  async send(
-    kind: string,
-    idempotencyKey: string,
-    payload: Json,
-  ): Promise<Json> {
+  async send(kind: string, idempotencyKey: string, payload: Json): Promise<Json> {
     const target = this.targets[kind];
-    if (!target?.url || !target.token)
-      throw new Error("外部APIの接続設定がありません。");
+    if (!target?.url || !target.token) throw new Error("外部APIの接続設定がありません。");
     const url = new URL(target.url);
     if (
       (process.env.NODE_ENV === "production" && url.protocol !== "https:") ||
@@ -51,8 +46,7 @@ export class HttpIntegrationTransport implements IntegrationTransport {
       signal: AbortSignal.timeout(15000),
       cache: "no-store",
     });
-    if (!response.ok)
-      throw new Error(`外部APIがHTTP ${response.status}を返しました。`);
+    if (!response.ok) throw new Error(`外部APIがHTTP ${response.status}を返しました。`);
     let body: unknown;
     try {
       body = await readBoundedJson(response, 64000);
@@ -72,10 +66,7 @@ export class HttpIntegrationTransport implements IntegrationTransport {
       body.reference.length > 200
     )
       throw new Error("外部APIの処理識別子または結果形式が一致しません。");
-    const input =
-      payload && typeof payload === "object" && !Array.isArray(payload)
-        ? payload
-        : {};
+    const input = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
     if (
       kind.startsWith("campaign_") &&
       (!("appliedPriceYen" in body) || body.appliedPriceYen !== input.priceYen)
@@ -83,20 +74,15 @@ export class HttpIntegrationTransport implements IntegrationTransport {
       throw new Error("外部APIで確認された価格が送信価格と一致しません。");
     if (
       kind === "campaign_restore" &&
-      (!("normalPriceRevision" in body) ||
-        body.normalPriceRevision !== input.normalPriceRevision)
+      (!("normalPriceRevision" in body) || body.normalPriceRevision !== input.normalPriceRevision)
     )
       throw new Error("外部APIで確認された通常売価の版が一致しません。");
     return {
       ok: true,
       idempotencyKey,
       reference: body.reference,
-      ...(kind.startsWith("campaign_")
-        ? { appliedPriceYen: input.priceYen }
-        : {}),
-      ...(kind === "campaign_restore"
-        ? { normalPriceRevision: input.normalPriceRevision }
-        : {}),
+      ...(kind.startsWith("campaign_") ? { appliedPriceYen: input.priceYen } : {}),
+      ...(kind === "campaign_restore" ? { normalPriceRevision: input.normalPriceRevision } : {}),
     };
   }
 }

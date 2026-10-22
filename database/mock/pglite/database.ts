@@ -37,13 +37,9 @@ async function initialize() {
       version text primary key, applied_at timestamptz not null default now()
     );
   `);
-  await db.exec(
-    "revoke all on public.local_migration_history from anon, authenticated;",
-  );
+  await db.exec("revoke all on public.local_migration_history from anon, authenticated;");
   const migrationDir = resolve(process.cwd(), "supabase/migrations");
-  const files = (await readdir(migrationDir))
-    .filter((name) => name.endsWith(".sql"))
-    .sort();
+  const files = (await readdir(migrationDir)).filter((name) => name.endsWith(".sql")).sort();
   for (const file of files) {
     const applied = await db.query(
       "select 1 from public.local_migration_history where version=$1",
@@ -51,14 +47,9 @@ async function initialize() {
     );
     if (applied.rows.length) continue;
     await db.exec(await readFile(resolve(migrationDir, file), "utf8"));
-    await db.query(
-      "insert into public.local_migration_history(version) values($1)",
-      [file],
-    );
+    await db.query("insert into public.local_migration_history(version) values($1)", [file]);
   }
-  await db.exec(
-    await readFile(resolve(process.cwd(), "supabase/seed.sql"), "utf8"),
-  );
+  await db.exec(await readFile(resolve(process.cwd(), "supabase/seed.sql"), "utf8"));
   await db.exec(`
     grant usage on schema public to authenticated, anon;
     grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -165,12 +156,8 @@ async function seedMockRecords(database: LocalDatabase) {
         [
           id,
           role,
-          role === "area_manager"
-            ? "10000000-0000-4000-8000-000000000001"
-            : null,
-          role === "store_manager" ||
-          role === "department_lead" ||
-          role === "staff"
+          role === "area_manager" ? "10000000-0000-4000-8000-000000000001" : null,
+          role === "store_manager" || role === "department_lead" || role === "staff"
             ? "20000000-0000-4000-8000-000000000001"
             : null,
           department,
@@ -219,9 +206,7 @@ async function seedMockRecords(database: LocalDatabase) {
         users[0][0],
       ],
     );
-    await db.exec(
-      "revoke all on public.local_fixture_state from anon, authenticated;",
-    );
+    await db.exec("revoke all on public.local_fixture_state from anon, authenticated;");
   });
 }
 

@@ -1,7 +1,6 @@
 import type { DashboardApiResponse } from "@/domain/dashboard";
 
-export const MOCK_API_KEY =
-  process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key";
+export const MOCK_API_KEY = process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key";
 
 export const mockDashboardData: DashboardApiResponse = {
   metrics: [

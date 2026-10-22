@@ -1,6 +1,5 @@
 /** Database-neutral application boundary. No Supabase client/query types cross this file. */
-export type Json =
-  null | boolean | number | string | Json[] | { [key: string]: Json };
+export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type DataRecord = { id: string; [key: string]: Json };
 export type Resource =
   | "products"
@@ -117,16 +116,8 @@ export type IntegrationJob = {
 export type NormalPriceQuote = { priceYen: number; revision: string };
 export interface IntegrationJobStore {
   claim(kinds: string[], limit: number): Promise<IntegrationJob[]>;
-  finish(
-    job: IntegrationJob,
-    success: boolean,
-    result: Json,
-    error?: string,
-  ): Promise<void>;
-  restorePrice(
-    productId: string,
-    storeId: string,
-  ): Promise<NormalPriceQuote | null>;
+  finish(job: IntegrationJob, success: boolean, result: Json, error?: string): Promise<void>;
+  restorePrice(productId: string, storeId: string): Promise<NormalPriceQuote | null>;
   promotionEligible(productId: string): Promise<boolean>;
   ingest(eventId: string, kind: string, rows: Json[]): Promise<Json>;
 }

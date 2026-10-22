@@ -43,9 +43,7 @@ export default function SettingsPage() {
                 onClick={() => toggle(key as keyof typeof settings)}
               >
                 <span>{label}</span>
-                <span
-                  className={`switch ${settings[key as keyof typeof settings] ? "on" : ""}`}
-                >
+                <span className={`switch ${settings[key as keyof typeof settings] ? "on" : ""}`}>
                   <i />
                 </span>
               </button>
@@ -62,20 +60,11 @@ export default function SettingsPage() {
           </div>
 
           <div className="note-box">
-            <p>
-              Supabase
-              接続済みのため、認証・ロール・売上データの同期状態を確認できます。
-            </p>
-            <p>
-              本番環境に移行する前に、権限、監査、請求・税処理とSLAを確認してください。
-            </p>
+            <p>Supabase 接続済みのため、認証・ロール・売上データの同期状態を確認できます。</p>
+            <p>本番環境に移行する前に、権限、監査、請求・税処理とSLAを確認してください。</p>
           </div>
 
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => setSaved(true)}
-          >
+          <button type="button" className="primary-button" onClick={() => setSaved(true)}>
             {saved ? "保存済み" : "設定を保存"}
           </button>
         </article>

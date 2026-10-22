@@ -1,8 +1,4 @@
-import type {
-  IntegrationJobStore,
-  IntegrationTransport,
-  Json,
-} from "@/domain/contracts";
+import type { IntegrationJobStore, IntegrationTransport, Json } from "@/domain/contracts";
 
 export async function runIntegrationBatch(
   store: IntegrationJobStore,
@@ -10,18 +6,13 @@ export async function runIntegrationBatch(
   kinds: string[],
   now = new Date(),
 ) {
-  if (!kinds.length)
-    return { claimed: 0, completed: 0, failed: 0, unconfigured: true };
+  if (!kinds.length) return { claimed: 0, completed: 0, failed: 0, unconfigured: true };
   const jobs = await store.claim(kinds, 4);
   const results = await Promise.all(
     jobs.map(async (job) => {
       let result: Json;
       try {
-        if (
-          !job.payload ||
-          typeof job.payload !== "object" ||
-          Array.isArray(job.payload)
-        )
+        if (!job.payload || typeof job.payload !== "object" || Array.isArray(job.payload))
           throw new Error("連携データの形式が不正です。");
         const payload = { ...job.payload };
         let externalKey = job.idempotencyKey;
@@ -37,9 +28,7 @@ export async function runIntegrationBatch(
           job.kind === "campaign_price" &&
           !(await store.promotionEligible(String(payload.productId)))
         )
-          throw new Error(
-            "現在の既存マスタで特売対象と確認できないため送信を停止しました。",
-          );
+          throw new Error("現在の既存マスタで特売対象と確認できないため送信を停止しました。");
         if (job.kind === "campaign_restore") {
           const price = await store.restorePrice(
             String(payload.productId),
@@ -64,9 +53,7 @@ export async function runIntegrationBatch(
           job,
           false,
           null,
-          error instanceof Error
-            ? error.message.slice(0, 500)
-            : "外部連携に失敗しました。",
+          error instanceof Error ? error.message.slice(0, 500) : "外部連携に失敗しました。",
         );
         return false;
       }

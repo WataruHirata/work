@@ -24,8 +24,7 @@ export default function ApprovalsPage() {
       try {
         const res = await fetch("/api/dashboard", {
           headers: {
-            "x-api-key":
-              process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key",
+            "x-api-key": process.env.NEXT_PUBLIC_MOCK_API_KEY ?? "minoriya-demo-key",
           },
         });
         const json: {
@@ -88,14 +87,10 @@ export default function ApprovalsPage() {
                 <div key={item.id} className="list-card">
                   <div>
                     <strong>{item.reason}</strong>
-                    <small>
-                      {new Date(item.requested_at).toLocaleString("ja-JP")}
-                    </small>
+                    <small>{new Date(item.requested_at).toLocaleString("ja-JP")}</small>
                   </div>
                   <div className="list-meta">
-                    <span>
-                      ¥{Number(item.after_amount_yen ?? 0).toLocaleString()}
-                    </span>
+                    <span>¥{Number(item.after_amount_yen ?? 0).toLocaleString()}</span>
                     <span className="badge warning">{item.status}</span>
                   </div>
                   <div className="button-row">

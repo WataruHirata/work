@@ -6,10 +6,7 @@ import Link from "next/link";
 import { backendConfigured, identity } from "@/server/container";
 import { deviceSnapshot } from "@/server/auth/store-context";
 import { DeviceWorkspace } from "@/components/store/device-workspace";
-import {
-  DataWorkspace,
-  type WorkspaceSearch,
-} from "@/components/workspaces/data-workspace";
+import { DataWorkspace, type WorkspaceSearch } from "@/components/workspaces/data-workspace";
 import { CampaignWorkspace } from "@/components/campaigns/campaign-workspace";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
 
@@ -21,9 +18,7 @@ export default async function StoreFeaturePage({
   searchParams: Promise<WorkspaceSearch>;
 }) {
   const { feature } = await params;
-  const page = uiConfig.navigation.find(
-    (id) => uiConfig.pages[id].href === `/store/${feature}`,
-  );
+  const page = uiConfig.navigation.find((id) => uiConfig.pages[id].href === `/store/${feature}`);
   if (!page) notFound();
   if (!backendConfigured()) return <PreviewWorkspace feature={page} />;
   if (backendConfigured()) {
@@ -49,8 +44,7 @@ export default async function StoreFeaturePage({
         </PageLayout>
       );
     }
-    if (result.snapshot)
-      return <DeviceWorkspace feature={page} snapshot={result.snapshot} />;
+    if (result.snapshot) return <DeviceWorkspace feature={page} snapshot={result.snapshot} />;
   }
   return (
     <PageLayout page={page}>

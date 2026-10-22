@@ -2,13 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { uiConfig, type PageId } from "@/config/ui";
 
-export function PageLayout({
-  page,
-  children,
-}: {
-  page: PageId;
-  children: ReactNode;
-}) {
+export function PageLayout({ page, children }: { page: PageId; children: ReactNode }) {
   const { label, title } = uiConfig.pages[page];
   const back = uiConfig.pages[page].href.startsWith("/admin/")
     ? uiConfig.pages.admin
