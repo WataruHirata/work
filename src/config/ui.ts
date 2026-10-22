@@ -449,6 +449,16 @@ export const responsiveStyles = `@media (max-width: 1180px) {
   .sidebar-collapsed .sidebar-backdrop {
     display: none;
   }
+  .admin-menu-panel .admin-menu-grid {
+    grid-template-columns: 1fr;
+  }
+  .global-shell .page-topbar {
+    height: auto;
+    min-height: var(--size-54px);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+  }
   .page-grid,
   .page-grid.double,
   .stat-row,

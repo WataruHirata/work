@@ -210,6 +210,15 @@ export class SupabaseRepository implements BusinessRepository {
     if (options.correctionId && resource === "approvals")
       query = query.eq("correction_id", options.correctionId);
     if (options.storeId && spec.scoped) query = query.eq("store_id", options.storeId);
+    if (options.storeId && resource === "corrections") {
+      const { data: salesRows, error: salesError } = await client
+        .from("sales_days")
+        .select("id")
+        .eq("store_id", options.storeId);
+      if (salesError) throw new Error("店舗の売上データを確認できません。");
+      const ids = (salesRows ?? []).map((row) => row.id);
+      query = ids.length ? query.in("sales_day_id", ids) : query.in("sales_day_id", ["__none__"]);
+    }
     if (options.from && spec.dated) query = query.gte(spec.dated, options.from);
     if (options.to && spec.dated)
       query =

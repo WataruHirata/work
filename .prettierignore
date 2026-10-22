@@ -9,3 +9,6 @@ build/
 supabase/.temp/
 docs/references/
 docs/references/
+
+# Nested checkout; validated in its own repository.
+work/

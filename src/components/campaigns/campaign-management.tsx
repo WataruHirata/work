@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { filterCampaigns } from "@/domain/campaign-list";
+import { uiConfig } from "@/config/ui";
 import { useActionState, useState, type ReactNode } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { MaterialLinkButton } from "@/components/ui/material-link-button";
 import { DraftEditor } from "./draft-editor";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "lucide-react";
+import { Store } from "lucide-react";
 import {
   createCampaignDraftAction,
   publishCampaignDraftAction,
@@ -13,7 +16,7 @@ import {
   type CampaignActionState,
 } from "@/server/actions/campaigns";
 
-type StoreOption = { id: string; code: string; name: string };
+type StoreOption = { id: string; code: string; name: string; status?: string };
 type ProductOption = { id: string; code: string; name: string };
 export type CampaignTask = {
   pos_promotion_status: string;
@@ -28,6 +31,7 @@ export type CampaignTask = {
   display_restored_at: string | null;
 };
 type CampaignView = {
+  storeIds: string[];
   updated_at?: string;
   id: string;
   name: string;
@@ -50,6 +54,7 @@ type Props = {
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
+  canRecordStoreWork?: boolean;
   stores: StoreOption[];
   products: ProductOption[];
   campaigns: CampaignView[];
@@ -90,7 +95,7 @@ function campaignStatus(status: string) {
   }
 }
 
-function ProgressAction({
+export function ProgressAction({
   campaignItemId,
   storeId,
   task,
@@ -128,26 +133,51 @@ function ProgressAction({
   );
 }
 
-function PublishAction({ campaignId }: { campaignId: string }) {
+function PublishAction({ campaign, stores }: { campaign: CampaignView; stores: StoreOption[] }) {
   const [state, action, pending] = useActionState(publishCampaignDraftAction, initialActionState);
   return (
-    <form action={action} className="campaign-publish-form">
-      <input type="hidden" name="campaignId" value={campaignId} />
-      <button className="campaign-publish-button" type="submit" disabled={pending}>
-        {pending ? "公開しています…" : "対象店舗へ公開"}
-        {!pending ? <ArrowRight size={14} aria-hidden="true" /> : null}
-      </button>
-      {state.error ? (
-        <span className="campaign-inline-error" role="alert">
-          {state.error}
-        </span>
-      ) : null}
-      {state.success ? (
-        <span className="campaign-inline-success" role="status">
-          {state.success}
-        </span>
-      ) : null}
-    </form>
+    <details className="campaign-publish-review">
+      <summary className="ghost-button">店舗へ変更依頼を送る</summary>
+      <form action={action} className="campaign-publish-form">
+        <input type="hidden" name="campaignId" value={campaign.id} />
+        <strong>送信内容の確認</strong>
+        <p>
+          {formatDate(campaign.starts_at)} ～ {formatDate(campaign.ends_at)}（日本時間）
+        </p>
+        <ul>
+          {campaign.items.map((item) => (
+            <li key={item.id}>
+              {item.product?.name ?? "商品情報なし"}：¥{formatYen(item.priceYen)}
+            </li>
+          ))}
+        </ul>
+        <p>
+          対象店舗：
+          {campaign.storeIds
+            .map((id) => stores.find((store) => store.id === id)?.name ?? "参照範囲外の店舗")
+            .join("、")}
+        </p>
+        <p>店舗のお知らせにPOS価格設定・値札変更の依頼を送信します。</p>
+        <label className="campaign-target-filter">
+          <input type="checkbox" name="confirmed" value="true" required />
+          期間・商品・価格・対象店舗を確認しました
+        </label>
+        <button className="campaign-publish-button" type="submit" disabled={pending}>
+          {pending ? "送信しています…" : "POS・値札の変更依頼を送信"}
+          {!pending && <ArrowRight size={14} aria-hidden="true" />}
+        </button>
+        {state.error && (
+          <span className="campaign-inline-error" role="alert">
+            {state.error}
+          </span>
+        )}
+        {state.success && (
+          <span className="campaign-inline-success" role="status">
+            {state.success}
+          </span>
+        )}
+      </form>
+    </details>
   );
 }
 
@@ -189,16 +219,16 @@ function CampaignDraftForm({
   const canSubmit =
     stores.length > 0 && products.length > 0 && selectedStores.length > 0 && !hasDuplicateProducts;
   return (
-    <details className="campaign-create-panel">
+    <details className="campaign-create-panel" open>
       <summary>
         <span>
-          <Plus size={16} /> 特売を作成
+          <Plus size={16} /> POS・商品値札の変更依頼を作成
         </span>
         <ChevronDown size={15} aria-hidden="true" />
       </summary>
       <form action={action} className="campaign-create-form">
         <label className="campaign-field">
-          <span>特売名</span>
+          <span>指示名</span>
           <input name="name" placeholder="例：秋の青果フェア" required />
         </label>
 
@@ -343,7 +373,9 @@ function CampaignDraftForm({
           </p>
         ) : null}
         <div className="campaign-create-footer">
-          <span>下書き保存後、内容を確認してから店舗へ公開します。</span>
+          <span>
+            保存後に商品区分と送信内容を確認し、店舗のお知らせへPOS・商品値札の変更依頼を送ります。
+          </span>
           <button type="submit" className="campaign-save-button" disabled={!canSubmit || pending}>
             {pending ? "保存中…" : "下書き保存"}
           </button>
@@ -371,22 +403,37 @@ export function CampaignManagement({
   instructionPanel,
   isConfigured,
   canManage,
+  canRecordStoreWork = false,
   stores,
   products,
   campaigns,
   selectedStoreId,
   basePath = "/admin/campaigns",
 }: Props) {
+  const selectedStore = stores.find((store) => store.id === selectedStoreId);
   const [showAllCampaigns, setShowAllCampaigns] = useState(false);
   const [expandedCampaignId, setExpandedCampaignId] = useState<string | null>(null);
-  const visibleCampaigns = showAllCampaigns ? campaigns : campaigns.slice(0, 8);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [targetOnly, setTargetOnly] = useState(basePath.startsWith("/store"));
+  const filteredCampaigns = filterCampaigns(
+    campaigns,
+    search,
+    status,
+    targetOnly ? selectedStoreId : "",
+  );
+  const visibleCampaigns = showAllCampaigns ? filteredCampaigns : filteredCampaigns.slice(0, 8);
 
   return (
     <main className="campaign-page" id="main-content" tabIndex={-1}>
       <header className="campaign-topbar">
         <Link
           className="campaign-back-link"
-          href={basePath.startsWith("/store") ? "/store" : "/admin"}
+          href={
+            basePath.startsWith("/store")
+              ? uiConfig.pages.storeMenu.href
+              : uiConfig.pages.admin.href
+          }
         >
           <ArrowLeft size={16} /> メニューへ戻る
         </Link>
@@ -418,20 +465,92 @@ export function CampaignManagement({
           </div>
         ) : null}
 
-        {instructionPanel}
+        {isConfigured && selectedStore ? (
+          <form className="campaign-store-filter" action={basePath} method="get">
+            <label htmlFor="campaign-store-select">
+              <Store size={16} /> 作業対象店舗
+            </label>
+            <select id="campaign-store-select" name="store" defaultValue={selectedStoreId}>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.code} · {store.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit">表示</button>
+          </form>
+        ) : null}
+
+        {!canManage && instructionPanel}
         {isConfigured && canManage ? (
-          <CampaignDraftForm stores={stores} products={products} />
+          <div className="campaign-flow-rail">
+            <div className="campaign-flow-row">
+              <div className="campaign-flow-header">
+                <span className="campaign-flow-label">特売の登録</span>
+                <strong>期間・店舗・価格を設定</strong>
+              </div>
+              <CampaignDraftForm
+                stores={stores.filter((store) => !store.status || store.status === "active")}
+                products={products}
+              />
+            </div>
+          </div>
         ) : null}
         {isConfigured ? (
           <section className="campaign-list-section" aria-labelledby="campaign-list-heading">
             <div className="campaign-list-heading">
-              <h2 id="campaign-list-heading" className="sr-only">
-                特売一覧
-              </h2>
-              <span className="campaign-count">{campaigns.length}件</span>
+              <div>
+                <div className="campaign-eyebrow">CAMPAIGN TRACKING</div>
+                <h2 id="campaign-list-heading">特売と店舗対応状況</h2>
+                <p>
+                  {selectedStore
+                    ? `${selectedStore.code} · ${selectedStore.name}`
+                    : "対象店舗を選択してください"}{" "}
+                  · 登録済み特売
+                </p>
+              </div>
+              <span className="campaign-count">
+                {filteredCampaigns.length} / {campaigns.length}件
+              </span>
             </div>
 
-            {campaigns.length === 0 ? (
+            <div className="sales-filter campaign-list-filter">
+              <label className="field">
+                <span>特売名で検索</span>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="特売名を入力"
+                />
+              </label>
+              <label className="field">
+                <span>特売の状態</span>
+                <select
+                  aria-label="特売の状態"
+                  value={status}
+                  onChange={(event) => setStatus(event.target.value)}
+                >
+                  <option value="">すべての状態</option>
+                  {["draft", "scheduled", "active", "completed", "failed"].map((value) => (
+                    <option key={value} value={value}>
+                      {campaignStatus(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!basePath.startsWith("/store") && (
+                <label className="campaign-target-filter">
+                  <input
+                    type="checkbox"
+                    checked={targetOnly}
+                    onChange={(event) => setTargetOnly(event.target.checked)}
+                  />
+                  選択店舗が対象の特売のみ
+                </label>
+              )}
+            </div>
+            {filteredCampaigns.length === 0 ? (
               <div className="campaign-empty-state">
                 <Tag size={21} />
                 <strong>表示できる特売はありません</strong>
@@ -449,14 +568,16 @@ export function CampaignManagement({
                     items.length > 0 &&
                     items.every((item) => item.eligibilityStatus === "eligible");
                   const publishAllowed = campaign.status === "draft" && campaignEligible;
-                  const canTrack = campaign.status !== "draft" && campaignEligible;
+                  const selectedStoreTargeted = campaign.storeIds.includes(selectedStoreId);
+                  const canTrack =
+                    campaign.status !== "draft" && campaignEligible && selectedStoreTargeted;
                   const allStoreWorkComplete =
                     items.length > 0 &&
                     items.every(
                       (item) =>
-                        item.task?.price_label_changed_at &&
-                        item.task?.pop_changed_at &&
-                        item.task?.display_changed_at,
+                        ["applied", "manual_confirmed"].includes(
+                          item.task?.pos_promotion_status ?? "",
+                        ) && item.task?.price_label_changed_at,
                     );
                   return (
                     <article className="campaign-card" key={campaign.id}>
@@ -471,9 +592,21 @@ export function CampaignManagement({
                           </p>
                         </div>
                         {canManage && campaign.status === "draft" && publishAllowed ? (
-                          <PublishAction campaignId={campaign.id} />
+                          <PublishAction campaign={campaign} stores={stores} />
                         ) : null}
                       </div>
+                      <p className="muted">
+                        対象店舗：
+                        {campaign.storeIds
+                          .map(
+                            (id) =>
+                              stores.find((store) => store.id === id)?.name ?? "参照範囲外の店舗",
+                          )
+                          .join("、") || "対象店舗なし"}
+                      </p>
+                      {!selectedStoreTargeted && (
+                        <p className="muted">選択中の店舗はこの特売の対象外です。</p>
+                      )}
                       {canManage && campaign.status === "draft" && campaign.updated_at ? (
                         <DraftEditor key={campaign.updated_at} campaign={campaign} />
                       ) : null}
@@ -506,6 +639,7 @@ export function CampaignManagement({
                                 <span>{campaign.storeConfirmedAt ? "確認済み" : "未確認"}</span>
                               </div>
                               <ProgressAction
+                                disabled={!canRecordStoreWork}
                                 campaignItemId={items[0].id}
                                 storeId={selectedStoreId}
                                 task="confirmed"
@@ -552,8 +686,22 @@ export function CampaignManagement({
                                       <div className="campaign-task-group">
                                         <strong>開始時の売場作業</strong>
                                         <div>
-                                          <span>値札</span>
+                                          <span>POS価格</span>
                                           <ProgressAction
+                                            disabled={
+                                              !canRecordStoreWork ||
+                                              task?.pos_promotion_status === "applied"
+                                            }
+                                            campaignItemId={item.id}
+                                            storeId={selectedStoreId}
+                                            task="pos_changed"
+                                            completed={["applied", "manual_confirmed"].includes(
+                                              task?.pos_promotion_status ?? "",
+                                            )}
+                                          />
+                                          <span>商品値札</span>
+                                          <ProgressAction
+                                            disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}
                                             storeId={selectedStoreId}
                                             task="price_label_changed"
@@ -561,6 +709,7 @@ export function CampaignManagement({
                                           />
                                           <span>POP</span>
                                           <ProgressAction
+                                            disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}
                                             storeId={selectedStoreId}
                                             task="pop_changed"
@@ -568,6 +717,7 @@ export function CampaignManagement({
                                           />
                                           <span>売場表示</span>
                                           <ProgressAction
+                                            disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}
                                             storeId={selectedStoreId}
                                             task="display_changed"
@@ -580,6 +730,7 @@ export function CampaignManagement({
                                         <div>
                                           <span>値札</span>
                                           <ProgressAction
+                                            disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}
                                             storeId={selectedStoreId}
                                             task="price_label_restored"
@@ -587,6 +738,7 @@ export function CampaignManagement({
                                           />
                                           <span>POP</span>
                                           <ProgressAction
+                                            disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}
                                             storeId={selectedStoreId}
                                             task="pop_restored"
@@ -594,6 +746,7 @@ export function CampaignManagement({
                                           />
                                           <span>売場表示</span>
                                           <ProgressAction
+                                            disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}
                                             storeId={selectedStoreId}
                                             task="display_restored"
@@ -650,7 +803,7 @@ export function CampaignManagement({
                 })}
               </div>
             )}
-            {campaigns.length > 8 ? (
+            {filteredCampaigns.length > 8 ? (
               <button
                 className="campaign-show-more"
                 type="button"

@@ -13,6 +13,9 @@ export const adminFeatures = [
 ] as const;
 export type AdminFeature = (typeof adminFeatures)[number];
 
+/** 申請・承認は個人宛通知から対象申請を開くため、管理トップには重複表示しない。 */
+export const adminMenuFeatures = adminFeatures.filter((feature) => feature !== "approvals");
+
 const roleFeatures: Record<string, readonly AdminFeature[]> = {
   area_manager: ["sales", "products", "campaigns", "approvals"],
   store_operations: ["sales", "products", "campaigns", "orders", "approvals"],

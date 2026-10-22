@@ -1,3 +1,5 @@
+"use client";
+
 import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
 import Link from "next/link";
 import { storeSummary } from "@/domain/store-summary";

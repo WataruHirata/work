@@ -1468,8 +1468,8 @@ button {
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(var(--size-280px), 0.95fr);
-  gap: var(--size-14px);
-  margin-top: var(--size-18px);
+  gap: var(--space-card);
+  margin-top: var(--space-card-wide);
 }
 
 .panel {
@@ -2040,6 +2040,32 @@ td {
 .instruction-workspace > p {
   font-size: var(--font-size-body);
   line-height: 1.8;
+}
+.campaign-notice-tasks {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-5);
+}
+.campaign-notice-checklist {
+  display: grid;
+  gap: var(--space-2);
+}
+.campaign-notice-checklist > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--size-1px) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.campaign-notice-checklist > div > span {
+  display: grid;
+  gap: var(--space-1);
+}
+.campaign-notice-checklist small {
+  color: var(--text-subtle);
 }
 .instruction-message {
   white-space: pre-wrap;
@@ -3227,4 +3253,180 @@ table td {
   to {
     transform: rotate(360deg);
   }
+}
+
+.admin-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.admin-menu-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 88px;
+  padding: var(--space-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+.admin-menu-card:hover {
+  background: var(--surface);
+}
+.admin-menu-card:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+.admin-menu-text {
+  display: grid;
+  gap: var(--space-1);
+}
+.admin-menu-text strong {
+  font-size: var(--font-size-emphasis);
+}
+.admin-menu-text > span {
+  color: var(--text-subtle);
+  font-size: var(--font-size-label);
+}
+.admin-menu-arrow {
+  flex-shrink: 0;
+  font-size: var(--font-size-section-title);
+}
+
+.admin-notification-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-2) 0;
+}
+.notification-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.notification-count {
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--font-size-caption);
+}
+.notification-dialog {
+  width: min(720px, calc(100% - var(--space-4)));
+  max-height: calc(100dvh - var(--space-5));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  color: var(--text);
+  background: var(--surface);
+}
+.notification-dialog::backdrop {
+  background: rgb(11 47 87 / 30%);
+}
+.notification-dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.notification-dialog-header h2 {
+  margin: 0;
+  font-size: var(--font-size-section-title);
+}
+.notification-dialog .page-panel {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+}
+.notification-dialog .instruction-card {
+  gap: var(--space-2);
+  justify-items: start;
+}
+.notification-dialog .instruction-card > h3,
+.notification-dialog .instruction-card > p {
+  margin: 0;
+}
+.notification-feedback {
+  padding: var(--space-4);
+}
+
+.sales-filter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-3);
+  align-items: end;
+}
+.sales-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--space-3);
+}
+.sales-summary-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  overflow-wrap: anywhere;
+}
+.sales-summary-item > span {
+  color: var(--text-subtle);
+}
+.sales-summary-item > strong {
+  color: var(--accent-strong);
+  font-size: var(--font-size-page-title);
+}
+.sales-trend {
+  overflow: auto;
+  max-height: 520px;
+}
+.sales-trend-value {
+  display: block;
+}
+.sales-trend-track {
+  display: block;
+  height: var(--space-1);
+  background: var(--surface-subtle);
+  margin-top: var(--space-1);
+}
+.sales-trend-track > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+}
+.campaign-list-filter {
+  margin-block: var(--space-4);
+}
+.campaign-target-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+}
+
+.campaign-publish-review {
+  max-width: 100%;
+}
+.campaign-publish-review .campaign-publish-form {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.campaign-publish-review p {
+  margin: 0;
+  overflow-wrap: anywhere;
 }

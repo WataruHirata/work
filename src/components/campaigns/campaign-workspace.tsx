@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { requireAdminFeature } from "@/server/auth/admin-access";
 import { CampaignManagement, type CampaignTask } from "@/components/campaigns/campaign-management";
 import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
@@ -7,6 +8,8 @@ import { PreviewWorkspace } from "@/components/preview/preview-workspace";
 import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 import { hasAdminAccess } from "@/domain/access-policy";
 
+const timestamp = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
+
 export async function CampaignWorkspace({
   storeId,
   storeMode = false,
@@ -14,10 +17,12 @@ export async function CampaignWorkspace({
   storeId?: string;
   storeMode?: boolean;
 }) {
+  if (!storeMode) await requireAdminFeature("campaigns");
   if (!backendConfigured())
     return <PreviewWorkspace feature={storeMode ? "storeCampaigns" : "campaigns"} />;
   const session = await identity().session();
-  if (!session?.active) redirect("/login?next=/store/campaigns");
+  if (!session?.active)
+    redirect(`/login?next=${storeMode ? "/store/campaigns" : "/admin/campaigns"}`);
   if (session.mustChangePassword) redirect("/account/password");
   const [allStores, products, campaigns, items, targets, tasks] = await Promise.all([
     allRecords("stores"),
@@ -45,6 +50,7 @@ export async function CampaignWorkspace({
     id: row.id,
     code: String(row.code),
     name: String(row.name),
+    status: typeof row.status === "string" ? row.status : undefined,
   });
   return (
     <CampaignManagement
@@ -52,20 +58,29 @@ export async function CampaignWorkspace({
         <InstructionWorkspace
           canManage={!storeMode && session.roles.includes("product_office")}
           storeId={storeMode ? selectedStoreId : undefined}
+          canRecordStoreWork={session.roles.some((role) =>
+            ["store_manager", "department_lead", "staff"].includes(role),
+          )}
         />
       }
+      canRecordStoreWork={session.roles.some((role) =>
+        ["store_manager", "department_lead", "staff"].includes(role),
+      )}
       isConfigured
       canManage={!storeMode && session.roles.includes("product_office")}
       stores={stores.map(option)}
       products={products.filter((product) => product.active).map(option)}
       selectedStoreId={selectedStoreId}
       basePath={storeMode ? "/store/campaigns" : "/admin/campaigns"}
-      campaigns={visibleCampaigns.slice(0, 20).map((campaign) => ({
+      campaigns={visibleCampaigns.map((campaign) => ({
         id: campaign.id,
-        updated_at: String(campaign.updated_at),
+        storeIds: targets
+          .filter((target) => target.campaign_id === campaign.id)
+          .map((target) => String(target.store_id)),
+        updated_at: timestamp(campaign.updated_at),
         name: String(campaign.name),
-        starts_at: String(campaign.starts_at),
-        ends_at: String(campaign.ends_at),
+        starts_at: timestamp(campaign.starts_at),
+        ends_at: timestamp(campaign.ends_at),
         status: String(campaign.status),
         published_at: campaign.published_at as string | null,
         created_at: String(campaign.created_at),
