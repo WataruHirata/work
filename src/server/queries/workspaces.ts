@@ -16,7 +16,7 @@ export const featureResources: Record<string, Resource[]> = {
   storeSales: ["sales", "inventory"],
   storeCampaigns: ["campaigns", "campaignItems", "campaignTargets", "campaignTasks"],
   storeOperations: ["sales", "corrections"],
-  storeOrders: ["orders", "orderLines"],
+  storeOrders: ["orders"],
   storeNotices: ["notifications"],
 };
 export async function allRecords(

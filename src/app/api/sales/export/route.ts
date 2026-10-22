@@ -14,10 +14,17 @@ export async function GET(request: Request) {
   const result = await repository().list("sales", { storeId, from, to, page: 1 });
   const rows = [
     ["営業日", "売上", "客数", "状態"],
-    ...result.rows.map((row) => [String(row.business_date ?? ""), String(row.net_sales_yen ?? 0), String(row.customer_count ?? 0), String(row.status ?? "")]),
+    ...result.rows.map((row) => [
+      String(row.business_date ?? ""),
+      String(row.net_sales_yen ?? 0),
+      String(row.customer_count ?? 0),
+      String(row.status ?? ""),
+    ]),
   ];
 
-  const csv = rows.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const csv = rows
+    .map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
 
   return new NextResponse(csv, {
     headers: {

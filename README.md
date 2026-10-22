@@ -1,4 +1,4 @@
-# みのり屋 販売管理システム
+# みのり屋 販売管理システム（MySQL ローカル開発）
 
 ## ローカルMySQLモック：すぐに試す情報
 
@@ -15,61 +15,58 @@
 
 MySQLのテーブルと架空データを作成するには、`npm run db:mysql:migrate`、続けて `npm run db:mysql:demo` を実行します。
 
-初回起動は下の「はじめてのローカル起動」から始められます。クラウド開発DBへの接続は「ほかの開発者向け Supabase 設定」、操作範囲は [接続手順書](./docs/connected-backend.md)、API提供側の要件は [外部連携契約](./docs/integration-api.md) を参照してください。既存の開発用DBには架空データを登録し、8ロールの実ログインを確認済みです。
+初回起動は下の「はじめてのローカル起動」から始められます。接続手順は[接続手順書](./docs/connected-backend.md)、API提供側の要件は[外部連携契約](./docs/integration-api.md)を参照してください。ローカルMySQLでは架空データと8ロールのログインを確認できます。
 
 112店舗の売上取込、店舗別営業日、締め・修正承認、特売・価格変更指示、発注・通知を扱う販売管理システムです。業務要件は[統合要件書v3](./docs/requirements/みのり屋_販売管理システム_統合要件書_v3.md)の第25章と最新の明示指示を優先します。
 
 ## はじめてのローカル起動（Windows / PowerShell）
 
-画面だけをすぐ見る場合は **Node.js 22** を入れ、リポジトリのフォルダーで `npm ci`、`npm run dev` を実行し、http://localhost:3000 を開きます。DB未接続時は架空データのプレビューが表示されます。保存・ログイン・承認まで試す場合は、以下のローカルSupabaseも起動してください。
+この開発環境はローカルMySQLを使います。必要なものは **Node.js 22、npm、MySQL Server 8.0以降（8.4推奨）** です。MySQL InstallerでServerを入れた場合はWindowsサービスとして起動します。PowerShellで `Get-Service *mysql*` を実行し、サービス名を確認してから必要なら管理者PowerShellで `Start-Service MySQL84` を実行してください（サービス名はインストール内容により異なります）。
 
-1. [Node.js 22](https://nodejs.org/) と [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) をインストールし、Docker Desktopを起動します。PowerShellで `node --version` が `v22` から始まり、`docker info` が成功することを確認します。最初のSupabase起動時はコンテナーのダウンロードがあるため、インターネット接続が必要です。
-2. PowerShellでこのリポジトリのフォルダーを開き、依存パッケージを入れます。`supabase/config.toml` は用意済みなので、`supabase init` は実行しません。
+リポジトリで依存関係を入れます。
 
-   ```powershell
-   npm ci
-   npx --yes supabase@2.121.0 --version
-   ```
+```powershell
+npm ci
+```
 
-   2行目で**Supabase CLI 2.121.0を取得**し、バージョンを確認します。CLIは`npx`で起動するため、全員のPCへグローバルインストールする必要はありません。DBマイグレーション用スクリプトも同じ版を使います。[CLIの公式導入手順](https://supabase.com/docs/guides/local-development/cli/getting-started)も参照できます。
+初回だけ `.env.example` を `.env.local` にコピーします。既存の設定を誤って上書きしないでください。
 
-3. 手元のSupabase（DB・認証）を起動します。初回は時間がかかります。起動時にこのリポジトリのマイグレーションと `supabase/seed.sql` が適用されます。
+```powershell
+if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
+```
 
-   ```powershell
-   npx --yes supabase@2.121.0 start
-   npx --yes supabase@2.121.0 status
-   ```
+`.env.local` には `DATABASE_PROVIDER=mysql`、`MYSQL_HOST=127.0.0.1`、`MYSQL_PORT=3306`、`MYSQL_DATABASE=minoriya_starter`、MySQLのユーザー名とパスワードを設定します。`SESSION_SECRET` には次のコマンドで生成した値を設定してください。
 
-4. **初回だけ** `.env.example` を `.env.local` にコピーし、`status` に表示された手元の値を記入します。ローカル起動ではクラウドのProject IDやCLIログインは不要です。
+```powershell
+node -p "require('node:crypto').randomBytes(32).toString('hex')"
+```
 
-   ```powershell
-   Copy-Item .env.example .env.local
-   ```
+生成した値はローカルだけに保存し、Gitへ追加しません。
 
-   | `.env.local` の項目             | 設定する値                                       |
-   | ------------------------------- | ------------------------------------------------ |
-   | `NEXT_PUBLIC_SUPABASE_URL`      | `Project URL`（既定は `http://127.0.0.1:54321`） |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `Publishable` キー                               |
-   | `SUPABASE_SERVICE_ROLE_KEY`     | `Secret` キー。サーバー専用                      |
-   | `APP_ORIGIN`                    | `http://localhost:3000`                          |
-   | `AUTO_MIGRATE`                  | `false` のまま                                   |
-   | `DEV_SUPABASE_PROJECT_REF`      | 空欄のまま                                       |
+DBとアプリ用ユーザーがまだない場合、MySQLの管理者で接続し、次を1文ずつ実行します。`<十分に強いパスワード>` は実際のパスワードへ置き換え、同じ値を `.env.local` の `MYSQL_PASSWORD` に設定してください。
 
-   `AUTO_MIGRATE=true` と `npm run db:migrate` は**リンク済みクラウド開発DB用**です。手元のSupabaseには使用しません。キーやパスワードをREADME、Git、チャットに貼らないでください。
+```sql
+CREATE DATABASE `minoriya_starter` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE USER 'minoriya_app'@'127.0.0.1' IDENTIFIED BY '<十分に強いパスワード>';
+GRANT ALL PRIVILEGES ON `minoriya_starter`.* TO 'minoriya_app'@'127.0.0.1';
+```
 
-5. ログインや保存操作も試す場合、`.env.local` の `ALLOW_DEMO_DATA_SETUP=true`、`DEMO_SEED_AUTH_USERS=true`、`DEMO_INITIAL_PASSWORD=` に自分で決めた12文字以上の開発用パスワードを設定し、次を実行します。終了後は前者2項目を `false` に戻します。ログインには `minoriya-demo+information_systems@example.invalid` と、**自分で設定した** `DEMO_INITIAL_PASSWORD` の値を使います。下の「初期ログイン情報」のパスワードは既存の開発DB用であり、手元に新規作成したDBのパスワードではありません。
+既にDBがある場合は `CREATE DATABASE` を繰り返さず、接続確認後に `.env.local` と一致するDB・ユーザーを使います。ローカル接続は次で確認できます。
 
-   ```powershell
-   npm run db:demo
-   ```
+```powershell
+mysql --host 127.0.0.1 --port 3306 --user minoriya_app --password minoriya_starter
+```
 
-6. アプリを起動し、http://localhost:3000/login を開きます。店舗ポータルだけなら http://localhost:3000 から確認できます。終了時はアプリのターミナルで `Ctrl+C`、次に `npx --yes supabase@2.121.0 stop` を実行します。次回は `npx --yes supabase@2.121.0 start` と `npm run dev` で再開できます。
+DBを作成したら、マイグレーション、架空データ、データ検証の順に実行してアプリを起動します。
 
-   ```powershell
-   npm run dev
-   ```
+```powershell
+npm run db:mysql:migrate
+npm run db:mysql:demo
+npm run db:mysql:demo:check
+npm run dev
+```
 
-`supabase db reset` は手元のDBを初期化する操作なので、通常の起動には不要です。クラウドの開発用Supabaseを使う場合は、次の「ほかの開発者向け Supabase 設定」に進みます。
+ブラウザーで http://localhost:3000/login を開きます。終了時はアプリのターミナルで `Ctrl+C` を押します。MySQLサービスは次回も利用するなら停止不要です。
 
 ## 初期ログイン情報（既存の開発用DB）
 
@@ -80,26 +77,11 @@ MySQLのテーブルと架空データを作成するには、`npm run db:mysql:
 
 このデモアカウントは同じ初期パスワードで何度でもログインできます。ほかの7ロールのメールアドレスは [.env.demo-accounts.local](./.env.demo-accounts.local) を参照してください。初期パスワードは共通です。
 
-## ほかの開発者向け Supabase 設定
+### 発注と基幹システム（開発用模擬環境）
 
-各開発者は、自分が使う **開発用 Supabase プロジェクト** を用意します。このリポジトリの共有アカウントやローカル設定ファイルをそのまま使わず、次の順で接続してください。
+発注業務は、ロールや店舗担当の割り当てにかかわらず、ログイン済みの有効なデモアカウントで確認できます。アカウントは [.env.demo-accounts.local](./.env.demo-accounts.local) にあり、初期パスワードは上記と共通です。
 
-1. Supabase Dashboard で開発プロジェクトを作成し、**Project Settings → General → Reference ID** の20文字のIDを控えます。
-2. **Connect** からProject URLを、**Settings → API Keys** から `sb_publishable_...` の公開キーと `sb_secret_...` のサーバー専用キーを取得します。公開キーはアプリに設定し、サーバー専用キーはローカルだけに保存します。
-3. `.env.example` を `.env.local` にコピーし、`NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`、`SUPABASE_SERVICE_ROLE_KEY`、`DEV_SUPABASE_PROJECT_REF` を自分の開発プロジェクトの値に設定します。`AUTO_MIGRATE=true` は開発環境のみで使用します。
-4. Supabase CLIへログインし、同じProject IDへリンクします。初回はDBパスワードを入力します。
-
-   ```powershell
-   npx --yes supabase@2.121.0 login
-   npx --yes supabase@2.121.0 link --project-ref 自分の20文字のProjectID
-   npm run db:migrate:check
-   ```
-
-5. dry-runに表示された対象を確認してから `npm run db:migrate` を実行します。以降 `npm run dev` を起動すると、`AUTO_MIGRATE=true` の設定により未適用のマイグレーションを先に適用します。
-6. 架空データとログイン用の架空Authユーザーが必要な場合は、`.env.local` の `ALLOW_DEMO_DATA_SETUP=true`、`DEMO_SEED_AUTH_USERS=true` を設定し、`DEMO_INITIAL_PASSWORD` に12文字以上のローカル用初期パスワードを設定して `npm run db:demo` を実行します。`example.invalid` はメールを受信できませんが、確認済み架空アカウントとしてログインできます。
-7. `npm run db:demo:devices` で架空店舗の閲覧端末を用意します。端末コードは画面に入力し、ファイル・チャットへ共有する場合も対象が架空データの開発環境であることを確認してください。
-
-`.env.local`、`.env.demo-accounts.local`、`.env.demo-devices.local` はGitから除外されています。キーやローカルのパスワードをGitへ追加しないでください。既存プロジェクトにモックデータや運用中の利用者がある場合は、重複・既存権限への影響を確認してから投入してください。詳しくは [Supabase接続手順](./docs/supabase-local-setup.md) を参照してください。
+開発環境の発注は、ワークスペース内の [mock-core-system](./mock-core-system/README.md) へ連携ジョブ経由で送信されます。受信データは `.local/mock-core-system/orders.json` に保存され、画面の「基幹の受信結果」から確認できます。これは架空の開発用システムで、実在する卸売業者や外部サービスには接続しません。
 
 ## モック店舗端末の接続
 
@@ -137,21 +119,35 @@ MySQLのテーブルと架空データを作成するには、`npm run db:mysql:
 
 連携APIの完全なリクエスト例は [外部連携契約](./docs/integration-api.md) を参照してください。
 
-## 開発時の自動マイグレーション
+## MySQLマイグレーションの運用
 
-このローカル環境では `npm run dev` の起動前に、リンク済み開発DBへ未適用のSQLマイグレーションを自動適用します。`.env.local` の `AUTO_MIGRATE=true` と `DEV_SUPABASE_PROJECT_REF` で対象を指定しています。
+MySQLのスキーマ変更は `database/mysql/migrations/` に連番SQLファイルを追加し、`npm run db:mysql:migrate` で適用します。適用済みファイルのチェックサムを記録し、内容が後から変更されていないことを検査します。適用済みSQLは編集せず、修正用の新しいマイグレーションを追加してください。マイグレーションはDB構造だけを作り、デモデータ投入は別コマンドです。
 
-- 適用予定だけ確認: `npm run db:migrate:check`
-- 手動で未適用分を適用: `npm run db:migrate`
-- 自動適用を停止: `AUTO_MIGRATE=false`
+通常のアプリ起動時にマイグレーションは自動実行しません。DB変更を取り込んだ後に明示的にマイグレーションを実行し、続けて必要なデータ更新と画面確認を行ってください。ローカルDBを作り直すSQLは全データを消すため、通常の起動では使用しません。
 
-クラウド開発DBを使う場合は、上の手順でSupabase CLIの取得・ログイン・プロジェクトのリンクを事前に完了してください。データ投入はマイグレーションとは別処理です。詳細は [マイグレーション方針](./docs/data-migrations.md) を参照してください。
+### 他の開発者がDB変更を取り込む手順
+
+クローン直後、または `git pull` で `database/mysql/migrations/` に新しいSQLファイルを取得した場合は、対象のMySQLサービスを起動し、`.env.local` の `MYSQL_HOST`、`MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER`、`MYSQL_PASSWORD` が自分のローカルDBを指すことを確認してから、リポジトリ直下で次を実行します。
+
+```powershell
+npm ci
+npm run db:mysql:migrate
+```
+
+`npm ci` は `package-lock.json` が更新されている場合に必要です。`db:mysql:migrate` は `schema_migrations` を確認し、未適用のSQLファイルだけをファイル名順に適用します。すでに適用済みのSQLは再実行せず、内容が変更されていれば停止します。停止した場合は、適用済みSQLを編集せず、変更元から追加された新しいマイグレーションを確認してください。
+
+デモデータが必要な場合だけ、マイグレーションの後に次を実行します。既存のローカルデータを利用する場合は実行しません。
+
+```powershell
+npm run db:mysql:demo
+npm run db:mysql:demo:check
+```
 
 ## 構成
 
 機能やフォルダーの役割を初めて確認する方は、[非技術者向けの機能・フォルダー案内](./docs/plain-language-guide.md)をご覧ください。店舗・本部で使う機能、申請や通知の流れ、現在試せる範囲を、専門用語を抑えて説明しています。
 
-**Next.js / TypeScript / Node.js 22** で画面とバックエンドを実装し、DB・認証には **Supabase PostgreSQL / Auth** を使用します。一つのアプリの中で役割を分離した構成です。Pythonは要件書の検査にのみ使用します。
+**Next.js / TypeScript / Node.js 22** で画面とバックエンドを実装し、UIコンポーネントには **Material UI（MUI）**、ローカル開発DB・認証には **MySQL 8.4** を使用します。一つのアプリの中で役割を分離した構成です。Pythonは要件書の検査にのみ使用します。
 
 ```text
 src/
@@ -166,10 +162,10 @@ src/
 │   ├── integrations/      # 連携ジョブの実行手順
 │   ├── container.ts       # 使用するDB・認証・HTTP接続を組み立てる
 │   └── validation.ts      # サーバー入力検証
-├── infrastructure/        # Supabase・HTTPの具体的な接続
+├── infrastructure/        # DB・HTTPの具体的な接続
 ├── config/                # 画面・テーマ設定
 └── mocks/                 # 架空データ・操作プレビュー
-supabase/                  # DBマイグレーション・ローカルseed
+database/mysql/            # MySQLスキーマ・接続実装
 public/samples/            # 架空のCSVサンプル
 scripts/                   # デモ環境設定・連携実行の開発補助
 tests/                     # DB統合・構成境界・要件書の検査
@@ -211,16 +207,13 @@ npm run build
 python -m unittest discover -s tests -v
 ```
 
-ローカルDBの状態を確認する場合は、上の手順でDockerとSupabase CLIを起動してから実行します。
+MySQL接続とサンプルデータの状態を確認する場合は、次を実行します。
 
 ```powershell
-npx --yes supabase@2.121.0 status
-npx --yes supabase@2.121.0 db lint --local --fail-on error
+npm run db:mysql:demo:check
 ```
 
-テストのためにDBを作り直す場合だけ `npx --yes supabase@2.121.0 db reset` を実行します。ローカルDBの既存データが初期化されます。
-
-手順と検証範囲は[テスト方針](./docs/testing.md)、DB変更は[マイグレーション方針](./docs/data-migrations.md)、PR・本番配備は[CI/CD](./docs/ci-cd.md)を参照してください。初期技術基盤の判断は[ADR-0001](./docs/adr/0001-platform.md)に記録しています。
+手順と検証範囲は[テスト方針](./docs/testing.md)、DB変更は[マイグレーション方針](./docs/data-migrations.md)、PR・配備は[CI/CD](./docs/ci-cd.md)を参照してください。
 
 ## ローカルMySQLのデモ店舗端末
 
@@ -248,6 +241,6 @@ npm run dev
 
 `http://localhost:3000/station` で、上の店舗端末表にある `DEMO-001` 専用のモック接続コードを入力してください。端末の接続解除後に再接続する場合も同じコードを使えます。登録データは架空で、実店舗やPOSには接続しません。
 
-初期化後は、店舗4件、商品6件、営業日別売上8件、在庫8件、特売4件、発注5件、お知らせ4件に加え、売上修正・承認・通知・店舗指示・連携ジョブ・監査ログを確認できます。未対応、処理中、対応済み、失敗、差戻し、既読・未読など、画面の条件分岐を確認できる状態を架空データで収録しています。`npm run db:mysql:demo:check` は主要な状態が揃っていることをDBから読み取って検証します。
+初期化後は、基礎データに加えて表示確認用の拡張データとして、180店舗、1,200商品、5,400件以上の営業日別売上、32,400件以上の売上明細、1,440件以上の在庫を作成します。発注画面では1,000件以上の有効商品を50社の架空業者へ分散して表示します。店舗状態・営業時間・商品名の長さ・カテゴリ・税率・特売対象状態・売上状態・返品/取消・在庫量を分散させ、一覧、ページ送り、集計、グラフ、折返し表示を目視確認できます。すべて架空データです。`npm run db:mysql:demo:check` は件数と主要な表示パターンが揃っていることをDBから読み取って検証します。
 
 管理画面は `minoriya-demo+information_systems@example.invalid` とREADME上部の初期パスワードでログインできます。このアカウントには `information_systems` 権限を付与します。

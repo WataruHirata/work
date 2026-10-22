@@ -181,5 +181,6 @@ export class MysqlRepository implements BusinessRepository {
         throw new Error(`MySQL移植対象の業務トランザクションが未実装です: ${command}`);
     }
   }
+  async storeDeviceSalesDayLines(): Promise<DataRecord[]> { throw new Error("登録端末の売上明細は未設定です。"); }
   async storeSnapshot(): Promise<Record<string, Json>> { throw new Error("店舗端末用MySQLスナップショット処理は未設定です。"); }
 }

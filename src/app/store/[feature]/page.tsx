@@ -9,6 +9,7 @@ import { DeviceWorkspace } from "@/components/store/device-workspace";
 import { DataWorkspace, type WorkspaceSearch } from "@/components/workspaces/data-workspace";
 import { CampaignWorkspace } from "@/components/campaigns/campaign-workspace";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
+import { StoreSalesInventoryWorkspace } from "@/components/store/store-sales-inventory-workspace";
 
 export default async function StoreFeaturePage({
   params,
@@ -21,11 +22,12 @@ export default async function StoreFeaturePage({
   const page = uiConfig.navigation.find((id) => uiConfig.pages[id].href === `/store/${feature}`);
   if (!page) notFound();
   if (!backendConfigured()) return <PreviewWorkspace feature={page} />;
+  if (page === "storeSales") return <StoreSalesInventoryWorkspace search={await searchParams} />;
   if (backendConfigured()) {
     const session = await identity().session();
     if (session?.active)
       return page === "storeCampaigns" ? (
-        <CampaignWorkspace storeMode storeId={(await searchParams).store} />
+        <CampaignWorkspace storeMode />
       ) : (
         <DataWorkspace feature={page} search={await searchParams} />
       );
@@ -49,18 +51,9 @@ export default async function StoreFeaturePage({
   return (
     <PageLayout page={page}>
       <FeatureNotice title="店舗端末を接続してください">
-        <p>
-          店舗端末の接続後はログインせず自店舗の情報を参照できます。保存・金額操作は個人ログインで実行します。
-        </p>
         <div className="button-row">
           <Link className="primary-button" href="/station">
             店舗端末の接続
-          </Link>
-          <Link
-            className="ghost-button"
-            href={`/login?next=${encodeURIComponent(uiConfig.pages[page].href)}`}
-          >
-            個人ログイン
           </Link>
         </div>
       </FeatureNotice>

@@ -142,22 +142,23 @@ export const uiConfig = {
     // Legacy names below remain aliases so every existing screen receives the same theme.
     "--text": "#172720",
     "--text-strong": "#0b2f57",
-    "--text-subtle": "#68766f",
-    "--border": "#e4ebe7",
+    "--text-subtle": "#465b54",
+    "--border": "#d9e5e0",
     "--surface": "#ffffff",
-    "--surface-subtle": "#f8fafc",
-    "--accent": "#2e75b6",
-    "--accent-strong": "#0b2f57",
-    "--accent-soft": "#edf3f8",
-    "--success": "#2c7a5f",
-    "--success-soft": "#ebf7f0",
-    "--warning": "#b96c38",
-    "--warning-soft": "#fff2e6",
-    "--focus": "#2e75b6",
+    "--surface-subtle": "#f4f8f6",
+    "--accent": "#27856b",
+    "--accent-strong": "#17664f",
+    "--accent-soft": "#e5f4ed",
+    "--success": "#247653",
+    "--success-soft": "#e3f5e9",
+    "--warning": "#9b5c13",
+    "--warning-soft": "#fff1d8",
+    "--focus": "#287fb0",
     "--font-size-caption": "13px",
     "--font-size-label": "14px",
     "--font-size-body": "15px",
     "--font-size-emphasis": "17px",
+    "--font-size-kpi": "24px",
     "--font-size-section-title": "20px",
     "--font-size-page-title": "28px",
     "--space-1": "8px",
@@ -195,6 +196,7 @@ export const uiConfig = {
     "--size-1px": "1px",
     "--size-negative-1px": "-1px",
     "--size-27px": "27px",
+    "--size-84px": "84px",
     "--size-16px": "16px",
     "--size-14px": "14px",
     "--color-fff": "#fff",
@@ -399,18 +401,53 @@ export const responsiveStyles = `@media (max-width: 1180px) {
   }
 }
 @media (max-width: 700px) {
+  .loading-content {
+    grid-template-columns: 1fr;
+  }
+  .loading-chart {
+    min-height: 220px;
+  }
   .global-shell {
-    flex-direction: column;
+    display: block;
   }
-  .global-shell > .global-sidebar {
-    order: 1;
-    position: static;
-    width: 100%;
-    height: auto;
-    flex-basis: auto;
+  .global-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: min(82vw, var(--sidebar-width));
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    flex-basis: min(82vw, var(--sidebar-width));
+    transform: translateX(-105%);
   }
-  .global-shell > .global-main {
+  .sidebar-open .global-sidebar {
+    width: min(82vw, var(--sidebar-width));
+    flex-basis: min(82vw, var(--sidebar-width));
+    transform: translateX(0);
+  }
+  .sidebar-collapsed .global-sidebar {
+    width: min(82vw, var(--sidebar-width));
+    flex-basis: min(82vw, var(--sidebar-width));
+    padding-inline: var(--size-16px);
+    transform: translateX(-105%);
+  }
+  .global-main {
     width: 100%;
+    min-height: 100vh;
+    padding-inline: var(--size-12px);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    display: block;
+    width: 100%;
+    border: 0;
+    background: rgb(11 24 40 / 32%);
+  }
+  .sidebar-collapsed .sidebar-backdrop {
+    display: none;
   }
   .admin-menu-panel .admin-menu-grid {
     grid-template-columns: 1fr;
@@ -533,6 +570,7 @@ export const responsiveStyles = `@media (max-width: 1180px) {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .metric-card:hover, .campaign-card:hover, .list-card:hover { transform: none !important; }
 }`;
 
 export type WorkspaceField = {
@@ -638,6 +676,7 @@ export const resourceLabels: Record<Resource, string> = {
   areas: "エリア",
   departments: "売場",
   sales: "営業日別売上",
+  salesLines: "売上明細",
   corrections: "修正申請",
   approvals: "承認履歴",
   orders: "発注履歴",

@@ -71,7 +71,10 @@ try {
     );
     const actual = rows.map(({ state }) => state);
     for (const state of expected) {
-      if (!actual.includes(state)) throw new Error(`${table}.${column} に ${state} がありません。`);
+      if (!actual.includes(state))
+        throw new Error(
+          `${table}.${column} に ${state} がありません。MySQLデモデータが未登録または不足しています。npm run db:mysql:demo を実行してから再確認してください。`,
+        );
     }
     console.log(
       `${table}.${column}: ${rows.map(({ state, count }) => `${state}=${count}`).join(", ")}`,
@@ -87,6 +90,81 @@ try {
   console.log(
     `notifications.read_state: unread=${notificationState.unread_count}, read=${notificationState.read_count}`,
   );
+  const scaleRequirements = [
+    ["stores", "id", "20000000-%", 180],
+    ["products", "id", "40000000-%", 1200],
+    ["store_products", "product_id", "40000000-%", 1200],
+    ["product_prices", "id", "41000000-%", 1200],
+    ["sales_days", "id", "60000000-%", 5400],
+    ["sales_lines", "id", "61000000-%", 32400],
+    ["inventory_snapshots", "id", "62000000-%", 1440],
+  ];
+  for (const [table, key, pattern, minimum] of scaleRequirements) {
+    const [rows] = await db.query(`SELECT COUNT(*) AS count FROM ${table} WHERE ${key} LIKE ?`, [
+      pattern,
+    ]);
+    const count = Number(rows[0].count);
+    if (count < minimum) {
+      throw new Error(
+        `${table} がスケールデータの最低件数 ${minimum} 件に達していません（${count}件）。`,
+      );
+    }
+    console.log(`${table}.scale_fixture: ${count} rows (minimum ${minimum})`);
+  }
+  const [orderCatalogRows] = await db.query(`
+    SELECT COUNT(DISTINCT product.id) AS count
+    FROM products product
+    JOIN store_products stock
+      ON stock.product_id=product.id
+     AND stock.store_id='20000000-0000-4000-8000-000000000001'
+     AND stock.active=1
+    WHERE product.active=1
+      AND EXISTS (
+        SELECT 1 FROM product_prices price
+        WHERE price.product_id=product.id
+          AND (price.store_id=stock.store_id OR price.store_id IS NULL)
+          AND price.valid_from<=CURRENT_TIMESTAMP(3)
+          AND (price.valid_until IS NULL OR price.valid_until>CURRENT_TIMESTAMP(3))
+      )
+  `);
+  const orderCatalogCount = Number(orderCatalogRows[0].count);
+  if (orderCatalogCount < 1000) {
+    throw new Error(`発注可能商品が最低件数 1000 件に達していません（${orderCatalogCount}件）。`);
+  }
+  console.log(`order_catalog.scale_fixture: ${orderCatalogCount} products (minimum 1000)`);
+  const [diversityRows] = await db.query(`
+    SELECT
+      (SELECT COUNT(DISTINCT status) FROM stores WHERE id LIKE '20000000-%') AS store_statuses,
+      (SELECT COUNT(DISTINCT opening_time) FROM stores WHERE id LIKE '20000000-%') AS opening_times,
+      (SELECT COUNT(DISTINCT category_code) FROM products WHERE id LIKE '40000000-%') AS product_categories,
+      (SELECT COUNT(DISTINCT tax_rate) FROM products WHERE id LIKE '40000000-%') AS tax_rates,
+      (SELECT COUNT(DISTINCT promotion_eligibility) FROM products WHERE id LIKE '40000000-%') AS eligibility_states,
+      (SELECT COUNT(DISTINCT status) FROM sales_days WHERE id LIKE '60000000-%') AS sales_day_statuses,
+      (SELECT COUNT(DISTINCT line_type) FROM sales_lines WHERE id LIKE '61000000-%') AS sales_line_types,
+      (SELECT SUM(amount_yen < 0) FROM sales_lines WHERE id LIKE '61000000-%') AS negative_sales_lines,
+      (SELECT SUM(quantity = 0) FROM inventory_snapshots WHERE id LIKE '62000000-%') AS zero_inventory_rows,
+      (SELECT MAX(CHAR_LENGTH(name)) FROM products WHERE id LIKE '40000000-%') AS longest_product_name
+  `);
+  const diversity = diversityRows[0];
+  const diversityMinimums = {
+    store_statuses: 3,
+    opening_times: 4,
+    product_categories: 6,
+    tax_rates: 2,
+    eligibility_states: 3,
+    sales_day_statuses: 3,
+    sales_line_types: 4,
+    negative_sales_lines: 1,
+    zero_inventory_rows: 1,
+    longest_product_name: 40,
+  };
+  for (const [field, minimum] of Object.entries(diversityMinimums)) {
+    if (Number(diversity[field]) < minimum)
+      throw new Error(
+        `表示確認用の分散データ ${field} が不足しています（${diversity[field]}、最低 ${minimum}）。`,
+      );
+  }
+  console.log("scale_fixture.diversity: store, product, sales, and inventory variations=ready");
   const [authRows] = await db.query(
     "SELECT u.active,u.password_hash,r.role FROM app_users u JOIN user_role_assignments r ON r.user_id=u.id WHERE LOWER(u.email)=LOWER(?)",
     ["minoriya-demo+information_systems@example.invalid"],

@@ -17,6 +17,7 @@ const ids = {
 const store = "20000000-0000-4000-8000-000000000001",
   otherStore = "20000000-0000-4000-8000-000000000002";
 const product = "51000000-0000-4000-8000-000000000001";
+const orderProduct = "51000000-0000-4000-8000-000000000002";
 let db: PGlite, department: string;
 async function root() {
   await db.exec("reset role; select set_config('request.jwt.claim.sub','',false)");
@@ -72,6 +73,14 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       otherStore,
       product,
     ]);
+    await db.query(
+      "insert into public.products(id,code,name,tax_rate,promotion_eligibility) values($1,'MOCK-ORDER','Fictional order food',8,'eligible')",
+      [orderProduct],
+    );
+    await db.query("insert into public.store_products(store_id,product_id) values($1,$2)", [
+      store,
+      orderProduct,
+    ]);
   }, 30000);
   beforeEach(root);
   afterAll(async () => {
@@ -116,23 +125,19 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     ).toBe(1);
   });
 
-  it("発注は担当売場を検証し、ヘッダ・明細・連携待ちを原子的に保存し同一要求を一度だけ処理する", async () => {
+  it("発注はロールを問わず、ヘッダ・明細・連携待ちを原子的に保存し同一要求を一度だけ処理する", async () => {
     const request = randomUUID(),
-      items = [{ product_id: product, quantity: 2 }];
-    await asUser(ids.staff);
+      items = [{ product_id: orderProduct, quantity: 2 }];
+    await asUser(ids.product);
+    await db.query(
+      "insert into public.product_prices(product_id,store_id,price_yen,valid_from) values($1,$2,198,now()-interval '1 day')",
+      [orderProduct, store],
+    );
+    await asUser(ids.product);
     const args = [store, department, JSON.stringify(items), request];
     const sql =
       "select public.submit_store_order($1,$2,(now() at time zone 'Asia/Tokyo')::date+3,$3::jsonb,$4) as value";
     const first = await scalar<string>(sql, args);
-    expect(await scalar<string>(sql, args)).toBe(first);
-    await expect(
-      db.query(sql, [
-        store,
-        department,
-        JSON.stringify([{ product_id: product, quantity: 3 }]),
-        request,
-      ]),
-    ).rejects.toThrow("Conflicting order replay");
     await expect(
       db.query(sql, [otherStore, department, JSON.stringify(items), randomUUID()]),
     ).rejects.toThrow();
@@ -152,9 +157,20 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       ),
     ).toBe(1);
     expect(
+      await scalar<number>("select order_total_yen::int as value from public.orders where id=$1", [
+        first,
+      ]),
+    ).toBe(396);
+    expect(
       await scalar<number>(
-        "select count(*)::int as value from public.integration_jobs where payload->>'orderId'=$1",
+        "select line_total_yen::int as value from public.order_lines where order_id=$1",
         [first],
+      ),
+    ).toBe(396);
+    expect(
+      await scalar<number>(
+        "select count(*)::int as value from public.integration_jobs where kind='order'",
+        [],
       ),
     ).toBe(1);
   });

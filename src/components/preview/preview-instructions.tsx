@@ -124,13 +124,6 @@ export function PreviewInstructions({
                 ? "お知らせ"
                 : "特売・価格変更"}
           </h2>
-          <p>
-            {headquarters
-              ? "店舗へ特売・価格変更の指示を発行します。"
-              : noticesMode
-                ? "対応が必要なお知らせを確認できます。"
-                : "値札の変更状況を登録してください。"}
-          </p>
         </div>
         {!headquarters && (
           <div className={styles.summary}>

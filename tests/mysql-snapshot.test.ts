@@ -50,7 +50,16 @@ describe("MySQL store-device snapshot", () => {
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([[]]);
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([
+        [
+          {
+            inventory_alert_count: 2,
+            notice_count: 5,
+            campaign_pending_count: 3,
+          },
+        ],
+      ]);
 
     const result = await new MysqlRepository().storeSnapshot(token);
 
@@ -72,6 +81,11 @@ describe("MySQL store-device snapshot", () => {
       },
     ]);
     expect(result.campaigns).toEqual([]);
-    expect(execute).toHaveBeenCalledTimes(8);
+    expect(result.metrics).toEqual({
+      inventory_alert_count: 2,
+      notice_count: 5,
+      campaign_pending_count: 3,
+    });
+    expect(execute).toHaveBeenCalledTimes(9);
   });
 });

@@ -8,7 +8,6 @@ describe("店舗お知らせ画面", () => {
   it("登録店舗から本部へ申請した売上修正状況を状態色付きで表示する", () => {
     const html = renderToStaticMarkup(
       createElement(CorrectionRequestStatus, {
-        storeName: "架空みのり中央店",
         salesDays: [{ id: "sales-1", business_date: "2026-10-22" }],
         corrections: [
           {
@@ -25,7 +24,7 @@ describe("店舗お知らせ画面", () => {
     );
 
     expect(html).toContain("売上修正依頼の申請状況");
-    expect(html).toContain("架空みのり中央店から本部へ申請した変更のみ");
+    expect(html).not.toContain("のみ表示しています");
     expect(html).toContain("本部承認待ち");
     expect(html).toContain("ui-badge-warning");
     expect(html).toContain("1,000円");
@@ -43,9 +42,10 @@ describe("店舗お知らせ画面", () => {
   it("上部のお知らせはスクロールせず、全件表示で下へ展開する", () => {
     const instructions = readFileSync("src/components/campaigns/instruction-workspace.tsx", "utf8");
     const styles = readFileSync("src/app/globals.css", "utf8");
-    expect(instructions).toContain("全{instructionCards.length}件を表示");
-    expect(instructions).toContain('className="notice-expander"');
-    expect(styles).toContain(".notice-expander");
+    expect(instructions).toContain(
+      '<CollapsibleList className="notice-list">{instructionCards}</CollapsibleList>',
+    );
+    expect(styles).toContain(".list-expand-actions");
     expect(styles).not.toContain(".notice-scroll-region");
   });
 });

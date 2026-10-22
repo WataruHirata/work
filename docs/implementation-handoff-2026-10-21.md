@@ -3,6 +3,7 @@
 このファイルは、新しい `work` フォルダを開いたあと、チャットにそのまま貼って使うための引き継ぎメモです。
 
 前提:
+
 - このプロジェクトは Next.js + TypeScript + Supabase の販売管理システムです。
 - ここまでで、起動基盤・DBスキーマ・営業データ・特売通知・修正依頼/承認の骨組みが整っています。
 - 今の状態では、起動とビルドは通り、データベースの主要テストも通っています。
@@ -10,6 +11,7 @@
 ## 1. ここまでの進捗サマリ
 
 完了済み:
+
 - Next.js の起動問題を修正
 - App Router のサーバー/クライアント境界を整理
 - 売上集計 API と CSV 出力の土台を追加
@@ -19,6 +21,7 @@
 - スキーマ関連テストが通過
 
 未完了/継続課題:
+
 - 実運用用の cron / scheduler の定期実行設定
 - 本番向けの権限・監査・CSV 最終整備
 - 既存POS連携や本番SLAまわりの最終確認
@@ -28,10 +31,12 @@
 ### 2-1. 特売開始前/開始/終了の自動通知を追加
 
 ファイル:
+
 - `supabase/migrations/202610210011_campaign_time_notifications.sql`
 - `src/server/integrations/run.ts`
 
 この修正で、定期実行時に次を自動判定します。
+
 - 開始 30 分前: `pre_start`
 - 開始時刻到達: `started`
 - 終了時刻到達: `ended`
@@ -182,22 +187,28 @@ export async function runConfiguredIntegrations() {
 ### 3-1. 売上修正依頼と承認のフォーム統合
 
 ファイル:
+
 - `src/components/workspaces/workspace-forms.tsx`
 - `src/server/actions/workspace.ts`
 
 目的:
+
 - 店舗側で修正依頼
 - 管理側で承認/却下
 - その後に通知と導線が続く
 
 重要な修正ポイント:
+
 - `requestCorrection` のバリデーションを明確化
 - `approveCorrection` の承認コメントと拒否時の条件を整理
 - 通知がそのまま承認画面へ遷移できるよう `notification-inbox` 連携
 
 ```ts
 // src/server/actions/workspace.ts
-export async function requestCorrectionAction(_previous: WorkspaceActionState, data: FormData): Promise<WorkspaceActionState> {
+export async function requestCorrectionAction(
+  _previous: WorkspaceActionState,
+  data: FormData,
+): Promise<WorkspaceActionState> {
   try {
     await activeSession();
     const salesDayId = uuid(data.get("salesDayId"));
@@ -233,6 +244,7 @@ export async function requestCorrectionAction(_previous: WorkspaceActionState, d
 ## 4. 画面とUIの引き継ぎポイント
 
 主要な UI 画面:
+
 - `src/app/store/*`
 - `src/app/admin/*`
 - `src/components/workspaces/data-workspace.tsx`
@@ -240,6 +252,7 @@ export async function requestCorrectionAction(_previous: WorkspaceActionState, d
 - `src/components/notifications/notification-inbox.tsx`
 
 ポイント:
+
 - 画面は role / store / campaign の切り分けを前提に構成
 - 画面自体だけでなく、server action と repository をセットで扱う設計
 - 画面から `repo.execute(...)` に接続し、DB へ業務処理を委譲する構成
@@ -247,9 +260,11 @@ export async function requestCorrectionAction(_previous: WorkspaceActionState, d
 ## 5. ビルドと検証結果
 
 実施した検証:
+
 - `npm test -- --run tests/database-schema.test.ts`
 
 結果:
+
 - 11 tests passed
 - 主要な migration と campaign / correction / instruction の RLS・処理が正常に動作
 
@@ -258,6 +273,7 @@ export async function requestCorrectionAction(_previous: WorkspaceActionState, d
 ## 6. 次にやるべきこと（本番に近づけるには）
 
 優先度順:
+
 1. 定期実行（cron）を本番環境に接続
 2. `CRON_SECRET` と `APP_ORIGIN` の本番設定確認
 3. 通知文言と UI の整理
@@ -279,6 +295,7 @@ export async function requestCorrectionAction(_previous: WorkspaceActionState, d
 > - DB テストは通過済み（11 tests passed）
 >
 > 主要ファイル:
+>
 > - `supabase/migrations/202610210011_campaign_time_notifications.sql`
 > - `src/server/integrations/run.ts`
 > - `src/server/actions/workspace.ts`
@@ -286,6 +303,7 @@ export async function requestCorrectionAction(_previous: WorkspaceActionState, d
 > - `src/components/notifications/notification-inbox.tsx`
 >
 > 重要コード:
+>
 > ```ts
 > export async function runConfiguredIntegrations() {
 >   const client = await createSupabaseServerClient();

@@ -21,6 +21,7 @@ import {
   configuredTargets,
   HttpIntegrationTransport,
 } from "@/infrastructure/integrations/http-transport";
+import { MockCoreSystemTransport } from "../../mock-core-system/transport";
 
 export function isSupabaseProvider() {
   return process.env.DATABASE_PROVIDER === "supabase";
@@ -47,6 +48,19 @@ export function integrationRuntime(): {
   transport: IntegrationTransport;
   kinds: string[];
 } {
+  const targets = configuredTargets();
+  const httpTransport = new HttpIntegrationTransport(targets);
+  const configuredKinds = Object.entries(targets)
+    .filter(([, target]) => target.url && target.token)
+    .map(([kind]) => kind);
+  const mockCoreEnabled =
+    process.env.NODE_ENV !== "production" && process.env.MOCK_CORE_SYSTEM_ENABLED !== "false";
+  if (mockCoreEnabled) {
+    return {
+      transport: new MockCoreSystemTransport(httpTransport),
+      kinds: [...new Set(["order", ...configuredKinds])],
+    };
+  }
   if (!isSupabaseProvider() && !isMysqlProvider()) {
     return {
       transport: {
@@ -57,12 +71,9 @@ export function integrationRuntime(): {
       kinds: ["order", "campaign_price", "campaign_restore", "sales_import"],
     };
   }
-  const targets = configuredTargets();
   return {
-    transport: new HttpIntegrationTransport(targets),
-    kinds: Object.entries(targets)
-      .filter(([, target]) => target.url && target.token)
-      .map(([kind]) => kind),
+    transport: httpTransport,
+    kinds: configuredKinds,
   };
 }
 export function backendConfigured(): boolean {

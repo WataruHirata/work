@@ -31,6 +31,9 @@ import { InstructionWorkspace } from "@/components/campaigns/instruction-workspa
 import { NotificationInbox } from "@/components/notifications/notification-inbox";
 import { StateBadge } from "@/components/ui/state-badge";
 import { CorrectionRequestStatus } from "@/components/store/correction-request-status";
+import { CollapsibleTable } from "@/components/ui/collapsible-table";
+import { hasAdminAccess, resolveStorePageStoreId } from "@/domain/access-policy";
+import { getAdminSession } from "@/server/auth/admin-access";
 
 export type WorkspaceSearch = {
   page?: string;
@@ -106,106 +109,101 @@ function ResourceTable({
         {data.total}件・{data.page}ページ目
       </p>
       {data.rows.length ? (
-        <div className="workspace-table">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {columns.map((column) => (
-                  <th key={column} scope="col">
-                    {columnLabels[column] ?? column}
-                  </th>
-                ))}
-                <th scope="col">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.rows.map((row) => (
-                <tr key={`${row.id}:${row.updated_at ?? ""}`}>
-                  {columns.map((column) => (
-                    <td key={column}>{display(column, row[column], lookups)}</td>
-                  ))}
-                  <td>
-                    {canEdit && (
-                      <details>
-                        <summary>編集</summary>
-                        <MasterForm resource={resource} row={row} lookups={lookups} />
-                      </details>
-                    )}
-                    {resource === "sales" &&
-                      row.status === "imported" &&
-                      roles.includes("store_manager") && (
-                        <OperationForm
-                          operation="confirmSales"
-                          label="日次確定"
-                          confirm="対象営業日の売上を確認しました"
-                        >
-                          <input type="hidden" name="salesDayId" value={row.id} />
-                        </OperationForm>
-                      )}
-                    {resource === "corrections" &&
-                      ((row.status === "pending_area_approval" && roles.includes("area_manager")) ||
-                        (row.status === "pending_operations_approval" &&
-                          roles.includes("store_operations"))) && (
-                        <details>
-                          <summary>承認・差戻し</summary>
-                          <OperationForm
-                            operation="approveCorrection"
-                            label="決定を保存"
-                            fields={[
-                              {
-                                key: "approved",
-                                label: "決定",
-                                required: true,
-                                options: [
-                                  { value: "true", label: "承認" },
-                                  { value: "false", label: "差戻し" },
-                                ],
-                              },
-                              {
-                                key: "comment",
-                                label: "コメント（差戻し時必須）",
-                              },
-                            ]}
-                          >
-                            <input type="hidden" name="correctionId" value={row.id} />
-                          </OperationForm>
-                        </details>
-                      )}
-                    {resource === "roles" && roles.includes("information_systems") && (
-                      <OperationForm
-                        operation="revokeRole"
-                        label="割当を解除"
-                        confirm="この権限割当を解除します"
-                      >
-                        <input type="hidden" name="assignmentId" value={row.id} />
-                      </OperationForm>
-                    )}
-                    {resource === "devices" &&
-                      row.active &&
-                      roles.includes("information_systems") && (
-                        <OperationForm
-                          operation="disableDevice"
-                          label="端末を無効化"
-                          confirm="この端末からの参照を停止します"
-                        >
-                          <input type="hidden" name="deviceId" value={row.id} />
-                        </OperationForm>
-                      )}
-                    {resource === "jobs" &&
-                      row.status === "failed" &&
-                      roles.some((role) =>
-                        ["information_systems", "product_office"].includes(role),
-                      ) && (
-                        <OperationForm operation="retryJob" label="再処理を予約">
-                          <input type="hidden" name="jobId" value={row.id} />
-                        </OperationForm>
-                      )}
-                  </td>
-                </tr>
+        <CollapsibleTable
+          head={
+            <tr>
+              {columns.map((column) => (
+                <th key={column} scope="col">
+                  {columnLabels[column] ?? column}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <th scope="col">操作</th>
+            </tr>
+          }
+        >
+          {data.rows.map((row) => (
+            <tr key={`${row.id}:${row.updated_at ?? ""}`}>
+              {columns.map((column) => (
+                <td key={column}>{display(column, row[column], lookups)}</td>
+              ))}
+              <td>
+                {canEdit && (
+                  <details>
+                    <summary>編集</summary>
+                    <MasterForm resource={resource} row={row} lookups={lookups} />
+                  </details>
+                )}
+                {resource === "sales" &&
+                  row.status === "imported" &&
+                  roles.includes("store_manager") && (
+                    <OperationForm
+                      operation="confirmSales"
+                      label="日次確定"
+                      confirm="対象営業日の売上を確認しました"
+                    >
+                      <input type="hidden" name="salesDayId" value={row.id} />
+                    </OperationForm>
+                  )}
+                {resource === "corrections" &&
+                  ((row.status === "pending_area_approval" && roles.includes("area_manager")) ||
+                    (row.status === "pending_operations_approval" &&
+                      roles.includes("store_operations"))) && (
+                    <details>
+                      <summary>承認・差戻し</summary>
+                      <OperationForm
+                        operation="approveCorrection"
+                        label="決定を保存"
+                        fields={[
+                          {
+                            key: "approved",
+                            label: "決定",
+                            required: true,
+                            options: [
+                              { value: "true", label: "承認" },
+                              { value: "false", label: "差戻し" },
+                            ],
+                          },
+                          {
+                            key: "comment",
+                            label: "コメント（差戻し時必須）",
+                          },
+                        ]}
+                      >
+                        <input type="hidden" name="correctionId" value={row.id} />
+                      </OperationForm>
+                    </details>
+                  )}
+                {resource === "roles" && roles.includes("information_systems") && (
+                  <OperationForm
+                    operation="revokeRole"
+                    label="割当を解除"
+                    confirm="この権限割当を解除します"
+                  >
+                    <input type="hidden" name="assignmentId" value={row.id} />
+                  </OperationForm>
+                )}
+                {resource === "devices" && row.active && roles.includes("information_systems") && (
+                  <OperationForm
+                    operation="disableDevice"
+                    label="端末を無効化"
+                    confirm="この端末からの参照を停止します"
+                  >
+                    <input type="hidden" name="deviceId" value={row.id} />
+                  </OperationForm>
+                )}
+                {resource === "jobs" &&
+                  row.status === "failed" &&
+                  roles.some((role) =>
+                    ["information_systems", "product_office"].includes(role),
+                  ) && (
+                    <OperationForm operation="retryJob" label="再処理を予約">
+                      <input type="hidden" name="jobId" value={row.id} />
+                    </OperationForm>
+                  )}
+              </td>
+            </tr>
+          ))}
+        </CollapsibleTable>
       ) : (
         <p>対象データはありません。</p>
       )}
@@ -230,10 +228,15 @@ export async function DataWorkspace({
   const session = await identity().session();
   if (!session?.active) redirect(`/login?next=${encodeURIComponent(uiConfig.pages[feature].href)}`);
   if (session.mustChangePassword) redirect("/account/password");
-  const roles = session.roles;
+  const isAdminPage = uiConfig.pages[feature].href.startsWith("/admin/");
+  const adminSession = isAdminPage ? await getAdminSession() : null;
+  const roles = adminSession?.status === "authorized" ? adminSession.roles : session.roles;
+  const hideStoreFilters = ["storeSales", "storeOperations", "storeOrders"].includes(feature);
+  const isStorePage = feature.startsWith("store");
+  const restrictToAssignedStores = isStorePage && !hasAdminAccess(roles);
   const resources = [
     ...(featureResources[feature] ?? []),
-    ...(["approvals", "storeOperations"].includes(feature) ? ["notifications" as const] : []),
+    ...(feature === "approvals" ? ["notifications" as const] : []),
   ];
   let lookups: Lookups, pages: { resource: Resource; data: DataPage }[];
   let noticeStoreId: string | undefined;
@@ -246,6 +249,13 @@ export async function DataWorkspace({
     };
     if (search.correction) options.correctionId = uuid(search.correction);
     if (search.store) options.storeId = uuid(search.store);
+    if (restrictToAssignedStores) {
+      const assignedStoreIds = session.storeIds ?? [];
+      options.storeId = resolveStorePageStoreId(roles, assignedStoreIds, options.storeId);
+      if (!options.storeId) {
+        throw new Error("この利用者に表示できる店舗が登録されていません。");
+      }
+    }
     if (search.from) options.from = date(search.from);
     if (search.to) options.to = date(search.to);
     const lookupResources: Resource[] = ["stores", "areas", "departments", "products"];
@@ -254,9 +264,16 @@ export async function DataWorkspace({
       lookupResources.map(async (resource) => [resource, await allRecords(resource)] as const),
     );
     lookups = Object.fromEntries(lookupRows);
+    if (restrictToAssignedStores) {
+      const assignedStoreIds = new Set(session.storeIds ?? []);
+      lookups.stores = (lookups.stores ?? []).filter((store) => assignedStoreIds.has(store.id));
+      lookups.departments = (lookups.departments ?? []).filter((department) =>
+        assignedStoreIds.has(String(department.store_id)),
+      );
+    }
     if (feature === "storeNotices") {
-      const requestedStore = search.store
-        ? lookups.stores?.find((store) => store.id === search.store && store.status === "active")
+      const requestedStore = options.storeId
+        ? lookups.stores?.find((store) => store.id === options.storeId && store.status === "active")
         : undefined;
       const registeredStore =
         requestedStore ?? lookups.stores?.find((store) => store.status === "active");
@@ -302,18 +319,13 @@ export async function DataWorkspace({
       {feature === "storeNotices" && (
         <section className="page-panel">
           {noticeStoreId ? (
-            <InstructionWorkspace
-              storeId={noticeStoreId}
-              canRecordStoreWork={roles.some((role) =>
-                ["store_manager", "department_lead", "staff"].includes(role),
-              )}
-            />
+            <InstructionWorkspace storeId={noticeStoreId} />
           ) : (
             <p className="empty-state">表示できる登録店舗がありません。</p>
           )}
         </section>
       )}
-      {feature !== "storeNotices" && (
+      {feature !== "storeNotices" && !hideStoreFilters && (
         <section className="page-panel">
           <p>操作者：{session.displayName} · DB接続中</p>
           <form method="get" className="workspace-fields">
@@ -334,30 +346,14 @@ export async function DataWorkspace({
         </section>
       )}
       {feature === "storeNotices" && noticeStoreId && (
-        <CorrectionRequestStatus
-          storeName={String(
-            lookups.stores?.find((store) => store.id === noticeStoreId)?.name ?? "登録店舗",
-          )}
-          corrections={noticeCorrections}
-          salesDays={noticeSalesDays}
-        />
+        <CorrectionRequestStatus corrections={noticeCorrections} salesDays={noticeSalesDays} />
       )}
-      {(feature === "approvals" || feature === "storeOperations") && (
+      {feature === "approvals" && (
         <section className="page-panel">
           <h2>売上修正依頼と通知</h2>
-          <p>
-            翌日以降の修正は、店舗から申請 → エリア一次承認 →
-            店舗運営本部の最終承認の順に処理します。最終承認後に売上へ反映し、承認・差戻しを店舗へ通知します。
-          </p>
         </section>
       )}
-      {feature === "products" && (
-        <section className="page-panel">
-          <p>
-            通常売価と特売対象区分は既存マスタの連携値を参照します。商品編集で価格正本を書き換えません。
-          </p>
-        </section>
-      )}
+      {feature === "products" && <section className="page-panel"></section>}
       {feature === "storeOperations" && roles.includes("store_manager") && (
         <section className="page-panel">
           <h2>売上修正の申請</h2>
@@ -481,24 +477,29 @@ export async function DataWorkspace({
           roles={roles}
         />
       ))}
-      <nav className="page-panel button-row" aria-label="ページ切替">
-        {Number(search.page || 1) > 1 && (
-          <Link
-            className="ghost-button"
-            href={`${uiConfig.pages[feature].href}?${new URLSearchParams({ ...search, page: String(Number(search.page) - 1) } as Record<string, string>)}`}
-          >
-            前へ
-          </Link>
-        )}
-        {pages.some(({ data }) => data.page * data.pageSize < data.total) && (
-          <Link
-            className="ghost-button"
-            href={`${uiConfig.pages[feature].href}?${new URLSearchParams({ ...search, page: String(Number(search.page || 1) + 1) } as Record<string, string>)}`}
-          >
-            次へ
-          </Link>
-        )}
-      </nav>
+      {(Number(search.page || 1) > 1 ||
+        (feature !== "storeSales" &&
+          pages.some(({ data }) => data.page * data.pageSize < data.total))) && (
+        <nav className="page-panel button-row" aria-label="ページ切替">
+          {Number(search.page || 1) > 1 && (
+            <Link
+              className="ghost-button"
+              href={`${uiConfig.pages[feature].href}?${new URLSearchParams({ ...search, page: String(Number(search.page) - 1) } as Record<string, string>)}`}
+            >
+              前へ
+            </Link>
+          )}
+          {feature !== "storeSales" &&
+            pages.some(({ data }) => data.page * data.pageSize < data.total) && (
+              <Link
+                className="ghost-button"
+                href={`${uiConfig.pages[feature].href}?${new URLSearchParams({ ...search, page: String(Number(search.page || 1) + 1) } as Record<string, string>)}`}
+              >
+                次へ
+              </Link>
+            )}
+        </nav>
+      )}
     </PageLayout>
   );
 }

@@ -53,14 +53,14 @@ describe("店舗お知らせの特売タスク FR-020/029 AT-07/10", () => {
       };
       return rows[resource] ?? [];
     });
-    const html = renderToStaticMarkup(
-      await InstructionWorkspace({ storeId: "store-1", canRecordStoreWork: true }),
-    );
-    expect(html).toContain("POS・商品値札の変更依頼");
+    const html = renderToStaticMarkup(await InstructionWorkspace({ storeId: "store-1" }));
+    expect(html).toContain("POS価格変更");
     expect(html).toContain("架空りんご");
     expect(html).toContain("123");
     expect(html).toContain('data-task="pos_changed"');
     expect(html).toContain('data-task="price_label_changed"');
-    expect(html.match(/未処理/g)).toHaveLength(2);
+    expect(html).toContain("対応商品");
+    expect(html).not.toContain("店舗担当権限が必要です");
+    expect(html).not.toContain("指示内容と商品・日時を確認し");
   });
 });

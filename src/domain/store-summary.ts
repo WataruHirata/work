@@ -29,6 +29,14 @@ export function storeSummary(snapshot: Record<string, Json>) {
     prior = days.at(-2);
   const total = days.reduce((sum, day) => sum + day.sales, 0);
   if (!Number.isSafeInteger(total)) throw new Error("合計売上が表示範囲を超えています。");
+  const metrics =
+    snapshot.metrics && typeof snapshot.metrics === "object" && !Array.isArray(snapshot.metrics)
+      ? snapshot.metrics
+      : {};
+  const metricCount = (key: string) => {
+    const value = metrics[key];
+    return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+  };
   return {
     storeName: String(snapshot.store.name),
     days,
@@ -36,5 +44,8 @@ export function storeSummary(snapshot: Record<string, Json>) {
     total,
     unitPrice: latest?.customers ? latest.sales / latest.customers : null,
     change: latest && prior?.sales ? (latest.sales / prior.sales - 1) * 100 : null,
+    inventoryAlertCount: metricCount("inventory_alert_count"),
+    noticeCount: metricCount("notice_count"),
+    campaignPendingCount: metricCount("campaign_pending_count"),
   };
 }
