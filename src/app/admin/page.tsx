@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { PageLayout } from "@/components/ui/page-layout";
 import { uiConfig } from "@/config/ui";
 import { adminFeatures } from "@/domain/access-policy";

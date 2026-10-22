@@ -77,3 +77,5 @@ Edge実ブラウザでは通知ボタンの初期閉状態・開く/閉じる・
 2026-10-22 特売→店舗の実ブラウザ受入確認: ローカルの架空デモ商品で2026/12/10 09:00～12/12 22:00・123円の特売を作成し、対象区分確認→送信内容確認→POS・値札変更依頼送信→店長で `/store/notices` を開く→店舗確認、まで成功。価格・開始/終了日時・POSと値札の依頼文を確認し、JavaScript例外は0件。証跡は `.local/design-check/campaign-e2e-results.json`、`store-change-request.png`。追加の `campaign-change-requests.test.ts` と `campaigns.test.ts` はPostgreSQLの通知内容/対象/複数商品/再更新時の重複防止と送信確認の必須化を検証し3件成功。MySQL実DBの7件も更新した依頼内容で成功。
 
 クローン先ブランチでの最終検証：format:check、lint、typecheck、build、関連25件のテスト、要件追跡5件が成功。MySQL実DB試験7件も同一コードで成功。PGliteのWASM初期化を含む単一DB試験だけ20秒の制限を設定し、ビルドとの並行実行で既定5秒を超える環境に対応した。既存の全体DB初期化SQLエラーとCSSトークン未定義は前述の通り残る。
+
+マージ後の検証は、別Gitリポジトリの `work/` とローカル作業・生成物の `.local/` をTypeScript・ESLint・整形チェックの対象から除外する。各リポジトリをそのルートで個別に検証し、入れ子の別版ソースと生成物を混在させない。
