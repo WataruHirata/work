@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { filterCampaigns } from "@/domain/campaign-list";
 import { uiConfig } from "@/config/ui";
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useState } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
 import {
@@ -57,7 +57,6 @@ type CampaignView = {
   }[];
 };
 type Props = {
-  instructionPanel?: ReactNode;
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
@@ -407,7 +406,6 @@ function eligibilityLabel(value: string) {
 }
 
 export function CampaignManagement({
-  instructionPanel,
   isConfigured,
   canManage,
   canRecordStoreWork = false,
@@ -492,7 +490,6 @@ export function CampaignManagement({
           </form>
         ) : null}
 
-        {!canManage && instructionPanel}
         {isConfigured && canManage ? (
           <div className="campaign-flow-rail">
             <div className="campaign-flow-row">

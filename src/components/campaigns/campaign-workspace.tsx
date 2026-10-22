@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdminFeature } from "@/server/auth/admin-access";
 import { CampaignManagement, type CampaignTask } from "@/components/campaigns/campaign-management";
+import { FeatureNotice } from "@/components/ui/feature-notice";
+import { PageLayout } from "@/components/ui/page-layout";
 import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
-import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 
 const timestamp = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
 
@@ -23,14 +25,31 @@ export async function CampaignWorkspace({
   if (!session?.active)
     redirect(`/login?next=${storeMode ? "/store/campaigns" : "/admin/campaigns"}`);
   if (session.mustChangePassword) redirect("/account/password");
-  const [stores, products, campaigns, items, targets, tasks] = await Promise.all([
-    allRecords("stores"),
-    allRecords("products"),
-    allRecords("campaigns"),
-    allRecords("campaignItems"),
-    allRecords("campaignTargets"),
-    allRecords("campaignTasks"),
-  ]);
+  let stores: DataRecord[], products: DataRecord[], campaigns: DataRecord[];
+  let items: DataRecord[], targets: DataRecord[], tasks: DataRecord[];
+  try {
+    [stores, products, campaigns, items, targets, tasks] = await Promise.all([
+      allRecords("stores"),
+      allRecords("products"),
+      allRecords("campaigns"),
+      allRecords("campaignItems"),
+      allRecords("campaignTargets"),
+      allRecords("campaignTasks"),
+    ]);
+  } catch {
+    const page = storeMode ? "storeCampaigns" : "campaigns";
+    const href = storeMode ? "/store/campaigns" : "/admin/campaigns";
+    return (
+      <PageLayout page={page}>
+        <FeatureNotice title="特売情報を読み込めませんでした">
+          <p>データベース接続と特売用マイグレーションの適用状況を確認してください。</p>
+          <Link className="ghost-button" href={href}>
+            再読み込み
+          </Link>
+        </FeatureNotice>
+      </PageLayout>
+    );
+  }
   if (storeId && !stores.some((store) => store.id === storeId)) notFound();
   const selectedStoreId = storeId ?? stores[0]?.id ?? "";
   const option = (row: DataRecord) => ({
@@ -41,16 +60,6 @@ export async function CampaignWorkspace({
   });
   return (
     <CampaignManagement
-      instructionPanel={
-        storeMode ? (
-          <InstructionWorkspace
-            storeId={selectedStoreId}
-            canRecordStoreWork={session.roles.some((role) =>
-              ["store_manager", "department_lead", "staff"].includes(role),
-            )}
-          />
-        ) : undefined
-      }
       canRecordStoreWork={session.roles.some((role) =>
         ["store_manager", "department_lead", "staff"].includes(role),
       )}

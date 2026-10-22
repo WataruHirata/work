@@ -2717,6 +2717,20 @@ table td,
 .admin-menu-card:hover {
   background: var(--surface);
 }
+.admin-menu-card.is-disabled {
+  cursor: not-allowed;
+  background: var(--disabled-surface);
+  color: var(--text-subtle);
+  opacity: 0.72;
+}
+.admin-menu-card.is-disabled:hover {
+  background: var(--disabled-surface);
+}
+.admin-menu-unavailable {
+  flex: 0 0 auto;
+  font-size: var(--font-size-label);
+  font-weight: 700;
+}
 .admin-menu-card:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
