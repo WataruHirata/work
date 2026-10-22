@@ -67,6 +67,12 @@ export const tableSpecs: Record<
     dated: "business_date",
     scoped: true,
   },
+  salesLines: {
+    table: "sales_lines",
+    fields:
+      "id,sales_day_id,product_code_snapshot,product_name_snapshot,department_id,quantity,amount_yen,tax_rate,transaction_time,line_type",
+    order: "transaction_time",
+  },
   corrections: {
     table: "sales_corrections",
     fields: "id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_at",
@@ -223,6 +229,8 @@ async function currentUserId() {
 
 export class LocalRepository implements BusinessRepository {
   async list(resource: Resource, options: QueryOptions = {}): Promise<DataPage> {
+    if (resource === "salesLines" && (!options.salesDayId || !options.storeId))
+      throw new Error("売上日と店舗の指定が必要です。");
     const spec = tableSpecs[resource];
     const page = Math.max(1, Math.min(10000, Math.trunc(options.page || 1)));
     const pageSize = resource === "notifications" ? 100 : 50;
@@ -235,6 +243,12 @@ export class LocalRepository implements BusinessRepository {
     if (options.correctionId && resource === "corrections") add("id=?", options.correctionId);
     if (options.correctionId && resource === "approvals")
       add("correction_id=?", options.correctionId);
+    if (options.salesDayId && resource === "salesLines") {
+      params.push(options.salesDayId, options.storeId ?? "");
+      predicates.push(
+        `exists (select 1 from public.sales_days scoped_day where scoped_day.id=sales_lines.sales_day_id and scoped_day.id=$${params.length - 1} and scoped_day.store_id=$${params.length})`,
+      );
+    }
     if (options.storeId && spec.scoped) add("store_id=?", options.storeId);
     if (options.storeId && resource === "corrections") {
       params.push(options.storeId);
@@ -307,6 +321,24 @@ export class LocalRepository implements BusinessRepository {
       return result.rows[0]?.value ?? null;
     });
   }
+  async storeDeviceSalesDayLines(deviceToken: string, salesDayId: string): Promise<DataRecord[]> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken) || !/^[0-9a-f-]{36}$/i.test(salesDayId))
+      throw new Error("登録端末または売上日を確認できません。");
+    return withLocalDatabase(async (db) => {
+      const result = await db.query<{ value: Json }>(
+        "select public.store_device_sales_day_lines($1,$2) as value",
+        [deviceToken, salesDayId],
+      );
+      const rows = result.rows[0]?.value;
+      return Array.isArray(rows)
+        ? rows.flatMap((row) =>
+            row && typeof row === "object" && !Array.isArray(row) && typeof row.id === "string"
+              ? [row as DataRecord]
+              : [],
+          )
+        : [];
+    });
+  }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {
     return withLocalDatabase(async (db) => {
       const result = await db.query<{ value: Record<string, Json> }>(
@@ -372,11 +404,7 @@ export class LocalIdentity implements IdentityProvider {
         "select active from public.app_users where id=$1",
         [user.id],
       );
-      const roles = await db.query("select 1 from public.user_role_assignments where user_id=$1", [
-        user.id,
-      ]);
-      if (!profile.rows[0]?.active || !roles.rows.length)
-        throw new Error("このアカウントは利用できません。");
+      if (!profile.rows[0]?.active) throw new Error("このアカウントは利用できません。");
       const expiry = String(Date.now() + 8 * 60 * 60 * 1000);
       const signature = createHmac("sha256", "minoriya-local-mock-session-only")
         .update(`${user.id}.${expiry}`)

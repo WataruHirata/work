@@ -36,14 +36,16 @@ describe("特売画面 FR-020/028 AT-07/10", () => {
   });
   it("20件を超える特売と対象店舗を一覧に渡す", async () => {
     const result = await CampaignWorkspace({});
-    expect(result.props.campaigns).toHaveLength(25);
-    expect(result.props.campaigns[24].storeIds).toEqual(["store1"]);
-    expect(result.props.canManage).toBe(true);
+    const management = result.props.children;
+    expect(management.props.campaigns).toHaveLength(25);
+    expect(management.props.campaigns[24].storeIds).toEqual(["store1"]);
+    expect(management.props.canManage).toBe(true);
+    expect(result.props.eyebrow).toBe("PROMOTION OPERATIONS");
   });
   it("閲覧ロールには特売の管理操作を渡さない", async () => {
     mocks.session.mockResolvedValue({ active: true, roles: ["area_manager"] });
     const result = await CampaignWorkspace({});
-    expect(result.props.canManage).toBe(false);
+    expect(result.props.children.props.canManage).toBe(false);
   });
   it("権限確認前に業務データを取得しない", async () => {
     mocks.authorize.mockRejectedValue(new Error("denied"));

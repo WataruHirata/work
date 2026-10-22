@@ -12,6 +12,9 @@ describe("共通サイドバーとページヘッダー", () => {
     expect(sidebar).toContain("店舗端末を登録");
     expect(sidebar).toContain('href="/login?next=%2Fadmin"');
     expect(sidebar).toContain("権限機能にログイン");
+    expect(sidebar).toContain("権限機能からログアウト");
+    expect(sidebar).not.toContain("個人ログインを終了");
+    expect(sidebar).not.toContain("個人アカウント");
     expect(layout).toContain("cookies()).has(stationCookie)");
   });
 

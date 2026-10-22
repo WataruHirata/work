@@ -26,7 +26,7 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
   const max = Math.max(1, ...summary.days.map((day) => day.sales));
   const x = (index: number) =>
     50 + (summary.days.length > 1 ? (index * 600) / (summary.days.length - 1) : 300);
-  const y = (value: number) => 220 - (value / max) * 180;
+  const y = (value: number) => 286 - (value / max) * 234;
   const points = summary.days.map((day, index) => `${x(index)},${y(day.sales)}`).join(" ");
   return (
     <div className="content">
@@ -108,13 +108,13 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
             )}
           </section>
         </div>
-        <section className="panel sales-panel">
+        <section className="panel sales-panel store-sales-trend-panel">
           <h2 className="panel-title">店舗売上の推移</h2>
           {summary.days.length ? (
             <>
               <svg
                 className="store-trend"
-                viewBox="0 0 700 270"
+                viewBox="0 0 700 350"
                 role="img"
                 aria-labelledby="live-trend-title"
               >
@@ -130,7 +130,7 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
                         {day.date}: {yen(day.sales)}
                       </title>
                     </circle>
-                    <text x={x(index)} y="250" textAnchor="middle">
+                    <text x={x(index)} y="325" textAnchor="middle">
                       {day.date.slice(5)}
                     </text>
                   </g>

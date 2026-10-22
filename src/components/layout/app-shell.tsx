@@ -214,7 +214,6 @@ export function AppShell({
             </span>
             <span>
               <strong>権限機能にログイン</strong>
-              <small>個人アカウント</small>
             </span>
             <ArrowRight className="support-arrow" size={15} />
           </Link>
@@ -222,7 +221,7 @@ export function AppShell({
             <>
               <form action={logout}>
                 <button type="submit" className="ghost-button station-sidebar-action">
-                  個人ログインを終了
+                  権限機能からログアウト
                 </button>
               </form>
             </>

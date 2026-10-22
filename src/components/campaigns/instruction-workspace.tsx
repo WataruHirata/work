@@ -4,6 +4,7 @@ import { InstructionForm, InstructionConfirmation } from "@/components/campaigns
 import { StateBadge } from "@/components/ui/state-badge";
 import { CollapsibleList } from "@/components/ui/collapsible-list";
 import { ProgressAction } from "@/components/campaigns/campaign-management";
+import { StoreCampaignTaskBoard } from "@/components/campaigns/store-campaign-task-board";
 
 const formatDate = (value: unknown) =>
   new Intl.DateTimeFormat("ja-JP", {
@@ -18,11 +19,9 @@ const formatDate = (value: unknown) =>
 export async function InstructionWorkspace({
   canManage = false,
   storeId,
-  canRecordStoreWork = false,
 }: {
   canManage?: boolean;
   storeId?: string;
-  canRecordStoreWork?: boolean;
 }) {
   const [
     instructions,
@@ -43,6 +42,20 @@ export async function InstructionWorkspace({
     storeId ? allRecords("campaignTargets", { storeId }) : [],
     storeId ? allRecords("campaignTasks", { storeId }) : [],
   ]);
+  if (storeId && !canManage) {
+    return (
+      <StoreCampaignTaskBoard
+        storeId={storeId}
+        instructions={instructions}
+        instructionTargets={targets}
+        products={products}
+        campaigns={campaigns}
+        campaignItems={campaignItems}
+        campaignTargets={campaignTargets}
+        tasks={tasks}
+      />
+    );
+  }
   const targetedInstructionIds = new Set(targets.map((target) => target.instruction_id));
   const visibleInstructions = storeId
     ? instructions.filter((instruction) => targetedInstructionIds.has(instruction.id))
@@ -102,7 +115,7 @@ export async function InstructionWorkspace({
                     storeId={String(storeId)}
                     task="pos_changed"
                     completed={posCompleted}
-                    disabled={!canRecordStoreWork || task?.pos_promotion_status === "applied"}
+                    disabled={task?.pos_promotion_status === "applied"}
                   />
                 </div>
                 <div>
@@ -115,13 +128,9 @@ export async function InstructionWorkspace({
                     storeId={String(storeId)}
                     task="price_label_changed"
                     completed={labelCompleted}
-                    disabled={!canRecordStoreWork}
                   />
                 </div>
               </div>
-              {!canRecordStoreWork ? (
-                <p className="muted">完了登録には、この店舗を担当する個人アカウントが必要です。</p>
-              ) : null}
             </article>
           );
         }),

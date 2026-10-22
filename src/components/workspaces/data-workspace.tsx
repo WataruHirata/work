@@ -33,6 +33,7 @@ import { StateBadge } from "@/components/ui/state-badge";
 import { CorrectionRequestStatus } from "@/components/store/correction-request-status";
 import { CollapsibleTable } from "@/components/ui/collapsible-table";
 import { hasAdminAccess, resolveStorePageStoreId } from "@/domain/access-policy";
+import { getAdminSession } from "@/server/auth/admin-access";
 
 export type WorkspaceSearch = {
   page?: string;
@@ -227,7 +228,9 @@ export async function DataWorkspace({
   const session = await identity().session();
   if (!session?.active) redirect(`/login?next=${encodeURIComponent(uiConfig.pages[feature].href)}`);
   if (session.mustChangePassword) redirect("/account/password");
-  const roles = session.roles;
+  const isAdminPage = uiConfig.pages[feature].href.startsWith("/admin/");
+  const adminSession = isAdminPage ? await getAdminSession() : null;
+  const roles = adminSession?.status === "authorized" ? adminSession.roles : session.roles;
   const hideStoreFilters = ["storeSales", "storeOperations", "storeOrders"].includes(feature);
   const isStorePage = feature.startsWith("store");
   const restrictToAssignedStores = isStorePage && !hasAdminAccess(roles);
@@ -316,12 +319,7 @@ export async function DataWorkspace({
       {feature === "storeNotices" && (
         <section className="page-panel">
           {noticeStoreId ? (
-            <InstructionWorkspace
-              storeId={noticeStoreId}
-              canRecordStoreWork={roles.some((role) =>
-                ["store_manager", "department_lead", "staff"].includes(role),
-              )}
-            />
+            <InstructionWorkspace storeId={noticeStoreId} />
           ) : (
             <p className="empty-state">表示できる登録店舗がありません。</p>
           )}

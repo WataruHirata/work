@@ -47,7 +47,13 @@ export async function executeOperation(
   data: FormData,
 ): Promise<ActionResult> {
   try {
-    await activeSession();
+    if (operation === "createOrder") {
+      const session = await identity().session();
+      if (!session?.active) throw new Error("ログインしてください。");
+      if (session.mustChangePassword) throw new Error("パスワードを変更してください。");
+    } else {
+      await activeSession();
+    }
     const repo = repository();
     let orderTransferred = false;
     switch (operation) {

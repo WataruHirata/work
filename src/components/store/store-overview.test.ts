@@ -100,5 +100,7 @@ describe("店舗概況（FR-005/006・AT-03/10 表示基盤）", () => {
   it("自店舗の売上・在庫ページに戻るボタンを表示しない", () => {
     const html = renderToStaticMarkup(PageLayout({ page: "storeSales", children: "売上・在庫" }));
     expect(html).not.toContain("へ戻る");
+    expect(html).toContain("<h1>売上・在庫</h1>");
+    expect(html).not.toContain("自店舗 売上・在庫");
   });
 });

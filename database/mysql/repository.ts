@@ -78,11 +78,6 @@ export class MysqlIdentity implements IdentityProvider {
       !timingSafeEqual(actual, expected)
     )
       throw new Error("メールアドレスまたはパスワードを確認してください。");
-    const [roles] = await mysqlPool().execute<(RowDataPacket & { role: string })[]>(
-      "SELECT role FROM user_role_assignments WHERE user_id=?",
-      [user.id],
-    );
-    if (!roles.length) throw new Error("このアカウントは利用できません。");
     const expires = String(Date.now() + 8 * 60 * 60 * 1000);
     const secret = process.env.SESSION_SECRET;
     if (!secret || secret.length < 32)
@@ -132,6 +127,8 @@ export class MysqlIdentity implements IdentityProvider {
 
 export class MysqlRepository implements BusinessRepository {
   async list(resource: Resource, options: QueryOptions = {}): Promise<DataPage> {
+    if (resource === "salesLines" && (!options.salesDayId || !options.storeId))
+      throw new Error("売上日と店舗の指定が必要です。");
     const spec = tableSpecs[resource];
     const session = await new MysqlIdentity().session();
     if (!session?.active) throw new Error("ログインしてください。");
@@ -149,6 +146,16 @@ export class MysqlRepository implements BusinessRepository {
     if (options.correctionId && resource === "approvals") {
       clauses.push("correction_id=?");
       values.push(options.correctionId);
+    }
+    if (options.salesDayId && resource === "salesLines") {
+      const storeAccess = session.roles.some((role) => globalRoles.includes(role))
+        ? ""
+        : " AND EXISTS (SELECT 1 FROM user_role_assignments ura WHERE ura.user_id=? AND (ura.store_id=scoped_day.store_id OR (ura.area_id IS NOT NULL AND EXISTS (SELECT 1 FROM stores area_store WHERE area_store.id=scoped_day.store_id AND area_store.area_id=ura.area_id))))";
+      clauses.push(
+        `EXISTS (SELECT 1 FROM sales_days scoped_day WHERE scoped_day.id=sales_lines.sales_day_id AND scoped_day.id=? AND scoped_day.store_id=?${storeAccess})`,
+      );
+      values.push(options.salesDayId, options.storeId ?? "");
+      if (storeAccess) values.push(session.userId);
     }
     if (options.storeId && spec.scoped) {
       clauses.push("store_id=?");
@@ -542,6 +549,29 @@ export class MysqlRepository implements BusinessRepository {
       default:
         throw new Error(`MySQL移植対象の業務トランザクションが未実装です: ${command}`);
     }
+  }
+  async storeDeviceSalesDayLines(deviceToken: string, salesDayId: string): Promise<DataRecord[]> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken) || !/^[0-9a-f-]{36}$/i.test(salesDayId))
+      throw new Error("登録端末または売上日を確認できません。");
+    const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
+    const [rows] = await mysqlPool().execute<(RowDataPacket & DataRecord)[]>(
+      "SELECT line.id,line.sales_day_id,line.product_code_snapshot,line.product_name_snapshot,line.department_id,line.quantity,line.amount_yen,line.tax_rate,line.transaction_time,line.line_type FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id JOIN stores store ON store.id=day.store_id AND store.status='active' JOIN store_devices device ON device.store_id=day.store_id WHERE device.token_hash=? AND device.active=1 AND day.id=? AND day.status<>'void' ORDER BY line.transaction_time LIMIT 10001",
+      [tokenHash, salesDayId],
+    );
+    if (rows.length > 10000) throw new Error("明細件数が上限を超えています。");
+    return rows.map(
+      (row) =>
+        Object.fromEntries(
+          Object.entries(row).map(([key, value]) => [
+            key,
+            value instanceof Date
+              ? value.toISOString()
+              : typeof value === "bigint"
+                ? Number(value)
+                : value,
+          ]),
+        ) as DataRecord,
+    );
   }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {
     if (!/^[a-f0-9]{64}$/.test(deviceToken)) throw new Error("店舗端末コードが正しくありません。");

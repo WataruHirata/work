@@ -26,7 +26,7 @@ const today = days[days.length - 1];
 const yesterday = days[days.length - 2];
 const change = ((today.sales / yesterday.sales - 1) * 100).toFixed(1);
 const points = days
-  .map((day, i) => `${50 + i * 100},${220 - (day.sales / 1200000) * 180}`)
+  .map((day, i) => `${50 + i * 100},${286 - (day.sales / 1200000) * 234}`)
   .join(" ");
 
 export function StoreOverview() {
@@ -86,7 +86,7 @@ export function StoreOverview() {
         ))}
       </section>
       <section className="dashboard-grid" aria-label="店舗売上の可視化">
-        <article className="panel sales-panel">
+        <article className="panel sales-panel store-sales-trend-panel">
           <div className="panel-heading">
             <div>
               <h2 className="panel-title">売上の推移</h2>
@@ -96,7 +96,7 @@ export function StoreOverview() {
           </div>
           <svg
             className="store-trend"
-            viewBox="0 0 700 270"
+            viewBox="0 0 700 350"
             role="img"
             aria-labelledby="store-trend-title store-trend-desc"
           >
@@ -109,11 +109,11 @@ export function StoreOverview() {
                 <line
                   x1="50"
                   x2="650"
-                  y1={220 - (value / 1200000) * 180}
-                  y2={220 - (value / 1200000) * 180}
+                  y1={286 - (value / 1200000) * 234}
+                  y2={286 - (value / 1200000) * 234}
                   className="chart-gridline"
                 />
-                <text x="0" y={224 - (value / 1200000) * 180}>
+                <text x="0" y={290 - (value / 1200000) * 234}>
                   {value / 10000}万
                 </text>
               </g>
@@ -123,7 +123,7 @@ export function StoreOverview() {
               <g key={day.date}>
                 <circle
                   cx={50 + i * 100}
-                  cy={220 - (day.sales / 1200000) * 180}
+                  cy={286 - (day.sales / 1200000) * 234}
                   r="4"
                   className="chart-point"
                 >
@@ -131,7 +131,7 @@ export function StoreOverview() {
                     {day.date}: {yen(day.sales)}
                   </title>
                 </circle>
-                <text x={50 + i * 100} y="250" textAnchor="middle">
+                <text x={50 + i * 100} y="325" textAnchor="middle">
                   {day.date}
                 </text>
               </g>

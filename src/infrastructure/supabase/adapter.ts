@@ -62,6 +62,12 @@ const tables: Record<
     dated: "business_date",
     scoped: true,
   },
+  salesLines: {
+    table: "sales_lines",
+    fields:
+      "id,sales_day_id,product_code_snapshot,product_name_snapshot,department_id,quantity,amount_yen,tax_rate,transaction_time,line_type",
+    order: "transaction_time",
+  },
   corrections: {
     table: "sales_corrections",
     fields: "id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_at",
@@ -200,6 +206,8 @@ function databaseError(error: { code?: string } | null, fallback: string): never
 
 export class SupabaseRepository implements BusinessRepository {
   async list(resource: Resource, options: QueryOptions = {}): Promise<DataPage> {
+    if (resource === "salesLines" && (!options.salesDayId || !options.storeId))
+      throw new Error("売上日と店舗の指定が必要です。");
     const client = await createSupabaseServerClient();
     const spec = tables[resource];
     const page = Math.max(1, Math.min(10000, Math.trunc(options.page || 1)));
@@ -209,6 +217,16 @@ export class SupabaseRepository implements BusinessRepository {
       query = query.eq("id", options.correctionId);
     if (options.correctionId && resource === "approvals")
       query = query.eq("correction_id", options.correctionId);
+    if (options.salesDayId && resource === "salesLines") {
+      const { data: day, error: dayError } = await client
+        .from("sales_days")
+        .select("id")
+        .eq("id", options.salesDayId)
+        .eq("store_id", options.storeId ?? "")
+        .maybeSingle();
+      if (dayError) throw new Error("売上日の確認に失敗しました。");
+      query = query.eq("sales_day_id", day?.id ?? "__none__");
+    }
     if (options.storeId && spec.scoped) query = query.eq("store_id", options.storeId);
     if (options.storeId && resource === "corrections") {
       const { data: salesRows, error: salesError } = await client
@@ -282,6 +300,15 @@ export class SupabaseRepository implements BusinessRepository {
       throw new Error("店舗端末を確認できません。管理者に端末の再登録を依頼してください。");
     return data as Record<string, Json>;
   }
+  async storeDeviceSalesDayLines(deviceToken: string, salesDayId: string): Promise<DataRecord[]> {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client.rpc("store_device_sales_day_lines", {
+      p_token: deviceToken,
+      p_sales_day_id: salesDayId,
+    });
+    if (error) throw new Error("登録店舗の売上明細を取得できませんでした。");
+    return Array.isArray(data) ? (data as DataRecord[]) : [];
+  }
 }
 
 export class SupabaseIdentity implements IdentityProvider {
@@ -333,7 +360,7 @@ export class SupabaseIdentity implements IdentityProvider {
     const { error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw new Error("メールアドレスまたはパスワードを確認してください。");
     const session = await this.session();
-    if (!session?.active || !session.roles.length) {
+    if (!session?.active) {
       await client.auth.signOut();
       throw new Error("このアカウントは利用できません。");
     }
