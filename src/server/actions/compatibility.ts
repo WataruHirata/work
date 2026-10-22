@@ -40,11 +40,9 @@ export async function createSalesCorrection(input: {
 }
 export async function uploadCsvImport(formData: FormData) {
   const session = await requireAdminFeature("imports");
-  if (session.status !== "authorized")
-    throw new Error("認証済みの情報システム権限が必要です。");
+  if (session.status !== "authorized") throw new Error("認証済みの情報システム権限が必要です。");
   const file = formData.get("csvFile");
-  if (!(file instanceof File))
-    throw new Error("CSVファイルを選択してください。");
+  if (!(file instanceof File)) throw new Error("CSVファイルを選択してください。");
   const data = new FormData();
   data.set("file", file);
   const result = await importSalesCsv({}, data);

@@ -21,9 +21,7 @@ describe("FR-028 / AT-10 CSV受付のservice_role境界", () => {
   });
   it("未ログイン・権限不足では管理クライアントを生成しない", async () => {
     mocks.requireAccess.mockRejectedValue(new Error("Access denied"));
-    await expect(uploadCsvImport(new FormData())).rejects.toThrow(
-      "Access denied",
-    );
+    await expect(uploadCsvImport(new FormData())).rejects.toThrow("Access denied");
     expect(mocks.requireAccess).toHaveBeenCalledWith("imports");
     expect(mocks.adminClient).not.toHaveBeenCalled();
   });

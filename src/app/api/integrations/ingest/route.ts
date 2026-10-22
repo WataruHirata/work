@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { integrationStore } from "@/server/container";
-import {
-  integrationAuthorized,
-  readBoundedJson,
-} from "@/server/auth/integration-access";
+import { integrationAuthorized, readBoundedJson } from "@/server/auth/integration-access";
 import type { Json } from "@/domain/contracts";
 import { integrationIngestSecret } from "@/server/container";
 export const runtime = "nodejs";
@@ -32,11 +29,7 @@ export async function POST(request: Request) {
       throw new Error("連携データの形式が不正です。");
     return NextResponse.json({
       ok: true,
-      result: await integrationStore().ingest(
-        data.eventId,
-        data.kind,
-        data.rows as Json[],
-      ),
+      result: await integrationStore().ingest(data.eventId, data.kind, data.rows as Json[]),
     });
   } catch {
     return NextResponse.json(

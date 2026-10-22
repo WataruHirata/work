@@ -17,10 +17,7 @@ export function DraftEditor({
     items: { id: string; priceYen: number; product: { name: string } | null }[];
   };
 }) {
-  const [state, action, pending] = useActionState(
-    executeOperation.bind(null, "editCampaign"),
-    {},
-  );
+  const [state, action, pending] = useActionState(executeOperation.bind(null, "editCampaign"), {});
   return (
     <details>
       <summary>下書きの名前・期間・価格を編集</summary>
@@ -29,12 +26,7 @@ export function DraftEditor({
         <input type="hidden" name="version" value={campaign.updated_at} />
         <label className="field">
           <span>特売名</span>
-          <input
-            name="name"
-            defaultValue={campaign.name}
-            required
-            maxLength={200}
-          />
+          <input name="name" defaultValue={campaign.name} required maxLength={200} />
         </label>
         <div className="workspace-fields">
           <label className="field">

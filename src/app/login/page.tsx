@@ -13,10 +13,7 @@ export default async function LoginPage({
 
   return (
     <PageLayout page="login">
-      <section
-        className="page-panel auth-panel"
-        aria-labelledby="login-heading"
-      >
+      <section className="page-panel auth-panel" aria-labelledby="login-heading">
         <span className="metric-icon green-icon">
           <LockKeyhole size={20} aria-hidden="true" />
         </span>

@@ -4,45 +4,30 @@ import { createHash } from "node:crypto";
 // This script deliberately never prints credentials, tokens, or password values.
 const env = process.env;
 if (env.ALLOW_DEMO_DATA_SETUP !== "true")
-  throw new Error(
-    "モックDB用の環境で ALLOW_DEMO_DATA_SETUP=true を設定してください。",
-  );
+  throw new Error("モックDB用の環境で ALLOW_DEMO_DATA_SETUP=true を設定してください。");
 if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY)
   throw new Error("Supabase URLとサーバー用キーが未設定です。");
 if (env.VERCEL_ENV === "production")
   throw new Error("Production環境でモックデータを作成しません。");
 const withUsers = env.DEMO_SEED_AUTH_USERS === "true";
-if (
-  withUsers &&
-  (!env.DEMO_INITIAL_PASSWORD || env.DEMO_INITIAL_PASSWORD.length < 12)
-)
-  throw new Error(
-    "認証アカウントも作る場合は、12文字以上の DEMO_INITIAL_PASSWORD が必要です。",
-  );
-const client = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL,
-  env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { persistSession: false, autoRefreshToken: false } },
-);
+if (withUsers && (!env.DEMO_INITIAL_PASSWORD || env.DEMO_INITIAL_PASSWORD.length < 12))
+  throw new Error("認証アカウントも作る場合は、12文字以上の DEMO_INITIAL_PASSWORD が必要です。");
+const client = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 const uid = (key) => {
-  const h = createHash("sha256")
-    .update(`minoriya-fixture-v1:${key}`)
-    .digest("hex");
+  const h = createHash("sha256").update(`minoriya-fixture-v1:${key}`).digest("hex");
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
 };
 function checked(result, stage) {
   if (result.error)
-    throw new Error(
-      `${stage}に失敗しました。DB版・制約・接続権限を確認してください。`,
-    );
+    throw new Error(`${stage}に失敗しました。DB版・制約・接続権限を確認してください。`);
   return result.data;
 }
 async function insert(table, rows, onConflict = "id") {
   if (rows.length)
     checked(
-      await client
-        .from(table)
-        .upsert(rows, { onConflict, ignoreDuplicates: true }),
+      await client.from(table).upsert(rows, { onConflict, ignoreDuplicates: true }),
       `${table}のモック登録`,
     );
 }
@@ -66,10 +51,7 @@ async function run() {
     "code",
   );
   const areas = checked(
-    await client
-      .from("areas")
-      .select("id,code")
-      .in("code", ["DEMO-A", "DEMO-B"]),
+    await client.from("areas").select("id,code").in("code", ["DEMO-A", "DEMO-B"]),
     "デモエリア取得",
   );
   const areaId = (code) => areas.find((row) => row.code === code).id;
@@ -142,8 +124,7 @@ async function run() {
       ),
     "デモ売場取得",
   );
-  const departmentFor = (storeId) =>
-    departments.find((row) => row.store_id === storeId).id;
+  const departmentFor = (storeId) => departments.find((row) => row.store_id === storeId).id;
   const productSeeds = [
     {
       code: "FIXTURE-V1-FOOD",
@@ -213,20 +194,14 @@ async function run() {
       const employeeCode = `FIXTURE-V1-${role}`;
       const email = `minoriya-demo+${role}@${env.DEMO_EMAIL_DOMAIN || "example.invalid"}`;
       const existing = checked(
-        await client
-          .from("app_users")
-          .select("id")
-          .eq("employee_code", employeeCode)
-          .maybeSingle(),
+        await client.from("app_users").select("id").eq("employee_code", employeeCode).maybeSingle(),
         "デモ利用者の重複確認",
       );
       let id = existing?.id;
       if (id) {
         const original = await client.auth.admin.getUserById(id);
         if (original.error || original.data.user.email !== email)
-          throw new Error(
-            "デモ社員番号が別アカウントで使われています。上書きせず停止しました。",
-          );
+          throw new Error("デモ社員番号が別アカウントで使われています。上書きせず停止しました。");
       } else {
         const created = await client.auth.admin.createUser({
           email,
@@ -268,12 +243,8 @@ async function run() {
         user_id: id,
         role,
         area_id: role === "area_manager" ? areaId("DEMO-A") : null,
-        store_id: ["store_manager", "department_lead", "staff"].includes(role)
-          ? store.id
-          : null,
-        department_id: ["department_lead", "staff"].includes(role)
-          ? departmentFor(store.id)
-          : null,
+        store_id: ["store_manager", "department_lead", "staff"].includes(role) ? store.id : null,
+        department_id: ["department_lead", "staff"].includes(role) ? departmentFor(store.id) : null,
       };
       await insert(
         "user_role_assignments",
@@ -286,8 +257,7 @@ async function run() {
           user_id: id,
           notification_type: "demo_welcome",
           title: "モックDBの通知",
-          message:
-            "この通知はDBから取得しています。個人ログイン後に業務操作を検証できます。",
+          message: "この通知はDBから取得しています。個人ログイン後に業務操作を検証できます。",
         },
       ]);
       authUsers++;
@@ -319,9 +289,7 @@ async function run() {
       price_yen: product.tax_rate === 10 ? 550 : 216,
       valid_from: "2020-01-01T00:00:00Z",
       valid_until: null,
-      promotion_eligibility: product.code.endsWith("EDLP")
-        ? "excluded"
-        : "eligible",
+      promotion_eligibility: product.code.endsWith("EDLP") ? "excluded" : "eligible",
     })),
   );
   checked(
@@ -334,16 +302,11 @@ async function run() {
   );
   let salesInserted = 0;
   for (let offset = 8; offset >= 2; offset--) {
-    const date = new Date(Date.now() - offset * 86400000)
-      .toISOString()
-      .slice(0, 10);
+    const date = new Date(Date.now() - offset * 86400000).toISOString().slice(0, 10);
     const rows = stores.flatMap((store, storeIndex) => {
-      const [hour, minute] = store.business_day_starts_at
-        .split(":")
-        .map(Number);
+      const [hour, minute] = store.business_day_starts_at.split(":").map(Number);
       const timestamp = new Date(
-        Date.parse(`${date}T00:00:00+09:00`) +
-          (hour * 60 + minute + 60) * 60000,
+        Date.parse(`${date}T00:00:00+09:00`) + (hour * 60 + minute + 60) * 60000,
       ).toISOString();
       return Array.from({ length: 20 }, (_, receipt) =>
         products.slice(0, 2).map((product, index) => ({
@@ -394,9 +357,7 @@ async function run() {
     const [hour, minute] = store.business_day_starts_at.split(":").map(Number);
     const date = new Date(
       local.getTime() -
-        (local.getUTCHours() * 60 + local.getUTCMinutes() < hour * 60 + minute
-          ? 86400000
-          : 0),
+        (local.getUTCHours() * 60 + local.getUTCMinutes() < hour * 60 + minute ? 86400000 : 0),
     )
       .toISOString()
       .slice(0, 10);
@@ -460,10 +421,7 @@ async function run() {
     "campaign_id,store_id",
   );
   const campaignItems = checked(
-    await client
-      .from("campaign_items")
-      .select("id")
-      .eq("campaign_id", campaignId),
+    await client.from("campaign_items").select("id").eq("campaign_id", campaignId),
     "モック特売取得",
   );
   await insert(
@@ -482,8 +440,7 @@ async function run() {
       id: uid(`announcement:${store.id}`),
       store_id: store.id,
       title: "モック店舗のお知らせ",
-      message:
-        "店舗端末を接続すると、自店舗に宛てたお知らせだけを参照できます。",
+      message: "店舗端末を接続すると、自店舗に宛てたお知らせだけを参照できます。",
     })),
   );
   console.log(

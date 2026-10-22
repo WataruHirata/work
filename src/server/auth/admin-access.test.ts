@@ -10,14 +10,20 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@database/mock/pglite/adapter", () => ({
-  LocalIdentity: class { async session() { return mocks.session; } },
+  LocalIdentity: class {
+    async session() {
+      return mocks.session;
+    }
+  },
   LocalRepository: class {},
   LocalIntegrationStore: class {},
   mockCronSecret: "mock-cron",
   mockIngestToken: "mock-ingest",
 }));
 vi.mock("@/infrastructure/supabase/adapter", () => ({ SupabaseRepository: class {} }));
-vi.mock("@/infrastructure/supabase/integration-store", () => ({ SupabaseIntegrationStore: class {} }));
+vi.mock("@/infrastructure/supabase/integration-store", () => ({
+  SupabaseIntegrationStore: class {},
+}));
 vi.mock("next/navigation", () => ({
   redirect: (path: string) => {
     throw new Error(`REDIRECT:${path}`);
@@ -27,10 +33,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import {
-  getAdminSession,
-  requireAdminFeature,
-} from "@/server/auth/admin-access";
+import { getAdminSession, requireAdminFeature } from "@/server/auth/admin-access";
 
 describe("AT-10 管理ページのサーバー認可", () => {
   beforeEach(() => {

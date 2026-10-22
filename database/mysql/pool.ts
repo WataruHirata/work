@@ -1,25 +1,22 @@
 import "server-only";
-import mysql, { type Pool, type PoolConnection, type ResultSetHeader, type RowDataPacket } from "mysql2/promise";
+import mysql, {
+  type Pool,
+  type PoolConnection,
+  type ResultSetHeader,
+  type RowDataPacket,
+} from "mysql2/promise";
+import { mysqlConnectionConfig } from "./config";
 
 const globals = globalThis as typeof globalThis & { __minoriyaMysqlPool?: Pool };
 
 export function mysqlPool(): Pool {
   if (globals.__minoriyaMysqlPool) return globals.__minoriyaMysqlPool;
-  const host = process.env.MYSQL_HOST;
-  const database = process.env.MYSQL_DATABASE;
-  const user = process.env.MYSQL_USER;
-  if (!host || !database || !user) throw new Error("MYSQL_HOST、MYSQL_DATABASE、MYSQL_USERを設定してください。");
+  const connection = mysqlConnectionConfig();
   globals.__minoriyaMysqlPool = mysql.createPool({
-    host,
-    port: Number(process.env.MYSQL_PORT || 3306),
-    database,
-    user,
-    password: process.env.MYSQL_PASSWORD || "",
+    ...connection,
     connectionLimit: 10,
     waitForConnections: true,
     queueLimit: 50,
-    charset: "utf8mb4",
-    timezone: "+09:00",
     supportBigNumbers: true,
     bigNumberStrings: false,
     dateStrings: false,
@@ -27,7 +24,9 @@ export function mysqlPool(): Pool {
   return globals.__minoriyaMysqlPool;
 }
 
-export async function mysqlTransaction<T>(run: (connection: PoolConnection) => Promise<T>): Promise<T> {
+export async function mysqlTransaction<T>(
+  run: (connection: PoolConnection) => Promise<T>,
+): Promise<T> {
   const connection = await mysqlPool().getConnection();
   try {
     await connection.beginTransaction();
@@ -42,7 +41,10 @@ export async function mysqlTransaction<T>(run: (connection: PoolConnection) => P
   }
 }
 
-export async function mysqlRows<T extends RowDataPacket>(sql: string, params: unknown[] = []): Promise<T[]> {
+export async function mysqlRows<T extends RowDataPacket>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
   const [rows] = await mysqlPool().execute<T[]>(sql, params as never[]);
   return rows;
 }

@@ -11,23 +11,23 @@ flowchart TD
   A --> O[ログアウトして店舗ポータルへ]
 ```
 
-| 用途 | URL | 内容 |
-|---|---|---|
-| 店舗 | `/store/sales-inventory` | 自店舗 売上・在庫 |
-| 店舗 | `/store/orders` | 発注入力・履歴 |
-| 店舗 | `/store/operations` | 締め・返品・売上修正 |
-| 店舗 | `/store/campaigns` | 特売内容・価格確認 |
-| 店舗 | `/store/notices` | お知らせ一覧・詳細 |
-| 管理 | `/admin/sales` | 売上集計・店舗比較 |
-| 管理 | `/admin/products` | 商品検索・編集 |
-| 管理 | `/admin/campaigns` | 特売一覧・登録 |
-| 管理 | `/admin/orders` | 発注状況・履歴 |
-| 管理 | `/admin/approvals` | 申請・承認 |
-| 管理 | `/admin/monthly` | 月次締め・会計出力 |
-| 管理 | `/admin/stores` | 店舗設定・端末管理 |
-| 管理 | `/admin/imports` | 連携状況・再処理 |
-| 管理 | `/admin/users` | 利用者・権限設定 |
-| 管理 | `/admin/audit` | 監査ログ検索・詳細 |
+| 用途 | URL                      | 内容                 |
+| ---- | ------------------------ | -------------------- |
+| 店舗 | `/store/sales-inventory` | 自店舗 売上・在庫    |
+| 店舗 | `/store/orders`          | 発注入力・履歴       |
+| 店舗 | `/store/operations`      | 締め・返品・売上修正 |
+| 店舗 | `/store/campaigns`       | 特売内容・価格確認   |
+| 店舗 | `/store/notices`         | お知らせ一覧・詳細   |
+| 管理 | `/admin/sales`           | 売上集計・店舗比較   |
+| 管理 | `/admin/products`        | 商品検索・編集       |
+| 管理 | `/admin/campaigns`       | 特売一覧・登録       |
+| 管理 | `/admin/orders`          | 発注状況・履歴       |
+| 管理 | `/admin/approvals`       | 申請・承認           |
+| 管理 | `/admin/monthly`         | 月次締め・会計出力   |
+| 管理 | `/admin/stores`          | 店舗設定・端末管理   |
+| 管理 | `/admin/imports`         | 連携状況・再処理     |
+| 管理 | `/admin/users`           | 利用者・権限設定     |
+| 管理 | `/admin/audit`           | 監査ログ検索・詳細   |
 
 `/store/operations` の後日修正依頼は `/admin` と `/admin/approvals` の個人宛通知から開く。`?correction=<UUID>` で対象依頼・承認履歴に絞り込む。エリア一次承認→本部最終承認を行い、結果を `/store/notices` の店舗お知らせ・個人宛通知に表示する。
 

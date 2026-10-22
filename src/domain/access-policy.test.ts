@@ -9,14 +9,7 @@ import {
 
 describe("FR-028 / FR-034 / FR-035 / AT-10 管理ルートの権限境界", () => {
   it("店舗入口・ログイン・旧ルートを管理ルートとして扱わない", () => {
-    for (const path of [
-      "/",
-      "/store",
-      "/store/operations",
-      "/login",
-      "/sales",
-      "/administrator",
-    ])
+    for (const path of ["/", "/store", "/store/operations", "/login", "/sales", "/administrator"])
       expect(isAdminPath(path)).toBe(false);
     for (const path of ["/admin", "/admin/sales", "/admin/users"])
       expect(isAdminPath(path)).toBe(true);
@@ -34,32 +27,23 @@ describe("FR-028 / FR-034 / FR-035 / AT-10 管理ルートの権限境界", () =
       ["__proto__"],
     ]) {
       expect(hasAdminAccess(roles)).toBe(false);
-      for (const feature of adminFeatures)
-        expect(canUseAdminFeature(roles, feature)).toBe(false);
+      for (const feature of adminFeatures) expect(canUseAdminFeature(roles, feature)).toBe(false);
     }
   });
   it("図の権限表を既存のDBロールへ対応付ける（メニュー利用のみ）", () => {
     const expected = {
       area_manager: ["sales", "products", "campaigns", "approvals"],
-      store_operations: [
-        "sales",
-        "products",
-        "campaigns",
-        "orders",
-        "approvals",
-      ],
+      store_operations: ["sales", "products", "campaigns", "orders", "approvals"],
       accounting: ["sales", "approvals", "monthly"],
       product_office: ["sales", "products", "campaigns"],
       information_systems: ["stores", "imports", "users", "audit"],
     };
     for (const [role, allowed] of Object.entries(expected)) {
-      expect(
-        adminFeatures.filter((feature) => canUseAdminFeature([role], feature)),
-      ).toEqual(allowed);
+      expect(adminFeatures.filter((feature) => canUseAdminFeature([role], feature))).toEqual(
+        allowed,
+      );
     }
-    expect(
-      canUseAdminFeature(["area_manager", "information_systems"], "users"),
-    ).toBe(true);
+    expect(canUseAdminFeature(["area_manager", "information_systems"], "users")).toBe(true);
   });
   it("ログインの戻り先を既知の管理ルートに限定する", () => {
     expect(safeAdminReturnPath("/admin/campaigns")).toBe("/admin/campaigns");

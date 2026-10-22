@@ -2,7 +2,7 @@
 
 このシステムは **Next.jsを中心とした階層型モノリス** です。一つのWebアプリの中で、画面、サーバー処理、業務ルール、外部接続をフォルダーで分離します。初期基盤はNext.js App Router / TypeScript / Node.js 22、Supabase PostgreSQL・Auth、Vercelです。Pythonは要件書の検査だけに使用します。
 
-業務要件は[統合要件書v3](../みのり屋_販売管理システム_統合要件書_v3.md)の第25章と明示された追加指示、技術基盤は[ADR-0001](./adr/0001-platform.md)、コード配置は[ADR-0002](./adr/0002-code-organization.md)を基準にします。
+業務要件は[統合要件書v3](./requirements/みのり屋_販売管理システム_統合要件書_v3.md)の第25章と明示された追加指示、技術基盤は[ADR-0001](./adr/0001-platform.md)、コード配置は[ADR-0002](./adr/0002-code-organization.md)を基準にします。
 
 ## 全体構成
 
@@ -21,17 +21,17 @@ flowchart LR
 
 ## コードの役割
 
-| 場所 | 責務 | 主な入口 |
-|---|---|---|
-| `src/app/` | URL、ページの組み立て、HTTP要求・応答、Next.js固有の設定 | `page.tsx`、`layout.tsx`、`route.ts` |
-| `src/components/` | 画面表示、入力、操作フィードバック。機能別に配置 | `store/`、`campaigns/`、`notifications/` |
-| `src/domain/` | 外部接続に依存しない業務計算、認可表、データ型・接続契約 | `sales.ts`、`access-policy.ts`、`contracts.ts` |
-| `src/server/` | Server Actions、セッション確認、入力検証、取得・取込・連携手順 | `actions/`、`queries/`、`auth/` |
-| `src/infrastructure/` | SupabaseやHTTPの具体的な接続実装 | `supabase/`、`integrations/` |
-| `src/config/` | 画面名、ルート定義、テーマ、表示設定 | `ui.ts` |
-| `src/mocks/` | 架空のプレビューデータとデモ用状態遷移 | `workspaces.ts`、`corrections.ts` |
-| `supabase/` | テーブル、RPC、RLS、トリガー、ローカル用seed | `migrations/`、`seed.sql` |
-| `tests/` | DB統合、構成境界、要件トレーサビリティ検査 | `architecture.test.ts`、`database-schema.test.ts` |
+| 場所                  | 責務                                                           | 主な入口                                          |
+| --------------------- | -------------------------------------------------------------- | ------------------------------------------------- |
+| `src/app/`            | URL、ページの組み立て、HTTP要求・応答、Next.js固有の設定       | `page.tsx`、`layout.tsx`、`route.ts`              |
+| `src/components/`     | 画面表示、入力、操作フィードバック。機能別に配置               | `store/`、`campaigns/`、`notifications/`          |
+| `src/domain/`         | 外部接続に依存しない業務計算、認可表、データ型・接続契約       | `sales.ts`、`access-policy.ts`、`contracts.ts`    |
+| `src/server/`         | Server Actions、セッション確認、入力検証、取得・取込・連携手順 | `actions/`、`queries/`、`auth/`                   |
+| `src/infrastructure/` | SupabaseやHTTPの具体的な接続実装                               | `supabase/`、`integrations/`                      |
+| `src/config/`         | 画面名、ルート定義、テーマ、表示設定                           | `ui.ts`                                           |
+| `src/mocks/`          | 架空のプレビューデータとデモ用状態遷移                         | `workspaces.ts`、`corrections.ts`                 |
+| `supabase/`           | テーブル、RPC、RLS、トリガー、ローカル用seed                   | `migrations/`、`seed.sql`                         |
+| `tests/`              | DB統合、構成境界、要件トレーサビリティ検査                     | `architecture.test.ts`、`database-schema.test.ts` |
 
 UIのServer Componentは取得処理を呼び、Client Componentは入力やローカル状態を扱います。Client Componentからサーバー処理を呼ぶ入口は `server/actions/` の `"use server"` モジュールです。
 

@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
-import {
-  DataWorkspace,
-  type WorkspaceSearch,
-} from "@/components/workspaces/data-workspace";
+import { DataWorkspace, type WorkspaceSearch } from "@/components/workspaces/data-workspace";
 import { adminFeatures } from "@/domain/access-policy";
 import { requireAdminFeature } from "@/server/auth/admin-access";
 

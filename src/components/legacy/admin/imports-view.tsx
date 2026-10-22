@@ -49,9 +49,7 @@ export default function ImportsPage() {
       const result = await uploadCsvImport(formData);
       setStatus(`CSVを取り込みました。${result.rows}行を処理しました。`);
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "CSV取り込みに失敗しました",
-      );
+      setStatus(error instanceof Error ? error.message : "CSV取り込みに失敗しました");
     }
   }
 
@@ -94,15 +92,9 @@ export default function ImportsPage() {
             <input
               type="file"
               accept=".csv"
-              onChange={(event) =>
-                setSelectedFile(event.target.files?.[0] ?? null)
-              }
+              onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
             />
-            <button
-              type="button"
-              className="primary-button"
-              onClick={handleUpload}
-            >
+            <button type="button" className="primary-button" onClick={handleUpload}>
               CSVを取り込む
             </button>
             {status && <small className="muted">{status}</small>}

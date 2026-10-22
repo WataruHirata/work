@@ -1,4 +1,4 @@
-/** Menu access from 画面遷移図1.drawio. Mutation permissions remain in RPC/RLS. */
+/** Menu access follows docs/routes.md. Mutation permissions remain in RPC/RLS. */
 export const adminFeatures = [
   "sales",
   "products",
@@ -21,13 +21,9 @@ const roleFeatures: Record<string, readonly AdminFeature[]> = {
   information_systems: ["stores", "imports", "users", "audit"],
 };
 
-export function canUseAdminFeature(
-  roles: readonly string[],
-  feature: AdminFeature,
-): boolean {
+export function canUseAdminFeature(roles: readonly string[], feature: AdminFeature): boolean {
   return roles.some(
-    (role) =>
-      Object.hasOwn(roleFeatures, role) && roleFeatures[role].includes(feature),
+    (role) => Object.hasOwn(roleFeatures, role) && roleFeatures[role].includes(feature),
   );
 }
 
@@ -53,8 +49,7 @@ export function safeAdminReturnPath(value?: string | null): string {
     ].includes(value)
   )
     return value;
-  return value === "/admin" ||
-    adminFeatures.some((feature) => value === `/admin/${feature}`)
+  return value === "/admin" || adminFeatures.some((feature) => value === `/admin/${feature}`)
     ? value
     : "/admin";
 }

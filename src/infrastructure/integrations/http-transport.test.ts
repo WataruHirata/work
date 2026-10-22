@@ -26,16 +26,10 @@ describe("AT-07/09 外部HTTP契約", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     expect(
-      await new HttpIntegrationTransport(targets).send(
-        "order",
-        "fictional-key",
-        {},
-      ),
+      await new HttpIntegrationTransport(targets).send("order", "fictional-key", {}),
     ).toMatchObject({ ok: true, reference: "fictional-result" });
     expect(fetcher.mock.calls[0][1].redirect).toBe("error");
-    expect(fetcher.mock.calls[0][1].headers["idempotency-key"]).toBe(
-      "fictional-key",
-    );
+    expect(fetcher.mock.calls[0][1].headers["idempotency-key"]).toBe("fictional-key");
   });
   it("別要求の応答・古い通常売価版・価格違いを成功扱いしない", async () => {
     for (const response of [
@@ -61,24 +55,17 @@ describe("AT-07/09 外部HTTP契約", () => {
         normalPriceRevision: "v1",
       },
     ]) {
-      vi.stubGlobal(
-        "fetch",
-        vi.fn().mockResolvedValue(Response.json(response)),
-      );
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(response)));
       await expect(
-        new HttpIntegrationTransport(targets).send(
-          "campaign_restore",
-          "fictional-key",
-          { priceYen: 120, normalPriceRevision: "v2" },
-        ),
+        new HttpIntegrationTransport(targets).send("campaign_restore", "fictional-key", {
+          priceYen: 120,
+          normalPriceRevision: "v2",
+        }),
       ).rejects.toThrow();
     }
   });
   it("不正応答の本文をエラーメッセージへ転載しない", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("fictional-private-response")),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("fictional-private-response")));
     await expect(
       new HttpIntegrationTransport(targets).send("order", "fictional-key", {}),
     ).rejects.toThrow("外部APIの応答を解析できません。");

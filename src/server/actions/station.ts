@@ -10,7 +10,9 @@ export async function connectStation(
   data: FormData,
 ): Promise<ActionResult> {
   try {
-    const token = String(data.get("token") ?? "").trim();
+    const token = String(data.get("token") ?? "")
+      .trim()
+      .toLowerCase();
     if (!/^[a-f0-9]{64}$/.test(token))
       throw new Error("管理者が発行した64文字の接続コードを入力してください。");
     await repository().storeSnapshot(token);
@@ -22,8 +24,7 @@ export async function connectStation(
     });
     revalidatePath("/", "layout");
     return {
-      success:
-        "店舗端末を接続しました。店舗ポータルへ戻ると自店舗のデータを確認できます。",
+      success: "店舗端末を接続しました。店舗ポータルへ戻ると自店舗のデータを確認できます。",
     };
   } catch (error) {
     return {

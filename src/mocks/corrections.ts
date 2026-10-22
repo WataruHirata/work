@@ -33,8 +33,7 @@ export function decideCorrection(
   approved: boolean,
   comment: string,
 ): CorrectionPreview[] {
-  if (!approved && !comment.trim())
-    throw new Error("差戻し理由を入力してください。");
+  if (!approved && !comment.trim()) throw new Error("差戻し理由を入力してください。");
   return rows.map((row) => {
     if (row.id !== id) return row;
     if (
@@ -44,11 +43,7 @@ export function decideCorrection(
       throw new Error("現在の承認段階では処理できません。");
     return {
       ...row,
-      status: approved
-        ? stage === "area"
-          ? "pending_operations"
-          : "approved"
-        : "rejected",
+      status: approved ? (stage === "area" ? "pending_operations" : "approved") : "rejected",
       comment: comment.trim(),
     };
   });

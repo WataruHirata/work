@@ -52,20 +52,16 @@ describe("getBusinessDate", () => {
 
 describe("calculateTaxIncludedTotal", () => {
   it("applies the configured included-tax percentage and rounds down fractional yen", () => {
-    expect(
-      calculateTaxIncludedTotal([{ unitPrice: 101, quantity: 1 }], 8),
-    ).toBe(109);
-    expect(
-      calculateTaxIncludedTotal([{ unitPrice: 101, quantity: 1 }], 10),
-    ).toBe(111);
+    expect(calculateTaxIncludedTotal([{ unitPrice: 101, quantity: 1 }], 8)).toBe(109);
+    expect(calculateTaxIncludedTotal([{ unitPrice: 101, quantity: 1 }], 10)).toBe(111);
   });
 
   it("rejects invalid amounts rather than silently calculating them", () => {
-    expect(() =>
-      calculateTaxIncludedTotal([{ unitPrice: -1, quantity: 1 }], 8),
-    ).toThrow(RangeError);
-    expect(() =>
-      calculateTaxIncludedTotal([{ unitPrice: 100, quantity: 1 }], 5),
-    ).toThrow(RangeError);
+    expect(() => calculateTaxIncludedTotal([{ unitPrice: -1, quantity: 1 }], 8)).toThrow(
+      RangeError,
+    );
+    expect(() => calculateTaxIncludedTotal([{ unitPrice: 100, quantity: 1 }], 5)).toThrow(
+      RangeError,
+    );
   });
 });

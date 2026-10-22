@@ -5,16 +5,12 @@ function fixture(job: IntegrationJob) {
   const store: IntegrationJobStore = {
     claim: vi.fn().mockResolvedValue([job]),
     finish: vi.fn().mockResolvedValue(undefined),
-    restorePrice: vi
-      .fn()
-      .mockResolvedValue({ priceYen: 120, revision: "2020-01-01T00:00:00Z" }),
+    restorePrice: vi.fn().mockResolvedValue({ priceYen: 120, revision: "2020-01-01T00:00:00Z" }),
     promotionEligible: vi.fn().mockResolvedValue(true),
     ingest: vi.fn(),
   };
   const transport = {
-    send: vi
-      .fn()
-      .mockResolvedValue({ ok: true, reference: "fictional-result" }),
+    send: vi.fn().mockResolvedValue({ ok: true, reference: "fictional-result" }),
   };
   return { store, transport };
 }
@@ -46,12 +42,7 @@ describe("AT-07/09 外部API境界", () => {
       ),
     ).toMatchObject({ failed: 1 });
     expect(transport.send).not.toHaveBeenCalled();
-    expect(store.finish).toHaveBeenCalledWith(
-      job,
-      false,
-      null,
-      expect.any(String),
-    );
+    expect(store.finish).toHaveBeenCalledWith(job, false, null, expect.any(String));
   });
   it("実行時の最新通常売価で復帰し、操作者の内部IDを外部へ送らない", async () => {
     const job = {
@@ -69,10 +60,7 @@ describe("AT-07/09 外部API境界", () => {
     };
     const { store, transport } = fixture(job);
     await runIntegrationBatch(store, transport, ["campaign_restore"]);
-    expect(store.restorePrice).toHaveBeenCalledWith(
-      "fictional-product",
-      "fictional-store",
-    );
+    expect(store.restorePrice).toHaveBeenCalledWith("fictional-product", "fictional-store");
     expect(transport.send).toHaveBeenCalledWith(
       "campaign_restore",
       "fictional-key:2020-01-01T00:00:00Z",
@@ -98,9 +86,9 @@ describe("AT-07/09 外部API境界", () => {
     };
     const { store, transport } = fixture(job);
     vi.mocked(store.restorePrice).mockResolvedValue(null);
-    expect(
-      await runIntegrationBatch(store, transport, ["campaign_restore"]),
-    ).toMatchObject({ failed: 1 });
+    expect(await runIntegrationBatch(store, transport, ["campaign_restore"])).toMatchObject({
+      failed: 1,
+    });
     expect(transport.send).not.toHaveBeenCalled();
   });
   it("外部応答後にDB確定が失敗しても、別の失敗確定で上書きしない", async () => {
@@ -112,12 +100,10 @@ describe("AT-07/09 外部API境界", () => {
       payload: { orderId: "fictional-order" },
     };
     const { store, transport } = fixture(job);
-    vi.mocked(store.finish).mockRejectedValue(
-      new Error("Synthetic persistence failure"),
+    vi.mocked(store.finish).mockRejectedValue(new Error("Synthetic persistence failure"));
+    await expect(runIntegrationBatch(store, transport, ["order"])).rejects.toThrow(
+      "Synthetic persistence failure",
     );
-    await expect(
-      runIntegrationBatch(store, transport, ["order"]),
-    ).rejects.toThrow("Synthetic persistence failure");
     expect(store.finish).toHaveBeenCalledTimes(1);
   });
 });

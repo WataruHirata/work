@@ -20,13 +20,9 @@ export default async function AdminPage() {
   return (
     <PageLayout page="admin">
       <NotificationInbox data={notifications} roles={session.roles} />
-      <p className="page-panel">
-        ログイン中の権限で利用できる機能を選択してください。
-      </p>
+      <p className="page-panel">ログイン中の権限で利用できる機能を選択してください。</p>
       <FeatureMenu
-        pages={adminFeatures.filter((feature) =>
-          canUseAdminFeature(session.roles, feature),
-        )}
+        pages={adminFeatures.filter((feature) => canUseAdminFeature(session.roles, feature))}
       />
     </PageLayout>
   );

@@ -6,31 +6,15 @@ describe("売上修正の申請・通知プレビュー（AT-04/05/10）", () =>
     expect(() =>
       decideCorrection(initialCorrections, "DEMO-C001", "operations", true, ""),
     ).toThrow();
-    const first = decideCorrection(
-      initialCorrections,
-      "DEMO-C001",
-      "area",
-      true,
-      "確認済み",
-    );
+    const first = decideCorrection(initialCorrections, "DEMO-C001", "area", true, "確認済み");
     expect(first[0].status).toBe("pending_operations");
-    const final = decideCorrection(
-      first,
-      "DEMO-C001",
-      "operations",
-      true,
-      "確認済み",
-    );
+    const final = decideCorrection(first, "DEMO-C001", "operations", true, "確認済み");
     expect(final[0].status).toBe("approved");
-    expect(() =>
-      decideCorrection(final, "DEMO-C001", "operations", true, ""),
-    ).toThrow();
+    expect(() => decideCorrection(final, "DEMO-C001", "operations", true, "")).toThrow();
     expect(initialCorrections[0].status).toBe("pending_area");
   });
   it("差戻しには理由が必要で、変更前金額を維持する", () => {
-    expect(() =>
-      decideCorrection(initialCorrections, "DEMO-C001", "area", false, " "),
-    ).toThrow();
+    expect(() => decideCorrection(initialCorrections, "DEMO-C001", "area", false, " ")).toThrow();
     const result = decideCorrection(
       initialCorrections,
       "DEMO-C001",

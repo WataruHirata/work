@@ -131,36 +131,64 @@ export const uiConfig = {
       icon: "login",
     },
   },
-  navigation: [
-    "storeSales",
-    "storeOrders",
-    "storeOperations",
-    "storeCampaigns",
-    "storeNotices",
-  ],
+  navigation: ["storeSales", "storeOrders", "storeOperations", "storeCampaigns", "storeNotices"],
   navigationBadges: {
     imports: { label: "3", urgent: false },
     approvals: { label: "2", urgent: true },
   } as Partial<Record<string, { label: string; urgent: boolean }>>,
   colorScheme: "light",
   theme: {
-    "--ink": "#172720",
-    "--ink-strong": "#123126",
-    "--muted": "#89958f",
-    "--muted-dark": "#68766f",
-    "--line": "#e9efec",
-    "--canvas": "#f6f8f7",
-    "--panel": "#ffffff",
-    "--panel-alt": "#f4faf6",
-    "--green": "#238568",
-    "--green-dark": "#175f4d",
-    "--green-soft": "#e9f5ef",
-    "--green-soft-2": "#edf8f3",
-    "--green-pale": "#f3faf5",
+    // Shared visual attributes extracted from the approved UI refresh reference.
+    // Legacy names below remain aliases so every existing screen receives the same theme.
+    "--text": "#172720",
+    "--text-strong": "#0b2f57",
+    "--text-subtle": "#68766f",
+    "--border": "#e4ebe7",
+    "--surface": "#ffffff",
+    "--surface-subtle": "#f8fafc",
+    "--accent": "#2e75b6",
+    "--accent-strong": "#0b2f57",
+    "--accent-soft": "#edf3f8",
+    "--success": "#2c7a5f",
+    "--success-soft": "#ebf7f0",
+    "--warning": "#b96c38",
+    "--warning-soft": "#fff2e6",
+    "--focus": "#2e75b6",
+    "--font-size-caption": "13px",
+    "--font-size-label": "14px",
+    "--font-size-body": "15px",
+    "--font-size-emphasis": "17px",
+    "--font-size-section-title": "20px",
+    "--font-size-page-title": "28px",
+    "--space-1": "8px",
+    "--space-2": "12px",
+    "--space-3": "16px",
+    "--space-4": "20px",
+    "--space-5": "24px",
+    "--space-card": "14px",
+    "--space-card-wide": "18px",
+    "--radius-control": "8px",
+    "--radius-panel": "12px",
+    "--radius-pill": "999px",
+    "--card-padding": "22px",
+    "--control-height": "44px",
+    "--disabled-surface": "#e9efec",
+    "--ink": "var(--text)",
+    "--ink-strong": "var(--text-strong)",
+    "--muted": "var(--text-subtle)",
+    "--muted-dark": "var(--text-subtle)",
+    "--line": "var(--border)",
+    "--canvas": "var(--surface-subtle)",
+    "--panel": "var(--surface)",
+    "--panel-alt": "var(--surface-subtle)",
+    "--green": "var(--accent)",
+    "--green-dark": "var(--accent-strong)",
+    "--green-soft": "var(--accent-soft)",
+    "--green-soft-2": "var(--accent-soft)",
+    "--green-pale": "var(--surface-subtle)",
     "--sidebar-width": "248px",
     "--sidebar-collapsed-width": "64px",
-    "--font-body":
-      '"Yu Gothic UI", "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif',
+    "--font-body": '"Yu Gothic UI", "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif',
     "--size-13px": "13px",
     "--size-3px": "3px",
     "--color-83c4aa": "#83c4aa",
@@ -370,6 +398,28 @@ export const responsiveStyles = `@media (max-width: 1180px) {
     grid-template-columns: 1fr;
   }
 }
+@media (max-width: 700px) {
+  .page-grid,
+  .page-grid.double,
+  .stat-row,
+  .list-card {
+    grid-template-columns: 1fr;
+  }
+  .ui-actions,
+  .button-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .ui-actions > *,
+  .button-row > .primary-button,
+  .button-row > .ghost-button,
+  .button-row > .danger-button,
+  .ui-button,
+  .ui-button-primary,
+  .ui-button-secondary {
+    width: 100%;
+  }
+}
 @media (max-width: 560px) {
   .page-topbar {
     height: var(--size-54px);
@@ -486,9 +536,7 @@ const booleanOptions = [
   { value: "true", label: "有効" },
   { value: "false", label: "無効" },
 ];
-export const masterFields: Partial<
-  Record<Resource, readonly WorkspaceField[]>
-> = {
+export const masterFields: Partial<Record<Resource, readonly WorkspaceField[]>> = {
   products: [
     { key: "code", label: "商品コード", required: true },
     { key: "name", label: "商品名", required: true },
@@ -690,3 +738,41 @@ export const stateLabels: Record<string, string> = {
   operations: "最終",
   same_day: "当日修正",
 };
+
+export type StateTone = "neutral" | "warning" | "success";
+
+const successStates = new Set([
+  "active",
+  "approved",
+  "applied",
+  "completed",
+  "confirmed",
+  "eligible",
+  "manual_confirmed",
+  "monthly_finalized",
+  "restored",
+  "sent",
+]);
+const warningStates = new Set([
+  "cancelled",
+  "closed",
+  "excluded",
+  "failed",
+  "not_configured",
+  "pending",
+  "pending_area",
+  "pending_area_approval",
+  "pending_operations",
+  "pending_operations_approval",
+  "processing",
+  "received",
+  "rejected",
+  "submitted",
+  "temporarily_closed",
+]);
+
+export function stateTone(state: string): StateTone {
+  if (successStates.has(state)) return "success";
+  if (warningStates.has(state)) return "warning";
+  return "neutral";
+}

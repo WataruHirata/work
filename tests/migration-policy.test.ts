@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  migrationEnabled,
-  validateMigrationTarget,
-} from "../scripts/migration-policy.mjs";
+import { migrationEnabled, validateMigrationTarget } from "../scripts/migration-policy.mjs";
 
 describe("開発用マイグレーションの接続先制御 / AT-10/12", () => {
   const ref = "abcdefghijklmnopqrst";
@@ -17,20 +14,12 @@ describe("開発用マイグレーションの接続先制御 / AT-10/12", () =>
   });
   it("URL・許可した開発先・リンク先の一致を必須とする", () => {
     expect(validateMigrationTarget(env, ref + "\n")).toBe(ref);
+    expect(() => validateMigrationTarget(env, "bcdefghijklmnopqrstu")).toThrow();
     expect(() =>
-      validateMigrationTarget(env, "bcdefghijklmnopqrstu"),
+      validateMigrationTarget({ ...env, NEXT_PUBLIC_SUPABASE_URL: "https://example.invalid" }, ref),
     ).toThrow();
     expect(() =>
-      validateMigrationTarget(
-        { ...env, NEXT_PUBLIC_SUPABASE_URL: "https://example.invalid" },
-        ref,
-      ),
-    ).toThrow();
-    expect(() =>
-      validateMigrationTarget(
-        { ...env, DEV_SUPABASE_PROJECT_REF: "short" },
-        ref,
-      ),
+      validateMigrationTarget({ ...env, DEV_SUPABASE_PROJECT_REF: "short" }, ref),
     ).toThrow();
   });
   it("本番・CIでは開発用コマンドによる変更を拒否する", () => {
@@ -39,9 +28,7 @@ describe("開発用マイグレーションの接続先制御 / AT-10/12", () =>
       { NODE_ENV: "production" },
       { CI: "true" },
     ]) {
-      expect(() =>
-        validateMigrationTarget({ ...env, ...setting }, ref),
-      ).toThrow();
+      expect(() => validateMigrationTarget({ ...env, ...setting }, ref)).toThrow();
     }
   });
 });

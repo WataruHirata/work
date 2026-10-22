@@ -50,11 +50,8 @@ export function parseCsv(source: string): Record<string, string>[] {
   )
     throw new Error("CSVのヘッダーが不正です。");
   return rows.map((values) => {
-    if (values.length !== headers.length)
-      throw new Error("CSVの列数が一致しません。");
-    return Object.fromEntries(
-      headers.map((header, index) => [header, values[index]]),
-    );
+    if (values.length !== headers.length) throw new Error("CSVの列数が一致しません。");
+    return Object.fromEntries(headers.map((header, index) => [header, values[index]]));
   });
 }
 

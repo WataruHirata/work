@@ -3,10 +3,7 @@ import { useActionState } from "react";
 import { changePassword, resetPassword } from "@/server/actions/auth";
 import { Feedback } from "@/components/workspaces/workspace-forms";
 export function AccountForm({ reset = false }: { reset?: boolean }) {
-  const [state, action, pending] = useActionState(
-    reset ? resetPassword : changePassword,
-    {},
-  );
+  const [state, action, pending] = useActionState(reset ? resetPassword : changePassword, {});
   return (
     <form action={action} className="workspace-form">
       {reset ? (
@@ -41,11 +38,7 @@ export function AccountForm({ reset = false }: { reset?: boolean }) {
         </>
       )}
       <button type="submit" className="primary-button" disabled={pending}>
-        {pending
-          ? "処理中…"
-          : reset
-            ? "再設定メールを送信"
-            : "パスワードを変更"}
+        {pending ? "処理中…" : reset ? "再設定メールを送信" : "パスワードを変更"}
       </button>
       <Feedback state={state} />
     </form>

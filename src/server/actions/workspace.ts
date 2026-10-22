@@ -4,20 +4,11 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { identity, repository } from "@/server/container";
 import { activeSession, requireRoles } from "@/server/auth/session";
-import {
-  date,
-  integer,
-  japanDateTime,
-  parseMaster,
-  text,
-  uuid,
-} from "@/server/validation";
+import { date, integer, japanDateTime, parseMaster, text, uuid } from "@/server/validation";
 import type { ActionResult, Json, Resource } from "@/domain/contracts";
 
 function message(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : "処理を完了できませんでした。";
+  return error instanceof Error ? error.message : "処理を完了できませんでした。";
 }
 function invalidate() {
   revalidatePath("/admin", "layout");
@@ -32,9 +23,7 @@ export async function saveMaster(
   try {
     if (!["products", "stores", "users", "announcements"].includes(resource))
       throw new Error("編集できないデータです。");
-    await requireRoles(
-      resource === "products" ? ["product_office"] : ["information_systems"],
-    );
+    await requireRoles(resource === "products" ? ["product_office"] : ["information_systems"]);
     const values = parseMaster(resource, data);
     const id = data.get("id") ? uuid(data.get("id")) : undefined;
     const version = id ? text(data.get("version"), 80) : undefined;
@@ -68,8 +57,7 @@ export async function executeOperation(
         break;
       case "requestCorrection":
         await requireRoles(["store_manager"]);
-        if (data.get("confirm") !== "true")
-          throw new Error("変更前後を確認してください。");
+        if (data.get("confirm") !== "true") throw new Error("変更前後を確認してください。");
         await repo.execute("requestCorrection", {
           p_sales_day_id: uuid(data.get("salesDayId")),
           p_reason: text(data.get("reason"), 500),
@@ -94,8 +82,7 @@ export async function executeOperation(
       case "finalizeMonth": {
         await requireRoles(["accounting"]);
         const month = String(data.get("month"));
-        if (!/^\d{4}-\d{2}$/.test(month))
-          throw new Error("対象年月を指定してください。");
+        if (!/^\d{4}-\d{2}$/.test(month)) throw new Error("対象年月を指定してください。");
         if (data.get("confirm") !== "true")
           throw new Error("月次確定後は変更できないことを確認してください。");
         await repo.execute("finalizeMonth", {
@@ -109,12 +96,10 @@ export async function executeOperation(
         const raw: unknown = JSON.parse(String(data.get("items")));
         if (!Array.isArray(raw) || raw.length < 1 || raw.length > 500)
           throw new Error("発注商品を指定してください。");
-        const items = raw.map(
-          (line: { productId?: unknown; quantity?: unknown }) => ({
-            product_id: uuid(line?.productId),
-            quantity: integer(line?.quantity, 1, 99999),
-          }),
-        );
+        const items = raw.map((line: { productId?: unknown; quantity?: unknown }) => ({
+          product_id: uuid(line?.productId),
+          quantity: integer(line?.quantity, 1, 99999),
+        }));
         if (new Set(items.map((line) => line.product_id)).size !== items.length)
           throw new Error("同じ商品は一行にまとめてください。");
         await repo.execute("createOrder", {
@@ -152,9 +137,7 @@ export async function executeOperation(
           p_role: role,
           p_area_id: data.get("areaId") ? uuid(data.get("areaId")) : null,
           p_store_id: data.get("storeId") ? uuid(data.get("storeId")) : null,
-          p_department_id: data.get("departmentId")
-            ? uuid(data.get("departmentId"))
-            : null,
+          p_department_id: data.get("departmentId") ? uuid(data.get("departmentId")) : null,
         });
         break;
       }
@@ -201,8 +184,7 @@ export async function executeOperation(
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
           throw new Error("メールアドレスを確認してください。");
         const password = text(data.get("password"), 128);
-        if (password.length < 12)
-          throw new Error("初回パスワードは12文字以上で指定してください。");
+        if (password.length < 12) throw new Error("初回パスワードは12文字以上で指定してください。");
         await identity().provisionUser(
           email,
           password,
@@ -250,10 +232,7 @@ export async function executeOperation(
   }
 }
 
-export async function importUserCsv(
-  _state: ActionResult,
-  data: FormData,
-): Promise<ActionResult> {
+export async function importUserCsv(_state: ActionResult, data: FormData): Promise<ActionResult> {
   // Imported lazily so credential/CSV parsing does not enter the client bundle.
   try {
     await requireRoles(["information_systems"]);
@@ -262,8 +241,7 @@ export async function importUserCsv(
     if (!(file instanceof File) || file.size > 1_000_000)
       throw new Error("1MB以内のCSVを選択してください。");
     const rows = parseCsv(await file.text());
-    if (!rows.length || rows.length > 500)
-      throw new Error("1～500行のCSVを指定してください。");
+    if (!rows.length || rows.length > 500) throw new Error("1～500行のCSVを指定してください。");
     const items: Json[] = rows.map((row) => {
       if (row.active !== "true" && row.active !== "false")
         throw new Error("active列はtrueまたはfalseで指定してください。");

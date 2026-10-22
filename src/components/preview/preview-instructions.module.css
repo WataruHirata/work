@@ -1,0 +1,254 @@
+.workspace {
+  display: grid;
+  gap: var(--space-5);
+  color: var(--text);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.heading h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-page-title);
+  line-height: 1.3;
+}
+
+.heading p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-subtle);
+  font-size: var(--font-size-body);
+}
+
+.summary {
+  min-width: 112px;
+  padding: var(--font-size-label) var(--space-4);
+  border-radius: var(--radius-panel);
+  background: var(--warning-soft);
+  color: var(--warning);
+  text-align: center;
+}
+
+.summary strong,
+.summary span {
+  display: block;
+}
+
+.summary strong {
+  font-size: var(--font-size-page-title);
+}
+
+.summary span {
+  margin-top: 2px;
+  font-size: var(--font-size-label);
+  font-weight: 700;
+}
+
+.list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.notice,
+.task,
+.detail {
+  display: grid;
+  gap: var(--space-card);
+  padding: var(--card-padding);
+  border: var(--size-1px) solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.notice {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.noticeMain h3,
+.task h3,
+.detail h3 {
+  margin: 10px 0 0;
+  color: var(--text-strong);
+  font-size: var(--font-size-section-title);
+  line-height: 1.45;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.kind,
+.pending,
+.done {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-28px);
+  padding: 0 var(--size-10px);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-caption);
+  font-weight: 700;
+}
+
+.kind {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.pending {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.done {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.meta {
+  margin: 6px 0 0;
+  color: var(--text-subtle);
+  font-size: var(--font-size-body);
+  line-height: 1.6;
+}
+
+.detailButton,
+.primaryLink,
+.completeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-card-wide);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detailButton {
+  border: var(--size-1px) solid var(--focus);
+  color: var(--accent-strong);
+  background: var(--surface);
+}
+
+.primaryLink,
+.completeButton {
+  width: fit-content;
+  border: 0;
+  color: var(--surface);
+  background: var(--accent-strong);
+}
+
+.completeButton:disabled {
+  color: var(--text-subtle);
+  background: var(--disabled-surface);
+  cursor: not-allowed;
+}
+
+.expanded {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-2);
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: var(--font-size-body);
+  line-height: 1.8;
+}
+
+.expanded p,
+.instruction,
+.price {
+  margin: 0;
+}
+
+.price {
+  font-weight: 700;
+}
+
+.instruction {
+  color: var(--text);
+  font-size: var(--font-size-body);
+  line-height: 1.8;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 2px solid var(--focus);
+  border-radius: 10px;
+  color: var(--accent-strong);
+  background: var(--surface-subtle);
+  font-size: var(--font-size-emphasis);
+  font-weight: 700;
+}
+
+.check input {
+  width: 22px;
+  height: 22px;
+}
+
+.message,
+.empty {
+  margin: 0;
+  padding: var(--font-size-label) var(--space-3);
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-body);
+}
+
+.message {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.empty {
+  color: var(--text-subtle);
+  background: var(--surface-subtle);
+}
+
+.createPanel {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.createPanel summary {
+  color: var(--text-strong);
+  font-size: var(--font-size-emphasis);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .heading,
+  .notice {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .summary {
+    width: 100%;
+  }
+
+  .detailButton,
+  .primaryLink,
+  .completeButton {
+    width: 100%;
+  }
+}
+
+/* お知らせ・特売画面では共通のプレビュー案内を表示しない。 */
+:global(.page-panel:has(.demo-banner)) {
+  display: none;
+}

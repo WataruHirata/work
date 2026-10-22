@@ -24,9 +24,7 @@ const files = sourceFiles(root).map((file) => {
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      const clause = ts.isImportDeclaration(node)
-        ? node.importClause
-        : undefined;
+      const clause = ts.isImportDeclaration(node) ? node.importClause : undefined;
       const bindings = clause?.namedBindings;
       const typeOnly = Boolean(
         clause?.isTypeOnly ||
@@ -77,28 +75,19 @@ describe("アーキテクチャ境界（NFR-007/008、AT-10の保守基盤）", 
       for (const match of text.matchAll(/\]\(([^)]+)\)/g)) {
         const target = match[1].split("#")[0];
         if (!target || /^https?:/.test(target)) continue;
-        expect(
-          existsSync(resolve(dirname(document), target)),
-          `${document}: ${target}`,
-        ).toBe(true);
+        expect(existsSync(resolve(dirname(document), target)), `${document}: ${target}`).toBe(true);
       }
     }
   });
   it("業務ルールと契約は画面・フレームワーク・DBから独立する", () => {
-    for (const file of files.filter((file) =>
-      file.path.startsWith("domain/"),
-    )) {
+    for (const file of files.filter((file) => file.path.startsWith("domain/"))) {
       for (const dependency of file.imports)
-        expect(dependency.target, `${file.path}: ${dependency.value}`).toMatch(
-          /^domain\//,
-        );
+        expect(dependency.target, `${file.path}: ${dependency.value}`).toMatch(/^domain\//);
     }
   });
 
   it("DB・HTTP接続は業務契約と同じ接続層だけに依存し、接続実装の選択をcontainerへ集める", () => {
-    for (const file of files.filter((file) =>
-      file.path.startsWith("infrastructure/"),
-    )) {
+    for (const file of files.filter((file) => file.path.startsWith("infrastructure/"))) {
       for (const dependency of file.imports.filter(
         (item) => item.value.startsWith("@/") || item.value.startsWith("."),
       ))
@@ -107,40 +96,28 @@ describe("アーキテクチャ境界（NFR-007/008、AT-10の保守基盤）", 
         );
     }
     for (const file of files.filter(
-      (file) =>
-        /^(server|app)\//.test(file.path) &&
-        file.path !== "server/container.ts",
+      (file) => /^(server|app)\//.test(file.path) && file.path !== "server/container.ts",
     )) {
       for (const dependency of file.imports) {
-        expect(
-          dependency.target,
-          `${file.path}: ${dependency.value}`,
-        ).not.toMatch(/^infrastructure\//);
+        expect(dependency.target, `${file.path}: ${dependency.value}`).not.toMatch(
+          /^infrastructure\//,
+        );
         if (file.path !== "app/api/mock/route.ts")
-          expect(
-            dependency.target,
-            `${file.path}: ${dependency.value}`,
-          ).not.toMatch(/^mocks\//);
+          expect(dependency.target, `${file.path}: ${dependency.value}`).not.toMatch(/^mocks\//);
       }
     }
   });
 
   it("ブラウザの画面はServer Actionsだけをサーバー入口として使用する", () => {
-    for (const file of files.filter((file) =>
-      /^\s*["']use client["']/.test(file.text),
-    )) {
+    for (const file of files.filter((file) => /^\s*["']use client["']/.test(file.text))) {
       for (const dependency of file.imports.filter((item) => !item.typeOnly)) {
         if (dependency.target.startsWith("server/"))
           expect(dependency.target, file.path).toMatch(/^server\/actions\//);
         if (dependency.target.startsWith("infrastructure/"))
-          expect(dependency.target, file.path).toBe(
-            "infrastructure/supabase/clients/browser",
-          );
+          expect(dependency.target, file.path).toBe("infrastructure/supabase/clients/browser");
       }
     }
-    for (const file of files.filter((file) =>
-      file.path.startsWith("server/actions/"),
-    ))
+    for (const file of files.filter((file) => file.path.startsWith("server/actions/")))
       expect(file.text, file.path).toMatch(/^\s*["']use server["']/);
   });
 
@@ -150,9 +127,7 @@ describe("アーキテクチャ境界（NFR-007/008、AT-10の保守基盤）", 
         expect(dependency.target, file.path).not.toMatch(/^lib\//);
       if (file.path.startsWith("config/"))
         for (const dependency of file.imports)
-          expect(dependency.target, file.path).not.toMatch(
-            /^(server|infrastructure|mocks)\//,
-          );
+          expect(dependency.target, file.path).not.toMatch(/^(server|infrastructure|mocks)\//);
     }
   });
 });

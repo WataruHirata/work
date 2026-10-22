@@ -1,0 +1,11 @@
+.next/
+node_modules/
+coverage/
+out/
+build/
+.local/
+*.tsbuildinfo
+.env*
+supabase/.temp/
+docs/references/
+docs/references/

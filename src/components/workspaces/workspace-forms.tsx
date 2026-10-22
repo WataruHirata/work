@@ -1,11 +1,7 @@
 "use client";
 
 import { useActionState, useState, type ReactNode } from "react";
-import {
-  executeOperation,
-  saveMaster,
-  importUserCsv,
-} from "@/server/actions/workspace";
+import { executeOperation, saveMaster, importUserCsv } from "@/server/actions/workspace";
 import { masterFields, type WorkspaceField } from "@/config/ui";
 import type { ActionResult, DataRecord, Resource } from "@/domain/contracts";
 
@@ -48,8 +44,7 @@ export function Fields({
               }))
             : undefined);
         const raw = values[field.key];
-        const value =
-          raw == null ? (field.key === "active" ? "true" : "") : String(raw);
+        const value = raw == null ? (field.key === "active" ? "true" : "") : String(raw);
         return (
           <label className="field" key={field.key}>
             <span>
@@ -57,11 +52,7 @@ export function Fields({
               {field.required ? " *" : ""}
             </span>
             {options ? (
-              <select
-                name={field.key}
-                defaultValue={value}
-                required={field.required}
-              >
+              <select name={field.key} defaultValue={value} required={field.required}>
                 <option value="">選択してください</option>
                 {options.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -78,9 +69,7 @@ export function Fields({
                 min={field.min}
                 max={field.max}
                 maxLength={field.type === "password" ? 128 : 2000}
-                autoComplete={
-                  field.type === "password" ? "new-password" : undefined
-                }
+                autoComplete={field.type === "password" ? "new-password" : undefined}
               />
             )}
           </label>
@@ -106,18 +95,14 @@ export function OperationForm({
   values?: Record<string, unknown>;
   confirm?: string;
 }) {
-  const [state, action, pending] = useActionState(
-    executeOperation.bind(null, operation),
-    {},
-  );
+  const [state, action, pending] = useActionState(executeOperation.bind(null, operation), {});
   return (
     <form action={action} className="workspace-form">
       <Fields fields={fields} lookups={lookups} values={values} />
       {children}
       {confirm && (
         <label>
-          <input type="checkbox" name="confirm" value="true" required />{" "}
-          {confirm}
+          <input type="checkbox" name="confirm" value="true" required /> {confirm}
         </label>
       )}
       <button type="submit" className="primary-button" disabled={pending}>
@@ -136,10 +121,7 @@ export function MasterForm({
   row?: DataRecord;
   lookups: Lookups;
 }) {
-  const [state, action, pending] = useActionState(
-    saveMaster.bind(null, resource),
-    {},
-  );
+  const [state, action, pending] = useActionState(saveMaster.bind(null, resource), {});
   return (
     <form action={action} className="workspace-form">
       {row && (
@@ -148,11 +130,7 @@ export function MasterForm({
           <input type="hidden" name="version" value={String(row.updated_at)} />
         </>
       )}
-      <Fields
-        fields={masterFields[resource] ?? []}
-        values={row}
-        lookups={lookups}
-      />
+      <Fields fields={masterFields[resource] ?? []} values={row} lookups={lookups} />
       <button type="submit" className="primary-button" disabled={pending}>
         {pending ? "保存中…" : row ? "変更を保存" : "新規登録"}
       </button>
@@ -160,17 +138,8 @@ export function MasterForm({
     </form>
   );
 }
-export function OrderForm({
-  lookups,
-  requestId,
-}: {
-  lookups: Lookups;
-  requestId: string;
-}) {
-  const [state, action, pending] = useActionState(
-    executeOperation.bind(null, "createOrder"),
-    {},
-  );
+export function OrderForm({ lookups, requestId }: { lookups: Lookups; requestId: string }) {
+  const [state, action, pending] = useActionState(executeOperation.bind(null, "createOrder"), {});
   const [store, setStore] = useState("");
   const [items, setItems] = useState([{ productId: "", quantity: "1" }]);
   return (
@@ -219,9 +188,7 @@ export function OrderForm({
               onChange={(event) =>
                 setItems((current) =>
                   current.map((line, i) =>
-                    i === index
-                      ? { ...line, productId: event.target.value }
-                      : line,
+                    i === index ? { ...line, productId: event.target.value } : line,
                   ),
                 )
               }
@@ -248,9 +215,7 @@ export function OrderForm({
               onChange={(event) =>
                 setItems((current) =>
                   current.map((line, i) =>
-                    i === index
-                      ? { ...line, quantity: event.target.value }
-                      : line,
+                    i === index ? { ...line, quantity: event.target.value } : line,
                   ),
                 )
               }
@@ -260,9 +225,7 @@ export function OrderForm({
             type="button"
             className="ghost-button"
             disabled={items.length === 1}
-            onClick={() =>
-              setItems((current) => current.filter((_, i) => i !== index))
-            }
+            onClick={() => setItems((current) => current.filter((_, i) => i !== index))}
           >
             行を削除
           </button>
@@ -272,12 +235,7 @@ export function OrderForm({
         <button
           type="button"
           className="ghost-button"
-          onClick={() =>
-            setItems((current) => [
-              ...current,
-              { productId: "", quantity: "1" },
-            ])
-          }
+          onClick={() => setItems((current) => [...current, { productId: "", quantity: "1" }])}
         >
           商品を追加
         </button>

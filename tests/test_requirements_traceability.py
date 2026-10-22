@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIREMENTS = ROOT / "みのり屋_販売管理システム_統合要件書_v3.md"
+REQUIREMENTS = ROOT / "docs" / "requirements" / "みのり屋_販売管理システム_統合要件書_v3.md"
 
 
 def section(document: str, start: str, end: str) -> str:

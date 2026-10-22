@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { PageLayout } from "@/components/ui/page-layout";
-import { columnLabels, stateLabels, type PageId } from "@/config/ui";
+import { columnLabels, type PageId } from "@/config/ui";
 import type { Json } from "@/domain/contracts";
+import { StateBadge } from "@/components/ui/state-badge";
 
 export function DeviceWorkspace({
   feature,
@@ -62,13 +63,13 @@ export function DeviceWorkspace({
                       <tr key={index}>
                         {columns.map((key) => (
                           <td key={key}>
-                            {key === "status"
-                              ? (stateLabels[String(row[key])] ??
-                                String(row[key]))
-                              : typeof row[key] === "object" &&
-                                  row[key] !== null
-                                ? JSON.stringify(row[key])
-                                : String(row[key] ?? "—")}
+                            {key === "status" || key.endsWith("_status") ? (
+                              <StateBadge state={String(row[key])} />
+                            ) : typeof row[key] === "object" && row[key] !== null ? (
+                              JSON.stringify(row[key])
+                            ) : (
+                              String(row[key] ?? "—")
+                            )}
                           </td>
                         ))}
                       </tr>

@@ -6,10 +6,7 @@ import { activeSession, requireRoles } from "@/server/auth/session";
 import { integer, text, uuid } from "@/server/validation";
 import type { ActionResult } from "@/domain/contracts";
 
-export async function sendInstruction(
-  _state: ActionResult,
-  data: FormData,
-): Promise<ActionResult> {
+export async function sendInstruction(_state: ActionResult, data: FormData): Promise<ActionResult> {
   try {
     await requireRoles(["product_office"]);
     if (data.get("confirmed") !== "true")
@@ -24,11 +21,7 @@ export async function sendInstruction(
     )
       throw new Error("実施日時を指定してください。");
     const stores = data.getAll("storeIds").map(uuid);
-    if (
-      !stores.length ||
-      stores.length > 112 ||
-      new Set(stores).size !== stores.length
-    )
+    if (!stores.length || stores.length > 112 || new Set(stores).size !== stores.length)
       throw new Error("対象店舗を選択してください。");
     await repository().execute("sendInstruction", {
       p_request_id: uuid(data.get("requestId")),
@@ -45,8 +38,7 @@ export async function sendInstruction(
     return { success: "指示を発行し、指定店舗のお知らせに通知しました。" };
   } catch (error) {
     return {
-      error:
-        error instanceof Error ? error.message : "指示を発行できませんでした。",
+      error: error instanceof Error ? error.message : "指示を発行できませんでした。",
     };
   }
 }
@@ -66,8 +58,7 @@ export async function confirmInstruction(
     return { success: "店舗確認を記録しました。" };
   } catch (error) {
     return {
-      error:
-        error instanceof Error ? error.message : "確認を記録できませんでした。",
+      error: error instanceof Error ? error.message : "確認を記録できませんでした。",
     };
   }
 }

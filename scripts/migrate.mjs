@@ -1,24 +1,17 @@
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import {
-  migrationEnabled,
-  validateMigrationTarget,
-} from "./migration-policy.mjs";
+import { migrationEnabled, validateMigrationTarget } from "./migration-policy.mjs";
 
 try {
   const automatic = process.argv.includes("--auto");
   if (!migrationEnabled(process.env, automatic)) {
-    console.log(
-      "自動マイグレーションは無効です（AUTO_MIGRATE=true で有効化）。",
-    );
+    console.log("自動マイグレーションは無効です（AUTO_MIGRATE=true で有効化）。");
   } else {
     let linkedRef;
     try {
       linkedRef = readFileSync("supabase/.temp/project-ref", "utf8");
     } catch {
-      throw new Error(
-        "Supabaseが未リンクです。先に supabase link を実行してください。",
-      );
+      throw new Error("Supabaseが未リンクです。先に supabase link を実行してください。");
     }
     validateMigrationTarget(process.env, linkedRef);
     // Command strings are constants. No credentials or user-supplied arguments are interpolated.
@@ -37,9 +30,7 @@ try {
   }
 } catch (error) {
   console.error(
-    error instanceof Error
-      ? error.message
-      : "マイグレーションを完了できませんでした。",
+    error instanceof Error ? error.message : "マイグレーションを完了できませんでした。",
   );
   process.exitCode = 1;
 }

@@ -25,8 +25,7 @@ const tables: Record<
 > = {
   instructions: {
     table: "store_instructions",
-    fields:
-      "id,kind,title,message,product_id,price_yen,effective_at,created_at",
+    fields: "id,kind,title,message,product_id,price_yen,effective_at,created_at",
     order: "created_at",
   },
   instructionTargets: {
@@ -37,8 +36,7 @@ const tables: Record<
   },
   products: {
     table: "products",
-    fields:
-      "id,code,name,category_code,tax_rate,active,promotion_eligibility,updated_at",
+    fields: "id,code,name,category_code,tax_rate,active,promotion_eligibility,updated_at",
     order: "code",
     search: "name",
   },
@@ -66,8 +64,7 @@ const tables: Record<
   },
   corrections: {
     table: "sales_corrections",
-    fields:
-      "id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_at",
+    fields: "id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_at",
     order: "requested_at",
   },
   approvals: {
@@ -89,15 +86,13 @@ const tables: Record<
   },
   inventory: {
     table: "inventory_snapshots",
-    fields:
-      "id,store_id,department_id,product_id,quantity,observed_at,source_reference",
+    fields: "id,store_id,department_id,product_id,quantity,observed_at,source_reference",
     order: "observed_at",
     scoped: true,
   },
   notifications: {
     table: "notifications",
-    fields:
-      "id,title,message,notification_type,correction_id,read_at,created_at",
+    fields: "id,title,message,notification_type,correction_id,read_at,created_at",
     order: "created_at",
   },
   announcements: {
@@ -120,22 +115,19 @@ const tables: Record<
   },
   audit: {
     table: "audit_logs",
-    fields:
-      "id,table_name,record_id,operation,actor_id,occurred_at,before_data,after_data",
+    fields: "id,table_name,record_id,operation,actor_id,occurred_at,before_data,after_data",
     order: "occurred_at",
     dated: "occurred_at",
     search: "table_name",
   },
   imports: {
     table: "sales_imports",
-    fields:
-      "id,source_file_name,source_checksum,status,rows_received,error_summary,received_at",
+    fields: "id,source_file_name,source_checksum,status,rows_received,error_summary,received_at",
     order: "received_at",
   },
   jobs: {
     table: "integration_jobs",
-    fields:
-      "id,kind,idempotency_key,status,attempts,last_error,available_at,created_at",
+    fields: "id,kind,idempotency_key,status,attempts,last_error,available_at,created_at",
     order: "created_at",
   },
   devices: {
@@ -150,8 +142,7 @@ const tables: Record<
   },
   campaigns: {
     table: "campaigns",
-    fields:
-      "id,name,starts_at,ends_at,status,published_at,created_at,updated_at",
+    fields: "id,name,starts_at,ends_at,status,published_at,created_at,updated_at",
     order: "starts_at",
   },
   campaignItems: {
@@ -197,14 +188,9 @@ const commands: Record<Command, string> = {
   importProfiles: "import_app_profiles",
   editCampaign: "edit_campaign_draft",
 };
-function databaseError(
-  error: { code?: string } | null,
-  fallback: string,
-): never {
-  if (error?.code === "23505")
-    throw new Error("同じコードのデータが既に存在します。");
-  if (error?.code === "42501")
-    throw new Error("この操作を実行する権限がありません。");
+function databaseError(error: { code?: string } | null, fallback: string): never {
+  if (error?.code === "23505") throw new Error("同じコードのデータが既に存在します。");
+  if (error?.code === "42501") throw new Error("この操作を実行する権限がありません。");
   if (error?.code === "P0001")
     throw new Error(
       "状態・担当範囲・入力内容が業務条件に合いません。最新のデータを確認してください。",
@@ -213,10 +199,7 @@ function databaseError(
 }
 
 export class SupabaseRepository implements BusinessRepository {
-  async list(
-    resource: Resource,
-    options: QueryOptions = {},
-  ): Promise<DataPage> {
+  async list(resource: Resource, options: QueryOptions = {}): Promise<DataPage> {
     const client = await createSupabaseServerClient();
     const spec = tables[resource];
     const page = Math.max(1, Math.min(10000, Math.trunc(options.page || 1)));
@@ -226,8 +209,7 @@ export class SupabaseRepository implements BusinessRepository {
       query = query.eq("id", options.correctionId);
     if (options.correctionId && resource === "approvals")
       query = query.eq("correction_id", options.correctionId);
-    if (options.storeId && spec.scoped)
-      query = query.eq("store_id", options.storeId);
+    if (options.storeId && spec.scoped) query = query.eq("store_id", options.storeId);
     if (options.from && spec.dated) query = query.gte(spec.dated, options.from);
     if (options.to && spec.dated)
       query =
@@ -235,15 +217,10 @@ export class SupabaseRepository implements BusinessRepository {
           ? query.lte(spec.dated, options.to)
           : query.lt(
               spec.dated,
-              new Date(
-                Date.parse(`${options.to}T00:00:00+09:00`) + 86400000,
-              ).toISOString(),
+              new Date(Date.parse(`${options.to}T00:00:00+09:00`) + 86400000).toISOString(),
             );
     if (options.search && spec.search)
-      query = query.ilike(
-        spec.search,
-        `%${options.search.replace(/[%_\\]/g, "").slice(0, 100)}%`,
-      );
+      query = query.ilike(spec.search, `%${options.search.replace(/[%_\\]/g, "").slice(0, 100)}%`);
     const { data, error, count } = await query
       .order(spec.order, {
         ascending: ["code", "display_name"].includes(spec.order),
@@ -284,10 +261,7 @@ export class SupabaseRepository implements BusinessRepository {
     const client = await createSupabaseServerClient();
     const { data, error } = await client.rpc(commands[command], input);
     if (error)
-      databaseError(
-        error,
-        "処理を完了できませんでした。最新状態と権限を確認してください。",
-      );
+      databaseError(error, "処理を完了できませんでした。最新状態と権限を確認してください。");
     return data as Json;
   }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {
@@ -296,14 +270,12 @@ export class SupabaseRepository implements BusinessRepository {
       p_token: deviceToken,
     });
     if (error)
-      throw new Error(
-        "店舗端末を確認できません。管理者に端末の再登録を依頼してください。",
-      );
+      throw new Error("店舗端末を確認できません。管理者に端末の再登録を依頼してください。");
     return data as Record<string, Json>;
   }
 }
 
-class SupabaseIdentity implements IdentityProvider {
+export class SupabaseIdentity implements IdentityProvider {
   async session() {
     const client = await createSupabaseServerClient();
     const {
@@ -321,15 +293,10 @@ class SupabaseIdentity implements IdentityProvider {
         .select("display_name,active,must_change_password")
         .eq("id", user.id)
         .maybeSingle(),
-      client
-        .from("user_role_assignments")
-        .select("role")
-        .eq("user_id", user.id),
+      client.from("user_role_assignments").select("role").eq("user_id", user.id),
     ]);
     if (error || profile.error || assignments.error)
-      throw new Error(
-        "利用者情報を確認できません。DBの接続と版を確認してください。",
-      );
+      throw new Error("利用者情報を確認できません。DBの接続と版を確認してください。");
     return {
       userId: user.id,
       displayName: profile.data?.display_name ?? "",
@@ -341,8 +308,7 @@ class SupabaseIdentity implements IdentityProvider {
   async signIn(email: string, password: string) {
     const client = await createSupabaseServerClient();
     const { error } = await client.auth.signInWithPassword({ email, password });
-    if (error)
-      throw new Error("メールアドレスまたはパスワードを確認してください。");
+    if (error) throw new Error("メールアドレスまたはパスワードを確認してください。");
     const session = await this.session();
     if (!session?.active || !session.roles.length) {
       await client.auth.signOut();
@@ -372,12 +338,7 @@ class SupabaseIdentity implements IdentityProvider {
     });
     if (error) throw new Error("再設定を受け付けられませんでした。");
   }
-  async provisionUser(
-    email: string,
-    password: string,
-    employeeCode: string,
-    displayName: string,
-  ) {
+  async provisionUser(email: string, password: string, employeeCode: string, displayName: string) {
     const session = await this.session();
     if (
       !session?.active ||
@@ -393,9 +354,7 @@ class SupabaseIdentity implements IdentityProvider {
       email_confirm: true,
     });
     if (error || !data.user)
-      throw new Error(
-        "利用者を登録できませんでした。メールアドレスの重複を確認してください。",
-      );
+      throw new Error("利用者を登録できませんでした。メールアドレスの重複を確認してください。");
     const client = await createSupabaseServerClient();
     const result = await client.rpc("create_app_profile", {
       p_user_id: data.user.id,
@@ -408,9 +367,7 @@ class SupabaseIdentity implements IdentityProvider {
         throw new Error(
           "利用者プロフィールを作成できませんでした。認証サービスの未割当アカウントを管理者が確認してください。",
         );
-      throw new Error(
-        "利用者登録を取り消しました。社員番号を確認してください。",
-      );
+      throw new Error("利用者登録を取り消しました。社員番号を確認してください。");
     }
   }
 }

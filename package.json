@@ -11,8 +11,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css}\" \"scripts/**/*.mjs\" \"tests/**/*.{ts,tsx,mjs}\" package.json README.md",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,css}\" \"scripts/**/*.mjs\" \"tests/**/*.{ts,tsx,mjs}\" package.json README.md",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -22,6 +22,8 @@
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "db:migrate:check": "node --env-file-if-exists=.env.local scripts/migrate.mjs --dry-run",
     "db:mysql:migrate": "node --env-file-if-exists=.env.local scripts/mysql-migrate.mjs",
+    "db:mysql:demo": "node --env-file-if-exists=.env.local scripts/setup-mysql-demo.mjs",
+    "db:mysql:demo:check": "node --env-file-if-exists=.env.local scripts/verify-mysql-demo.mjs",
     "integrations:run": "node --env-file-if-exists=.env.local scripts/run-integrations.mjs"
   },
   "dependencies": {

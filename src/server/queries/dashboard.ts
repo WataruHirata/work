@@ -18,19 +18,11 @@ export async function getDashboardSnapshot(): Promise<DashboardApiResponse> {
     .sort()
     .at(-1);
   const current = sales.filter((row) => row.business_date === latest);
-  const total = current.reduce(
-    (sum, row) => sum + Number(row.net_sales_yen),
-    0,
-  );
-  const customers = current.reduce(
-    (sum, row) => sum + Number(row.customer_count),
-    0,
-  );
+  const total = current.reduce((sum, row) => sum + Number(row.net_sales_yen), 0);
+  const customers = current.reduce((sum, row) => sum + Number(row.customer_count), 0);
   if (!Number.isSafeInteger(total) || !Number.isSafeInteger(customers))
     throw new Error("集計値が表示可能な範囲を超えています。");
-  const pending = corrections.filter((row) =>
-    String(row.status).startsWith("pending_"),
-  );
+  const pending = corrections.filter((row) => String(row.status).startsWith("pending_"));
   const byDate = new Map<string, number>();
   for (const row of sales)
     byDate.set(
@@ -60,9 +52,7 @@ export async function getDashboardSnapshot(): Promise<DashboardApiResponse> {
       },
       {
         label: "客単価",
-        value: customers
-          ? Math.round(total / customers).toLocaleString("ja-JP")
-          : "0",
+        value: customers ? Math.round(total / customers).toLocaleString("ja-JP") : "0",
         unit: "円",
         delta: "",
         trend: "positive",

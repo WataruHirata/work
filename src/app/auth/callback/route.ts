@@ -9,17 +9,13 @@ export async function GET(request: Request) {
   const nextPath = safeAdminReturnPath(requestedPath);
 
   if (!code) {
-    return NextResponse.redirect(
-      new URL("/login?error=auth", requestUrl.origin),
-    );
+    return NextResponse.redirect(new URL("/login?error=auth", requestUrl.origin));
   }
 
   try {
     await identity().exchangeCode(code);
   } catch {
-    return NextResponse.redirect(
-      new URL("/login?error=auth", requestUrl.origin),
-    );
+    return NextResponse.redirect(new URL("/login?error=auth", requestUrl.origin));
   }
 
   return NextResponse.redirect(new URL(nextPath, requestUrl.origin));

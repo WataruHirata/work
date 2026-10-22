@@ -6,8 +6,7 @@ export const activeSession = cache(async () => {
   const session = await identity().session();
   if (!session?.active || !session.roles.length)
     throw new Error("個人ログインと利用権限が必要です。");
-  if (session.mustChangePassword)
-    throw new Error("初回パスワードを変更してください。");
+  if (session.mustChangePassword) throw new Error("初回パスワードを変更してください。");
   return session;
 });
 
