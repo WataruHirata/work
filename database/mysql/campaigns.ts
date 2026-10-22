@@ -402,6 +402,7 @@ export async function executeMysqlCampaign(
   const task = String(input.p_task);
   if (
     ![
+      "pos_changed",
       "price_label_changed",
       "pop_changed",
       "display_changed",
@@ -422,6 +423,18 @@ export async function executeMysqlCampaign(
     )
   )[0];
   if (!before) throw new Error("対象店舗の作業がありません。");
+  if (task === "pos_changed") {
+    await db.execute(
+      "UPDATE campaign_item_store_tasks SET pos_promotion_status=IF(?,'manual_confirmed','not_configured'),pos_promotion_confirmed_at=IF(?,CURRENT_TIMESTAMP(3),NULL),pos_promotion_error=NULL,updated_at=CURRENT_TIMESTAMP(3) WHERE campaign_item_id=? AND store_id=?",
+      [input.p_completed, input.p_completed, itemId, storeId],
+    );
+    await audit(db, session.userId, "campaign_item_store_tasks", `${itemId}:${storeId}`, before, {
+      ...before,
+      task,
+      completed: input.p_completed,
+    });
+    return null;
+  }
   // Column identifiers are selected only from the fixed allowlist above.
   await db.execute(
     `UPDATE campaign_item_store_tasks SET ${task}_at=IF(?,CURRENT_TIMESTAMP(3),NULL),${task}_by=?,updated_at=CURRENT_TIMESTAMP(3) WHERE campaign_item_id=? AND store_id=?`,

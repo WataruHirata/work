@@ -1204,8 +1204,8 @@ button {
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(var(--size-280px), 0.95fr);
-  gap: var(--space-14px);
-  margin-top: var(--space-18px);
+  gap: var(--space-card);
+  margin-top: var(--space-card-wide);
 }
 
 .panel {
@@ -1738,6 +1738,32 @@ td {
 .instruction-workspace > p {
   font-size: var(--font-size-body);
   line-height: 1.8;
+}
+.campaign-notice-tasks {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-5);
+}
+.campaign-notice-checklist {
+  display: grid;
+  gap: var(--space-2);
+}
+.campaign-notice-checklist > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--size-1px) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.campaign-notice-checklist > div > span {
+  display: grid;
+  gap: var(--space-1);
+}
+.campaign-notice-checklist small {
+  color: var(--text-subtle);
 }
 .instruction-message {
   white-space: pre-wrap;

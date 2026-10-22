@@ -66,4 +66,68 @@ describe("特売公開の店舗通知 FR-020/028/029 AT-07/10", () => {
       await db.close();
     }
   }, 20000);
+
+  it("担当店舗がPOSと商品値札の完了状態を個別に保存する", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(`create schema auth; create role anon; create role authenticated;
+      create function auth.uid() returns uuid language sql as $$ select '30000000-0000-4000-8000-000000000001'::uuid $$;
+      create table public.app_users(id uuid primary key,active boolean);
+      create table public.user_role_assignments(user_id uuid,store_id uuid,role text);
+      create table public.campaigns(id uuid primary key,status text,ends_at timestamptz);
+      create table public.campaign_items(id uuid primary key,campaign_id uuid,eligibility_status text);
+      create table public.campaign_item_store_tasks(
+        campaign_item_id uuid,store_id uuid,pos_promotion_status text,pos_promotion_confirmed_at timestamptz,
+        pos_promotion_error text,price_label_changed_at timestamptz,price_label_changed_by uuid,
+        pop_changed_at timestamptz,pop_changed_by uuid,display_changed_at timestamptz,display_changed_by uuid,
+        price_label_restored_at timestamptz,price_label_restored_by uuid,pop_restored_at timestamptz,
+        pop_restored_by uuid,display_restored_at timestamptz,display_restored_by uuid,updated_at timestamptz
+      );`);
+      await db.exec(
+        readFileSync(
+          "supabase/migrations/202610220002_store_campaign_task_confirmation.sql",
+          "utf8",
+        ),
+      );
+      const user = "30000000-0000-4000-8000-000000000001";
+      const store = randomUUID(),
+        campaign = randomUUID(),
+        item = randomUUID();
+      await db.query("insert into app_users values($1,true)", [user]);
+      await db.query("insert into user_role_assignments values($1,$2,'store_manager')", [
+        user,
+        store,
+      ]);
+      await db.query("insert into campaigns values($1,'scheduled',now()+interval '1 day')", [
+        campaign,
+      ]);
+      await db.query("insert into campaign_items values($1,$2,'eligible')", [item, campaign]);
+      await db.query(
+        "insert into campaign_item_store_tasks(campaign_item_id,store_id,pos_promotion_status,updated_at) values($1,$2,'not_configured',now())",
+        [item, store],
+      );
+      await db.query("select public.set_campaign_item_store_task($1,$2,'pos_changed',true)", [
+        item,
+        store,
+      ]);
+      await db.query(
+        "select public.set_campaign_item_store_task($1,$2,'price_label_changed',true)",
+        [item, store],
+      );
+      const task = (
+        await db.query<{
+          pos_promotion_status: string;
+          pos_promotion_confirmed_at: string | null;
+          price_label_changed_at: string | null;
+          price_label_changed_by: string | null;
+        }>("select * from campaign_item_store_tasks")
+      ).rows[0];
+      expect(task.pos_promotion_status).toBe("manual_confirmed");
+      expect(task.pos_promotion_confirmed_at).not.toBeNull();
+      expect(task.price_label_changed_at).not.toBeNull();
+      expect(task.price_label_changed_by).toBe(user);
+    } finally {
+      await db.close();
+    }
+  }, 20000);
 });

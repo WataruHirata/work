@@ -206,6 +206,7 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
         [randomUUID(), user, store],
       );
       await run("updateCampaignTask", input);
+      await run("updateCampaignTask", { ...input, p_task: "pos_changed" });
       await run("confirmCampaign", {
         p_campaign_item_id: item.id,
         p_store_id: store,
@@ -214,11 +215,19 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       expect(
         (
           await rows(
-            "SELECT price_label_changed_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
+            "SELECT price_label_changed_at,pos_promotion_status,pos_promotion_confirmed_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
             [item.id, store],
           )
         )[0].price_label_changed_at,
       ).not.toBeNull();
+      const completed = (
+        await rows(
+          "SELECT pos_promotion_status,pos_promotion_confirmed_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
+          [item.id, store],
+        )
+      )[0];
+      expect(completed.pos_promotion_status).toBe("manual_confirmed");
+      expect(completed.pos_promotion_confirmed_at).not.toBeNull();
       await expect(run("updateCampaignTask", { ...input, p_store_id: otherStore })).rejects.toThrow(
         "担当店舗",
       );

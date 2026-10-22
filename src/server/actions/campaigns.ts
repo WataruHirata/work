@@ -11,7 +11,8 @@ function errorMessage(error: unknown) {
 }
 function refresh() {
   revalidatePath("/admin/campaigns");
-  revalidatePath("/store", "layout");
+  revalidatePath("/store/campaigns");
+  revalidatePath("/store/notices");
 }
 function japanTime(raw: FormDataEntryValue | null): string {
   if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw))
@@ -89,6 +90,7 @@ export async function updateCampaignProgressAction(
     if (
       ![
         "confirmed",
+        "pos_changed",
         "price_label_changed",
         "pop_changed",
         "display_changed",

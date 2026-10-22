@@ -102,7 +102,7 @@ function campaignStatus(status: string) {
   }
 }
 
-function ProgressAction({
+export function ProgressAction({
   campaignItemId,
   storeId,
   task,
@@ -226,16 +226,16 @@ function CampaignDraftForm({
   const canSubmit =
     stores.length > 0 && products.length > 0 && selectedStores.length > 0 && !hasDuplicateProducts;
   return (
-    <details className="campaign-create-panel">
+    <details className="campaign-create-panel" open>
       <summary>
         <span>
-          <Plus size={16} /> 特売を作成
+          <Plus size={16} /> POS・商品値札の変更依頼を作成
         </span>
         <ChevronDown size={15} aria-hidden="true" />
       </summary>
       <form action={action} className="campaign-create-form">
         <label className="campaign-field">
-          <span>特売名</span>
+          <span>指示名</span>
           <input name="name" placeholder="例：秋の青果フェア" required />
         </label>
 
@@ -381,7 +381,7 @@ function CampaignDraftForm({
         ) : null}
         <div className="campaign-create-footer">
           <span>
-            下書き保存後、商品の対象区分と送信内容を確認して、店舗へPOS・値札の変更依頼を送ります。
+            保存後に商品区分と送信内容を確認し、店舗のお知らせへPOS・商品値札の変更依頼を送ります。
           </span>
           <button type="submit" className="campaign-save-button" disabled={!canSubmit || pending}>
             {pending ? "保存中…" : "下書き保存"}
@@ -505,13 +505,6 @@ export function CampaignManagement({
                 products={products}
               />
             </div>
-            <div className="campaign-flow-row">
-              <div className="campaign-flow-header">
-                <span className="campaign-flow-label">店舗への通知</span>
-                <strong>対象店舗に指示を送信</strong>
-              </div>
-              <div className="campaign-instruction-inline">{instructionPanel}</div>
-            </div>
           </div>
         ) : null}
         {isConfigured && !canManage ? (
@@ -602,9 +595,9 @@ export function CampaignManagement({
                     items.length > 0 &&
                     items.every(
                       (item) =>
-                        item.task?.price_label_changed_at &&
-                        item.task?.pop_changed_at &&
-                        item.task?.display_changed_at,
+                        ["applied", "manual_confirmed"].includes(
+                          item.task?.pos_promotion_status ?? "",
+                        ) && item.task?.price_label_changed_at,
                     );
                   return (
                     <article className="campaign-card" key={campaign.id}>
@@ -713,7 +706,20 @@ export function CampaignManagement({
                                       <div className="campaign-task-group">
                                         <strong>開始時の売場作業</strong>
                                         <div>
-                                          <span>値札</span>
+                                          <span>POS価格</span>
+                                          <ProgressAction
+                                            disabled={
+                                              !canRecordStoreWork ||
+                                              task?.pos_promotion_status === "applied"
+                                            }
+                                            campaignItemId={item.id}
+                                            storeId={selectedStoreId}
+                                            task="pos_changed"
+                                            completed={["applied", "manual_confirmed"].includes(
+                                              task?.pos_promotion_status ?? "",
+                                            )}
+                                          />
+                                          <span>商品値札</span>
                                           <ProgressAction
                                             disabled={!canRecordStoreWork}
                                             campaignItemId={item.id}

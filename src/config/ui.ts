@@ -399,23 +399,23 @@ export const responsiveStyles = `@media (max-width: 1180px) {
   }
 }
 @media (max-width: 700px) {
-  .global-shell:has(.admin-notification-toolbar) {
+  .global-shell {
     flex-direction: column;
   }
-  .global-shell:has(.admin-notification-toolbar) > .global-sidebar {
+  .global-shell > .global-sidebar {
     order: 1;
     position: static;
     width: 100%;
     height: auto;
     flex-basis: auto;
   }
-  .global-shell:has(.admin-notification-toolbar) > .global-main {
+  .global-shell > .global-main {
     width: 100%;
   }
   .admin-menu-panel .admin-menu-grid {
     grid-template-columns: 1fr;
   }
-  .global-shell:has(.admin-notification-toolbar) .page-topbar {
+  .global-shell .page-topbar {
     height: auto;
     min-height: var(--size-54px);
     flex-wrap: wrap;

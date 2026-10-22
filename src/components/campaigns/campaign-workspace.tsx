@@ -42,7 +42,14 @@ export async function CampaignWorkspace({
   return (
     <CampaignManagement
       instructionPanel={
-        <InstructionWorkspace canManage={!storeMode && session.roles.includes("product_office")} />
+        storeMode ? (
+          <InstructionWorkspace
+            storeId={selectedStoreId}
+            canRecordStoreWork={session.roles.some((role) =>
+              ["store_manager", "department_lead", "staff"].includes(role),
+            )}
+          />
+        ) : undefined
       }
       canRecordStoreWork={session.roles.some((role) =>
         ["store_manager", "department_lead", "staff"].includes(role),
