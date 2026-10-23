@@ -73,6 +73,8 @@ DB設定済みの画面では、DBエラーを架空データへ置き換えな�
 
 端末コードは発行時に一度だけ表示する。DBにはダイジェストのみを保持し、監査にもコード/ダイジェストをコピーしない。ブラウザにはHttpOnlyのセッションCookieを設定し、永続期限は独断で業務要件化しない。管理者の無効化で即時拒否する。個人ログアウトは端末の閲覧登録を解除しない。
 
+デモ環境だけでコード入力を省略する場合は、サーバー側に `DEMO_STATION_AUTO_CONNECT=true` と `DEVICE_DEMO_001_TOKEN` を設定する。`/station` はコードをブラウザへ渡さず、Supabaseで有効な `DEMO-001` の端末であることを再検証してからHttpOnly Cookieを設定する。ローカル開発では、Git対象外の `.env.demo-devices.local` に保存済みの `DEVICE_DEMO_001_TOKEN` も利用できる。本番業務環境ではこのデモ設定を有効にしない。
+
 ## 外部APIを接続する場合
 
 [外部連携契約](./integration-api.md)と[OpenAPI](./openapi.integrations.yaml)に合わせたアダプターAPIを用意する。
