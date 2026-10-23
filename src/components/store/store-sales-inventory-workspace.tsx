@@ -5,7 +5,12 @@ import { SalesDayRow } from "@/components/store/sales-day-details";
 import { FeatureNotice } from "@/components/ui/feature-notice";
 import { PageLayout } from "@/components/ui/page-layout";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
-import { filterInventoryRows, resolveRegisteredStoreId } from "@/domain/store-sales-inventory";
+import {
+  filterInventoryRows,
+  isInventoryAlert,
+  resolveRegisteredStoreId,
+} from "@/domain/store-sales-inventory";
+import { CircleAlert } from "@/components/ui/icons";
 import type { DataRecord, Json } from "@/domain/contracts";
 import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
@@ -136,33 +141,59 @@ function InventoryTable({
   if (!rows.length) return <p className="empty-state">条件に合う在庫データはありません。</p>;
   const productById = new Map(products.map((product) => [product.id, product]));
   const departmentById = new Map(departments.map((department) => [department.id, department]));
+  const sortedRows = [...rows].sort(
+    (left, right) => Number(isInventoryAlert(right)) - Number(isInventoryAlert(left)),
+  );
+  const alertCount = sortedRows.filter(isInventoryAlert).length;
   return (
-    <CollapsibleTable
-      caption="登録店舗の商品別在庫"
-      head={
-        <tr>
-          <th scope="col">品目</th>
-          <th scope="col">商品名</th>
-          <th scope="col">数量</th>
-          <th scope="col">在庫取得日時</th>
-        </tr>
-      }
-    >
-      {rows.map((row) => {
-        const product = productById.get(text(row, "product_id"));
-        const department = departmentById.get(text(row, "department_id"));
-        const item = text(row, "code") || text(product, "code") || text(department, "name");
-        const name = text(row, "name") || text(product, "name") || text(department, "name");
-        return (
-          <tr key={row.id}>
-            <th scope="row">{item || text(product, "category_code") || "—"}</th>
-            <td>{name || "—"}</td>
-            <td>{text(row, "quantity") || "—"}</td>
-            <td>{formatDateTime(text(row, "observed_at"))}</td>
+    <>
+      {alertCount > 0 && (
+        <div className="inventory-alert-summary" role="status">
+          <CircleAlert size={20} aria-hidden="true" />
+          <strong>在庫アラート {alertCount}件</strong>
+        </div>
+      )}
+      <CollapsibleTable
+        caption="登録店舗の商品別在庫"
+        head={
+          <tr>
+            <th scope="col">品目</th>
+            <th scope="col">商品名</th>
+            <th scope="col">数量</th>
+            <th scope="col">状態</th>
+            <th scope="col">在庫取得日時</th>
           </tr>
-        );
-      })}
-    </CollapsibleTable>
+        }
+      >
+        {sortedRows.map((row) => {
+          const product = productById.get(text(row, "product_id"));
+          const department = departmentById.get(text(row, "department_id"));
+          const item = text(row, "code") || text(product, "code") || text(department, "name");
+          const name = text(row, "name") || text(product, "name") || text(department, "name");
+          const alert = isInventoryAlert(row);
+          return (
+            <tr key={row.id} className={alert ? "inventory-alert-row" : undefined}>
+              <th scope="row">{item || text(product, "category_code") || "—"}</th>
+              <td>{name || "—"}</td>
+              <td className={alert ? "inventory-alert-quantity" : undefined}>
+                {text(row, "quantity") || "—"}
+              </td>
+              <td>
+                {alert ? (
+                  <span className="inventory-alert-badge">
+                    <CircleAlert size={16} aria-hidden="true" />
+                    在庫アラート
+                  </span>
+                ) : (
+                  <span className="inventory-normal-badge">在庫あり</span>
+                )}
+              </td>
+              <td>{formatDateTime(text(row, "observed_at"))}</td>
+            </tr>
+          );
+        })}
+      </CollapsibleTable>
+    </>
   );
 }
 

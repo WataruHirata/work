@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageLayout } from "@/components/ui/page-layout";
+import { ArrowRight, LockKeyhole } from "@/components/ui/icons";
 import { uiConfig } from "@/config/ui";
 import { adminMenuFeatures, canUseAdminFeature } from "@/domain/access-policy";
 import { requireAdminFeature } from "@/server/auth/admin-access";
@@ -24,17 +25,21 @@ export default async function AdminPage() {
                     <strong>{page.label}</strong>
                     <span>{page.title}</span>
                   </span>
-                  <span className="admin-menu-unavailable">権限なし</span>
+                  <span className="admin-menu-status admin-menu-unavailable">
+                    <LockKeyhole size={16} aria-hidden="true" />
+                    権限が必要
+                  </span>
                 </div>
               );
             return (
-              <Link key={feature} className="admin-menu-card" href={page.href}>
+              <Link key={feature} className="admin-menu-card is-enabled" href={page.href}>
                 <span className="admin-menu-text">
                   <strong>{page.label}</strong>
                   <span>{page.title}</span>
                 </span>
-                <span className="admin-menu-arrow" aria-hidden="true">
-                  →
+                <span className="admin-menu-status admin-menu-available">
+                  利用可能
+                  <ArrowRight size={18} aria-hidden="true" />
                 </span>
               </Link>
             );

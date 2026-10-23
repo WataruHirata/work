@@ -15,7 +15,7 @@ import {
   Tag,
   TrendingUp,
   Users,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { uiConfig, type PageId } from "@/config/ui";
 import { MaterialLinkButton } from "@/components/ui/material-link-button";
 

@@ -18,7 +18,10 @@ describe("管理トップ FR-028/029 AT-10", () => {
       expect(html).toContain(`href="${uiConfig.pages[feature].href}"`);
     for (const feature of ["monthly", "stores", "imports", "users", "audit"] as const)
       expect(html).not.toContain(`href="${uiConfig.pages[feature].href}"`);
-    expect(html.match(/権限なし/g)).toHaveLength(5);
+    expect(html.match(/権限が必要/g)).toHaveLength(5);
+    expect(html.match(/利用可能/g)).toHaveLength(3);
+    expect(html.match(/aria-disabled="true"/g)).toHaveLength(5);
+    expect(html.match(/admin-menu-card is-enabled/g)).toHaveLength(3);
     expect(html).not.toContain(`href="${uiConfig.pages.approvals.href}"`);
     expect(html).not.toContain(uiConfig.pages.approvals.label);
     expect(html).not.toContain("/admin/orders");
