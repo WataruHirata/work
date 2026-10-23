@@ -7,7 +7,7 @@ import { LiveStoreOverview } from "@/components/store/live-store-overview";
 import { FeatureNotice } from "@/components/ui/feature-notice";
 import { storeSummary } from "@/domain/store-summary";
 import { StateBadge } from "@/components/ui/state-badge";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard } from "@/components/ui/icons";
 
 export default async function Home() {
   if (!backendConfigured())

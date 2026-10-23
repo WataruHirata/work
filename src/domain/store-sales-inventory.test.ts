@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { DataRecord } from "@/domain/contracts";
-import { filterInventoryRows, resolveRegisteredStoreId } from "@/domain/store-sales-inventory";
+import {
+  filterInventoryRows,
+  isInventoryAlert,
+  resolveRegisteredStoreId,
+} from "@/domain/store-sales-inventory";
 
 describe("店舗売上・在庫の対象と検索", () => {
   it("URL由来の店舗選択を使わず、担当店舗を優先し端末登録店舗へフォールバックする", () => {
@@ -58,5 +62,12 @@ describe("店舗売上・在庫の対象と検索", () => {
     expect(
       filterInventoryRows(rows, products, [], { supplier: "日配卸B" }).map((row) => row.id),
     ).toEqual(["stock-2"]);
+  });
+
+  it("数量が0以下の在庫をアラート対象にする", () => {
+    expect(isInventoryAlert({ id: "zero", quantity: 0 })).toBe(true);
+    expect(isInventoryAlert({ id: "negative", quantity: "-1" })).toBe(true);
+    expect(isInventoryAlert({ id: "available", quantity: 1 })).toBe(false);
+    expect(isInventoryAlert({ id: "unknown", quantity: "不明" })).toBe(false);
   });
 });

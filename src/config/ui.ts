@@ -205,6 +205,8 @@ export const uiConfig = {
     "--sidebar-collapsed-width": "64px",
     "--font-body": '"Yu Gothic UI", "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif',
     "--size-13px": "13px",
+    "--size-160px": "160px",
+    "--size-960px": "960px",
     "--size-3px": "3px",
     "--color-83c4aa": "#83c4aa",
     "--size-1px": "1px",
@@ -616,6 +618,13 @@ const booleanOptions = [
   { value: "true", label: "有効" },
   { value: "false", label: "無効" },
 ];
+
+// READMEに掲載する画面確認用店舗。特売フォームの表示だけに使い、保存・送信には使用しない。
+export const campaignFormDemoStores = [
+  { id: "visual-demo-001", code: "DEMO-001", name: "中央店" },
+  { id: "visual-demo-002", code: "DEMO-002", name: "駅前店" },
+  { id: "visual-demo-003", code: "DEMO-003", name: "港店" },
+] as const;
 export const masterFields: Partial<Record<Resource, readonly WorkspaceField[]>> = {
   products: [
     { key: "code", label: "商品コード", required: true },

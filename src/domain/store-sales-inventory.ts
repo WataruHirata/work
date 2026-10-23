@@ -1,6 +1,16 @@
 import type { DataRecord } from "@/domain/contracts";
 import { fictionalSupplierForProduct } from "@/domain/order-catalog";
 
+export const inventoryAlertThreshold = 0;
+
+export function isInventoryAlert(row: DataRecord) {
+  const quantity = row.quantity;
+  if (typeof quantity !== "number" && typeof quantity !== "string") return false;
+  if (typeof quantity === "string" && !quantity.trim()) return false;
+  const parsed = Number(quantity);
+  return Number.isFinite(parsed) && parsed <= inventoryAlertThreshold;
+}
+
 export function resolveRegisteredStoreId(
   assignedStoreIds: readonly string[],
   deviceStoreId?: string,
