@@ -55,10 +55,10 @@ export async function confirmInstruction(
     });
     revalidatePath("/store", "layout");
     revalidatePath("/admin/campaigns");
-    return { success: "店舗確認を記録しました。" };
+    return { success: "対応完了を記録しました。" };
   } catch (error) {
     return {
-      error: error instanceof Error ? error.message : "確認を記録できませんでした。",
+      error: error instanceof Error ? error.message : "対応完了を記録できませんでした。",
     };
   }
 }

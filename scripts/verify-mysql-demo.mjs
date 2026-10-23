@@ -90,6 +90,39 @@ try {
   console.log(
     `notifications.read_state: unread=${notificationState.unread_count}, read=${notificationState.read_count}`,
   );
+  const [storeFixtureRows] = await db.query(`
+    SELECT
+      (SELECT COUNT(*) FROM store_announcements WHERE store_id='20000000-0000-4000-8000-000000000001') AS announcements,
+      (SELECT COUNT(*) FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id
+        WHERE day.store_id='20000000-0000-4000-8000-000000000001'
+          AND day.business_date=(SELECT MAX(business_date) FROM sales_days WHERE store_id=day.store_id)) AS latest_sales_lines,
+      (SELECT net_sales_yen FROM sales_days
+        WHERE store_id='20000000-0000-4000-8000-000000000001'
+        ORDER BY business_date DESC LIMIT 1) AS latest_net_sales,
+      (SELECT SUM(line.amount_yen) FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id
+        WHERE day.store_id='20000000-0000-4000-8000-000000000001'
+          AND day.business_date=(SELECT MAX(business_date) FROM sales_days WHERE store_id=day.store_id)) AS latest_line_total,
+      (SELECT COUNT(*) FROM (
+        SELECT line.product_code_snapshot
+        FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id
+        WHERE day.store_id='20000000-0000-4000-8000-000000000001'
+          AND day.business_date=(SELECT MAX(business_date) FROM sales_days WHERE store_id=day.store_id)
+        GROUP BY line.product_code_snapshot
+        HAVING SUM(line.amount_yen)<=0
+      ) invalid_composition) AS invalid_composition_items
+  `);
+  if (
+    Number(storeFixtureRows[0].announcements) < 6 ||
+    Number(storeFixtureRows[0].latest_sales_lines) < 6 ||
+    Number(storeFixtureRows[0].latest_line_total) !==
+      Number(storeFixtureRows[0].latest_net_sales) ||
+    Number(storeFixtureRows[0].invalid_composition_items) > 0
+  ) {
+    throw new Error("右上通知・直近売上明細・品目別売上構成の表示確認用データが不正です。");
+  }
+  console.log(
+    "store_portal.fixture: announcements>=6, latest_sales_lines>=6, sales_composition=net_sales",
+  );
   const scaleRequirements = [
     ["stores", "id", "20000000-%", 180],
     ["products", "id", "40000000-%", 1200],

@@ -8,6 +8,9 @@ import { AppProviders } from "./providers";
 import "./globals.css";
 import { stationCookie } from "@/server/auth/store-context";
 import { StoreAnnouncements } from "@/components/notifications/store-announcements";
+import { backendConfigured, identity } from "@/server/container";
+import { activeAdminRoleCookie } from "@/server/auth/admin-role";
+import { hasAdminAccess, isAdminRole } from "@/domain/access-policy";
 
 export const metadata: Metadata = {
   title: uiConfig.brand.title,
@@ -19,7 +22,28 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const stationConnected = (await cookies()).has(stationCookie);
+  const cookieStore = await cookies();
+  const stationConnected = cookieStore.has(stationCookie);
+  let adminEntryState: "anonymous" | "select-role" | "ready" = "anonymous";
+  if (backendConfigured()) {
+    try {
+      const session = await identity().session();
+      if (session?.active && !session.mustChangePassword) {
+        const roles = session.roles.filter(isAdminRole);
+        const selectedRole = cookieStore.get(activeAdminRoleCookie)?.value;
+        adminEntryState =
+          selectedRole &&
+          roles.includes(selectedRole as (typeof roles)[number]) &&
+          hasAdminAccess([selectedRole])
+            ? "ready"
+            : roles.length
+              ? "select-role"
+              : "anonymous";
+      }
+    } catch {
+      adminEntryState = "anonymous";
+    }
+  }
   return (
     <html lang="ja" style={themeStyle}>
       <body>
@@ -27,6 +51,7 @@ export default async function RootLayout({
           <AppProviders>
             <AppShell
               stationConnected={stationConnected}
+              adminEntryState={adminEntryState}
               storeNotifications={<StoreAnnouncements />}
             >
               {children}

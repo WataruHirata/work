@@ -35,7 +35,7 @@ describe("特売依頼送信 FR-020/028/029 AT-07/10", () => {
     data.set("storeId", "20000000-0000-4000-8000-000000000002");
     data.set("task", "pos_changed");
     data.set("completed", "true");
-    expect((await updateCampaignProgressAction({}, data)).success).toContain("保存");
+    expect((await updateCampaignProgressAction({}, data)).success).toContain("対応完了");
     expect(mocks.execute).toHaveBeenCalledWith("updateCampaignTask", {
       p_campaign_item_id: "10000000-0000-4000-8000-000000000001",
       p_store_id: "20000000-0000-4000-8000-000000000002",

@@ -35,7 +35,7 @@ export async function createSalesCorrection(input: {
     p_after_amount_yen: integer(input.afterAmountYen),
   });
   revalidatePath("/admin/sales");
-  revalidatePath("/store/operations");
+  revalidatePath("/store/sales");
   return { correctionId: id };
 }
 export async function uploadCsvImport(formData: FormData) {

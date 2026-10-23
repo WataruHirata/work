@@ -13,6 +13,9 @@ vi.mock("@/server/queries/workspaces", () => ({
   },
 }));
 vi.mock("@/components/campaigns/campaign-management", () => ({ CampaignManagement: () => null }));
+vi.mock("@/components/campaigns/instruction-workspace", () => ({
+  InstructionWorkspace: () => null,
+}));
 vi.mock("@/components/preview/preview-workspace", () => ({ PreviewWorkspace: () => null }));
 import { CampaignWorkspace } from "@/components/campaigns/campaign-workspace";
 describe("特売画面 FR-020/028 AT-07/10", () => {
@@ -50,7 +53,7 @@ describe("特売画面 FR-020/028 AT-07/10", () => {
     const result = await CampaignWorkspace({});
     expect(result.props.children.props.canManage).toBe(false);
   });
-  it("店舗の特売画面にはお知らせ用の作業依頼パネルを重複表示しない", async () => {
+  it("店舗の特売画面に価格変更依頼の対応パネルを表示する", async () => {
     mocks.session.mockResolvedValue({
       active: true,
       roles: ["store_manager"],
@@ -58,7 +61,7 @@ describe("特売画面 FR-020/028 AT-07/10", () => {
     });
     const result = await CampaignWorkspace({ storeMode: true, storeId: "store1" });
     const management = result.props.children;
-    expect(management.props).not.toHaveProperty("instructionPanel");
+    expect(management.props.instructionPanel).toBeTruthy();
     expect(management.props.basePath).toBe("/store/campaigns");
   });
   it("権限確認前に業務データを取得しない", async () => {

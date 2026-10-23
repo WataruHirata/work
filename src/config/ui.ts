@@ -25,11 +25,18 @@ export const uiConfig = {
       icon: "stores",
     },
     storeSales: {
-      href: "/store/sales-inventory",
-      eyebrow: "SALES & INVENTORY",
-      label: "売上・在庫",
-      title: "自店舗 売上・在庫",
+      href: "/store/sales",
+      eyebrow: "STORE SALES",
+      label: "売上",
+      title: "自店舗 売上",
       icon: "sales",
+    },
+    storeInventory: {
+      href: "/store/inventory",
+      eyebrow: "STORE INVENTORY",
+      label: "在庫",
+      title: "自店舗 在庫",
+      icon: "products",
     },
     storeOrders: {
       href: "/store/orders",
@@ -37,13 +44,6 @@ export const uiConfig = {
       label: "発注",
       title: "発注入力・履歴",
       icon: "orders",
-    },
-    storeOperations: {
-      href: "/store/operations",
-      eyebrow: "STORE OPERATIONS",
-      label: "店舗業務",
-      title: "締め・返品・売上修正",
-      icon: "approvals",
     },
     storeCampaigns: {
       href: "/store/campaigns",
@@ -144,7 +144,7 @@ export const uiConfig = {
       icon: "login",
     },
   },
-  navigation: ["storeSales", "storeOrders", "storeOperations", "storeCampaigns"],
+  navigation: ["dashboard", "storeSales", "storeInventory", "storeOrders", "storeCampaigns"],
   navigationBadges: {
     imports: { label: "3", urgent: false },
     approvals: { label: "2", urgent: true },
@@ -394,6 +394,11 @@ export const uiConfig = {
     "--motion-duration": "180ms",
     "--motion-easing": "ease",
     "--motion-stagger": "45ms",
+    "--chart-line": "#168a7a",
+    "--chart-grid": "#dce9e6",
+    "--chart-glow": "rgb(22 138 122 / 24%)",
+    "--chart-donut-duration": "800ms",
+    "--chart-line-duration": "900ms",
   },
 } as const;
 

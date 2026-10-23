@@ -41,6 +41,160 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
     setMessage("プレビューに追加しました。実データへの登録・外部送信は行っていません。");
     event.currentTarget.reset();
   }
+  if (feature === "storeSales") {
+    return (
+      <PageLayout page={feature}>
+        <section className="page-panel">
+          <div className="demo-banner">
+            <span className="demo-badge">PREVIEW</span>
+            <span>架空データの操作プレビューです。実業務には反映されません。</span>
+          </div>
+        </section>
+        <div className="page-grid double store-sales-inventory-grid">
+          <section className="page-panel">
+            <h2>営業日別売上</h2>
+            <CollapsibleTable
+              caption="登録店舗の営業日別売上"
+              head={
+                <tr>
+                  <th scope="col">営業日</th>
+                  <th scope="col">売上</th>
+                  <th scope="col">状態</th>
+                </tr>
+              }
+            >
+              {visible.map((row) => (
+                <tr key={row.id}>
+                  <th scope="row">{row.name}</th>
+                  <td>{row.value.toLocaleString("ja-JP")}円</td>
+                  <td>{row.status === "締め前" ? "—" : row.status}</td>
+                </tr>
+              ))}
+            </CollapsibleTable>
+          </section>
+          <section className="page-panel">
+            <PreviewCorrections mode="store" />
+          </section>
+        </div>
+      </PageLayout>
+    );
+  }
+  if (feature === "storeInventory") {
+    const inventory = [
+      {
+        code: "DEMO-001",
+        name: "サンプルりんご",
+        category: "青果",
+        supplier: "あおば生鮮流通",
+        quantity: 120,
+      },
+      {
+        code: "DEMO-002",
+        name: "サンプル牛乳",
+        category: "日配",
+        supplier: "ひかり食品卸",
+        quantity: 48,
+      },
+      {
+        code: "DEMO-003",
+        name: "サンプル冷凍うどん",
+        category: "冷凍食品",
+        supplier: "北斗冷凍物流",
+        quantity: 32,
+      },
+    ];
+    const inventoryRows = inventory.filter(
+      (row) =>
+        `${row.code} ${row.name}`.includes(search.trim()) &&
+        (!status || row.category === status) &&
+        (!store || row.supplier === store),
+    );
+    return (
+      <PageLayout page={feature}>
+        <section className="page-panel">
+          <div className="demo-banner">
+            <span className="demo-badge">PREVIEW</span>
+            <span>架空の在庫データです。実在する卸売業者への送信は行いません。</span>
+          </div>
+        </section>
+        <div className="page-grid double store-sales-inventory-grid">
+          <section className="page-panel">
+            <h2>在庫を絞り込む</h2>
+            <form className="workspace-fields" onSubmit={(event) => event.preventDefault()}>
+              <label className="field">
+                品目
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="品目コード・商品名"
+                />
+              </label>
+              <label className="field">
+                種別
+                <select value={status} onChange={(event) => setStatus(event.target.value)}>
+                  <option value="">すべて</option>
+                  {[...new Set(inventory.map((row) => row.category))].map((category) => (
+                    <option key={category}>{category}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                業者
+                <select value={store} onChange={(event) => setStore(event.target.value)}>
+                  <option value="">すべて</option>
+                  {[...new Set(inventory.map((row) => row.supplier))].map((supplier) => (
+                    <option key={supplier}>{supplier}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setStatus("");
+                  setStore("");
+                }}
+              >
+                絞り込みを解除
+              </button>
+            </form>
+            <Link className="primary-button" href="/store/orders/new">
+              発注画面へ
+            </Link>
+          </section>
+          <section className="page-panel">
+            <div className="panel-head">
+              <h2>在庫一覧</h2>
+              <span className="muted">{inventoryRows.length}件</span>
+            </div>
+            <CollapsibleTable
+              caption="登録店舗の商品別在庫"
+              head={
+                <tr>
+                  <th>品目</th>
+                  <th>商品名</th>
+                  <th>種別</th>
+                  <th>業者</th>
+                  <th>数量</th>
+                </tr>
+              }
+            >
+              {inventoryRows.map((row) => (
+                <tr key={row.code}>
+                  <th scope="row">{row.code}</th>
+                  <td>{row.name}</td>
+                  <td>{row.category}</td>
+                  <td>{row.supplier}</td>
+                  <td>{row.quantity}個</td>
+                </tr>
+              ))}
+            </CollapsibleTable>
+          </section>
+        </div>
+      </PageLayout>
+    );
+  }
   return (
     <PageLayout page={feature}>
       <section className="page-panel">
@@ -51,9 +205,9 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
           </span>
         </div>
       </section>
-      {feature === "storeOperations" || feature === "approvals" ? (
+      {feature === "approvals" ? (
         <section className="page-panel">
-          <PreviewCorrections mode={feature === "approvals" ? "headquarters" : "store"} />
+          <PreviewCorrections mode="headquarters" />
         </section>
       ) : feature === "campaigns" || feature === "storeCampaigns" || feature === "storeNotices" ? (
         <section className="page-panel">
@@ -140,12 +294,7 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
                   </td>
                   <td>
                     <StateBadge
-                      state={
-                        feature === "storeSales" && r.status === "締め前"
-                          ? "not_configured"
-                          : r.status
-                      }
-                      label={feature === "storeSales" && r.status === "締め前" ? "—" : undefined}
+                      state={r.status}
                       tone={r.status === spec.nextStatus ? "success" : "warning"}
                     />
                   </td>
@@ -242,15 +391,6 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
       ) : (
         <section className="page-panel">
           <p>表示対象をサイドバーから選択してください。</p>
-        </section>
-      )}
-      {feature === "storeSales" && (
-        <section className="page-panel">
-          <h2>在庫連携の表示例</h2>
-          <p>サンプルりんご · デモ中央店 / 青果売場 · 在庫 120個</p>
-          <p className="muted">
-            取得日時: 2026/10/21 08:00（架空） · 基幹接続後に在庫と最終取得日時を表示します。
-          </p>
         </section>
       )}
       {feature === "campaigns" && (

@@ -7,7 +7,7 @@ import { CollapsibleList } from "@/components/ui/collapsible-list";
 export function NotificationInbox({ data, roles }: { data: DataPage; roles: string[] }) {
   const base = roles.some((role) => ["area_manager", "store_operations"].includes(role))
     ? "/admin/approvals"
-    : "/store/operations";
+    : "/store/sales";
   const unread = data.rows.filter((row) => !row.read_at).length;
   return (
     <section className="page-panel" aria-labelledby="notification-inbox-heading">

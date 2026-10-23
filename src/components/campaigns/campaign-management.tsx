@@ -1,7 +1,7 @@
 "use client";
 
 import { filterCampaigns } from "@/domain/campaign-list";
-import { useActionState, useState } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
 import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "@/components/ui/icons";
@@ -46,6 +46,7 @@ type CampaignView = {
   }[];
 };
 type Props = {
+  instructionPanel?: ReactNode;
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
@@ -117,7 +118,7 @@ export function ProgressAction({
         disabled={disabled || pending}
       >
         {completed ? <Check size={13} aria-hidden="true" /> : null}
-        {pending ? "保存中…" : completed ? "完了・取消" : "完了登録"}
+        {pending ? "処理中…" : completed ? "対応済み・取消" : "対応完了"}
       </button>
       {state.error ? (
         <span className="campaign-inline-error" role="alert">
@@ -395,6 +396,7 @@ function eligibilityLabel(value: string) {
 }
 
 export function CampaignManagement({
+  instructionPanel,
   isConfigured,
   canManage,
   canRecordStoreWork = false,
@@ -436,6 +438,7 @@ export function CampaignManagement({
           </div>
         ) : null}
 
+        {!canManage && instructionPanel}
         {isConfigured && canManage ? (
           <div className="campaign-flow-rail">
             <div className="campaign-flow-row">
@@ -769,12 +772,6 @@ export function CampaignManagement({
           </section>
         ) : null}
 
-        <div className="campaign-note">
-          <CircleAlert size={15} />
-          <span>
-            通常売価の参照元とPOS連携仕様は未確定です。価格の自動配信・通常売価への自動復帰は行いません。POS結果は「未設定」と表示し、値札・POP・売場表示の作業状態のみ記録します。
-          </span>
-        </div>
         <footer className="campaign-footer">
           みのり屋 販売管理システム <span>·</span> 特売業務
         </footer>

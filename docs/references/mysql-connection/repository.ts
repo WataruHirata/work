@@ -182,5 +182,7 @@ export class MysqlRepository implements BusinessRepository {
     }
   }
   async storeDeviceSalesDayLines(): Promise<DataRecord[]> { throw new Error("登録端末の売上明細は未設定です。"); }
+  async storeDeviceCorrections(): Promise<DataRecord[]> { throw new Error("登録端末の修正申請は未設定です。"); }
+  async storeDeviceRequestCorrection(): Promise<string> { throw new Error("登録端末の修正申請は未設定です。"); }
   async storeSnapshot(): Promise<Record<string, Json>> { throw new Error("店舗端末用MySQLスナップショット処理は未設定です。"); }
 }

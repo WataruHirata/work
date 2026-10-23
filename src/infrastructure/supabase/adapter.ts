@@ -310,6 +310,31 @@ export class SupabaseRepository implements BusinessRepository {
     if (error) throw new Error("登録店舗の売上明細を取得できませんでした。");
     return Array.isArray(data) ? (data as DataRecord[]) : [];
   }
+  async storeDeviceCorrections(deviceToken: string): Promise<DataRecord[]> {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client.rpc("store_device_sales_corrections", {
+      p_token: deviceToken,
+    });
+    if (error) throw new Error("登録店舗の修正申請を取得できませんでした。");
+    return Array.isArray(data) ? (data as DataRecord[]) : [];
+  }
+  async storeDeviceRequestCorrection(
+    deviceToken: string,
+    salesDayId: string,
+    reason: string,
+    afterAmountYen: number,
+  ): Promise<string> {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client.rpc("request_store_device_sales_correction", {
+      p_token: deviceToken,
+      p_sales_day_id: salesDayId,
+      p_reason: reason,
+      p_after_amount_yen: afterAmountYen,
+    });
+    if (error)
+      throw new Error("売上修正を申請できませんでした。内容と申請状況を確認してください。");
+    return String(data);
+  }
 }
 
 export class SupabaseIdentity implements IdentityProvider {

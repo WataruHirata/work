@@ -8,6 +8,7 @@ import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
+import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 import { hasAdminAccess } from "@/domain/access-policy";
 import { Tag } from "@/components/ui/icons";
 
@@ -78,6 +79,12 @@ export async function CampaignWorkspace({
       eyebrow="PROMOTION OPERATIONS"
     >
       <CampaignManagement
+        instructionPanel={
+          <InstructionWorkspace
+            canManage={!storeMode && session.roles.includes("product_office")}
+            storeId={storeMode ? selectedStoreId : undefined}
+          />
+        }
         canRecordStoreWork={session.roles.some((role) =>
           ["store_manager", "department_lead", "staff"].includes(role),
         )}

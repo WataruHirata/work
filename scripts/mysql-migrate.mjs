@@ -28,12 +28,21 @@ try {
     const sql = await readFile(resolve(dir, file), "utf8");
     const { createHash } = await import("node:crypto");
     const checksum = createHash("sha256").update(sql).digest("hex");
+    // One historic migration was applied with a whitespace-only final line and no EOL.
+    // Accept only that byte-level legacy variant; substantive edits still fail closed.
+    const acceptedChecksums = [checksum];
+    if (file === "002_fix_campaign_status_constraint.sql")
+      acceptedChecksums.push(
+        createHash("sha256")
+          .update(sql.replace(/\r?\n$/, "$&  "))
+          .digest("hex"),
+      );
     const [rows] = await connection.execute(
       "SELECT checksum FROM schema_migrations WHERE version=?",
       [file],
     );
     if (rows.length) {
-      if (rows[0].checksum !== checksum)
+      if (!acceptedChecksums.includes(rows[0].checksum))
         throw new Error(
           `${file}は適用済みのため編集できません。新しいマイグレーションを追加してください。`,
         );

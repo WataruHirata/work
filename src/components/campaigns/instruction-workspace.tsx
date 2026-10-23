@@ -196,7 +196,9 @@ export async function InstructionWorkspace({
             <h3 id="campaign-notice-tasks-heading">店舗で行うPOS・商品値札タスク</h3>
             <StateBadge state="draft" label={`全${campaignTaskCards.length}件`} />
           </div>
-          <p className="muted">各作業が終わったら、担当者がそれぞれ完了登録してください。</p>
+          <p className="muted">
+            各作業が終わったら、担当者がそれぞれ「対応完了」を押してください。
+          </p>
           {campaignTaskCards.length ? (
             <div className="notice-list">{campaignTaskCards}</div>
           ) : (

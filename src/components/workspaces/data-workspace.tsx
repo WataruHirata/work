@@ -42,6 +42,9 @@ export type WorkspaceSearch = {
   to?: string;
   search?: string;
   correction?: string;
+  item?: string;
+  category?: string;
+  supplier?: string;
 };
 const field = (key: string, label: string, lookup?: Resource, required = true): WorkspaceField => ({
   key,
@@ -231,7 +234,7 @@ export async function DataWorkspace({
   const isAdminPage = uiConfig.pages[feature].href.startsWith("/admin/");
   const adminSession = isAdminPage ? await getAdminSession() : null;
   const roles = adminSession?.status === "authorized" ? adminSession.roles : session.roles;
-  const hideStoreFilters = ["storeSales", "storeOperations", "storeOrders"].includes(feature);
+  const hideStoreFilters = ["storeSales", "storeOrders"].includes(feature);
   const isStorePage = feature.startsWith("store");
   const restrictToAssignedStores = isStorePage && !hasAdminAccess(roles);
   const resources = [
@@ -354,36 +357,6 @@ export async function DataWorkspace({
         </section>
       )}
       {feature === "products" && <section className="page-panel"></section>}
-      {feature === "storeOperations" && roles.includes("store_manager") && (
-        <section className="page-panel">
-          <h2>売上修正の申請</h2>
-          <OperationForm
-            operation="requestCorrection"
-            label="理由と修正金額を保存"
-            confirm="変更前後を確認しました"
-            fields={[
-              field("salesDayId", "対象売上", "sales"),
-              field("reason", "修正理由"),
-              {
-                key: "amount",
-                label: "修正後売上（円）",
-                type: "number",
-                required: true,
-                min: 0,
-              },
-            ]}
-            lookups={{
-              ...lookups,
-              sales: pages
-                .find((page) => page.resource === "sales")
-                ?.data.rows.map((row) => ({
-                  ...row,
-                  name: `${row.business_date} / ${row.net_sales_yen}円 / ${row.status}`,
-                })),
-            }}
-          />
-        </section>
-      )}
       {feature === "storeOrders" &&
         roles.some((role) => ["staff", "department_lead", "store_manager"].includes(role)) && (
           <section className="page-panel">

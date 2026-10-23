@@ -1,4 +1,5 @@
 import type { DataRecord } from "@/domain/contracts";
+import { fictionalSupplierForProduct } from "@/domain/order-catalog";
 
 export function resolveRegisteredStoreId(
   assignedStoreIds: readonly string[],
@@ -13,31 +14,62 @@ function value(record: DataRecord | undefined, key: string) {
   return typeof current === "string" || typeof current === "number" ? String(current) : "";
 }
 
+export type InventoryFilters = {
+  item?: string;
+  category?: string;
+  supplier?: string;
+};
+
+export function inventorySupplier(row: DataRecord, product?: DataRecord) {
+  const registered =
+    value(row, "supplier_name") ||
+    value(row, "supplier") ||
+    value(product, "supplier_name") ||
+    value(product, "supplier");
+  const code = value(row, "code") || value(product, "code");
+  return registered || (code ? fictionalSupplierForProduct(code) : "未設定");
+}
+
 export function filterInventoryRows(
   rows: readonly DataRecord[],
   products: readonly DataRecord[],
   departments: readonly DataRecord[],
-  term: string,
+  filters: InventoryFilters | string,
 ) {
-  const normalizedTerm = term.trim().toLocaleLowerCase("ja-JP");
-  if (!normalizedTerm) return [...rows];
+  const normalized =
+    typeof filters === "string"
+      ? { item: filters.trim().toLocaleLowerCase("ja-JP"), category: "", supplier: "" }
+      : {
+          item: (filters.item ?? "").trim().toLocaleLowerCase("ja-JP"),
+          category: (filters.category ?? "").trim().toLocaleLowerCase("ja-JP"),
+          supplier: (filters.supplier ?? "").trim().toLocaleLowerCase("ja-JP"),
+        };
 
   const productById = new Map(products.map((product) => [product.id, product]));
   const departmentById = new Map(departments.map((department) => [department.id, department]));
   return rows.filter((row) => {
     const product = productById.get(value(row, "product_id"));
     const department = departmentById.get(value(row, "department_id"));
-    const searchable = [
+    const item = [
       value(row, "code"),
       value(row, "name"),
       value(product, "code"),
       value(product, "name"),
+      value(row, "category_code"),
       value(product, "category_code"),
       value(department, "code"),
       value(department, "name"),
     ]
       .join(" ")
       .toLocaleLowerCase("ja-JP");
-    return searchable.includes(normalizedTerm);
+    const category = (
+      value(row, "category_code") || value(product, "category_code")
+    ).toLocaleLowerCase("ja-JP");
+    const supplier = inventorySupplier(row, product).toLocaleLowerCase("ja-JP");
+    return (
+      (!normalized.item || item.includes(normalized.item)) &&
+      (!normalized.category || category === normalized.category) &&
+      (!normalized.supplier || supplier === normalized.supplier)
+    );
   });
 }

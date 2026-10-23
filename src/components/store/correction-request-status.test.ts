@@ -5,6 +5,24 @@ import { describe, expect, it } from "vitest";
 import { CorrectionRequestStatus } from "@/components/store/correction-request-status";
 
 describe("店舗お知らせ画面", () => {
+  it("登録店舗端末はログインなしで申請でき、承認は既存の権限検査を通す", () => {
+    const workspace = readFileSync(
+      "src/components/store/store-sales-inventory-workspace.tsx",
+      "utf8",
+    );
+    const action = readFileSync("src/server/actions/workspace.ts", "utf8");
+    const migration = readFileSync(
+      "supabase/migrations/202610230002_store_device_sales_corrections.sql",
+      "utf8",
+    );
+
+    expect(workspace).not.toContain("修正申請には個人ログインが必要です");
+    expect(action).toContain("repo.storeDeviceRequestCorrection");
+    expect(action).toContain('requireRoles(["area_manager", "store_operations"])');
+    expect(migration).toContain("store_id=v_device.store_id");
+    expect(migration).toContain("'pending_area_approval'");
+  });
+
   it("登録店舗から本部へ申請した売上修正状況を状態色付きで表示する", () => {
     const html = renderToStaticMarkup(
       createElement(CorrectionRequestStatus, {

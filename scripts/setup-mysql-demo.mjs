@@ -336,7 +336,7 @@ try {
     [3, "2026-10-20", "imported", 88400, 81852, null, null],
     [3, "2026-10-19", "confirmed", 91300, 84537, "2026-10-20 08:10:00.000", null],
   ];
-  const lineTypes = ["sale", "discount", "void", "return"];
+  const detailLineCount = 6;
   for (let index = 0; index < salesDays.length; index += 1) {
     const [storeNumber, date, status, gross, net, confirmedAt, finalizedAt] = salesDays[index];
     await q(
@@ -358,28 +358,35 @@ try {
         fid("import", 3),
       ],
     );
-    for (let line = 0; line < 2; line += 1) {
-      const product = products[(index + line) % products.length];
-      const lineType = lineTypes[(index + line) % lineTypes.length];
-      const departmentNumber = storeNumber === 1 ? line + 1 : storeNumber === 2 ? 4 : 5;
+    for (let line = 0; line < detailLineCount; line += 1) {
+      const product = products[(index + line) % 5];
+      const lineType = line === detailLineCount - 1 ? "discount" : "sale";
+      const saleBase = Math.floor(gross / (detailLineCount - 1));
+      const amount =
+        lineType === "discount"
+          ? net - gross
+          : line === detailLineCount - 2
+            ? gross - saleBase * (detailLineCount - 2)
+            : saleBase;
+      const departmentNumber = storeNumber === 1 ? (line % 2) + 1 : storeNumber === 2 ? 4 : 5;
       await q(
-        "INSERT INTO sales_lines(id,sales_day_id,product_id,product_code_snapshot,product_name_snapshot,department_id,quantity,amount_yen,tax_rate,transaction_time,line_type,source_row_key,import_id,receipt_key,receipt_customer_count) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE sales_day_id=VALUES(sales_day_id),product_id=VALUES(product_id),department_id=VALUES(department_id),amount_yen=VALUES(amount_yen),line_type=VALUES(line_type)",
+        "INSERT INTO sales_lines(id,sales_day_id,product_id,product_code_snapshot,product_name_snapshot,department_id,quantity,amount_yen,tax_rate,transaction_time,line_type,source_row_key,import_id,receipt_key,receipt_customer_count) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE sales_day_id=VALUES(sales_day_id),product_id=VALUES(product_id),product_code_snapshot=VALUES(product_code_snapshot),product_name_snapshot=VALUES(product_name_snapshot),department_id=VALUES(department_id),quantity=VALUES(quantity),amount_yen=VALUES(amount_yen),tax_rate=VALUES(tax_rate),transaction_time=VALUES(transaction_time),line_type=VALUES(line_type),source_row_key=VALUES(source_row_key),import_id=VALUES(import_id),receipt_key=VALUES(receipt_key),receipt_customer_count=VALUES(receipt_customer_count)",
         [
-          fid("salesLine", index * 2 + line + 1),
+          fid("salesLine", index * detailLineCount + line + 1),
           fid("salesDay", index + 1),
           product[0],
           product[1],
           product[2],
           fid("department", departmentNumber),
-          lineType === "return" ? -1 : 2,
-          ["return", "void"].includes(lineType) ? -680 : Math.floor(net / 2),
+          lineType === "discount" ? 1 : 1 + (line % 3),
+          amount,
           product[4],
-          `${date} ${line ? "18:30" : "12:15"}:00.000`,
+          `${date} ${String(9 + line * 2).padStart(2, "0")}:${String(5 + line * 9).padStart(2, "0")}:00.000`,
           lineType,
-          `fictional-v2-${index + 1}-${line + 1}`,
+          `fictional-v3-${index + 1}-${line + 1}`,
           fid("import", 3),
-          `DEMO-RECEIPT-${index + 1}`,
-          line ? 0 : 1,
+          `DEMO-RECEIPT-${index + 1}-${Math.floor(line / 2) + 1}`,
+          line % 2 ? 0 : 1,
         ],
       );
     }
@@ -824,20 +831,43 @@ try {
       ],
     );
   }
-  for (let index = 0; index < 4; index += 1) {
+  const announcementRows = [
+    [1, "本日の確認事項", "未対応の店舗指示を確認してください。", "2026-10-23 08:00:00.000"],
+    [
+      1,
+      "特売開始前の売場確認",
+      "対象商品の値札とPOPを開店前に確認してください。",
+      "2026-10-23 07:30:00.000",
+    ],
+    [
+      1,
+      "納品時間の変更",
+      "本日の惣菜便は通常より30分遅れて到着予定です。",
+      "2026-10-22 16:20:00.000",
+    ],
+    [1, "棚卸予定", "月末棚卸は18時開始予定です。", "2026-10-22 10:00:00.000"],
+    [
+      1,
+      "冷蔵設備の点検",
+      "食品売場の冷蔵ケース点検を14時から実施します。",
+      "2026-10-21 09:15:00.000",
+    ],
+    [1, "営業時間の確認", "祝日前日の閉店時刻は22時30分です。", "2026-10-20 11:40:00.000"],
+    [2, "棚卸予定", "月末棚卸は18時開始予定です。", "2026-10-22 10:00:00.000"],
+    [3, "休業のお知らせ", "設備点検のため休業中です。", "2026-10-21 08:00:00.000"],
+    [4, "閉店済み店舗の履歴", "これは履歴確認用の架空データです。", "2026-10-20 08:00:00.000"],
+  ];
+  for (let index = 0; index < announcementRows.length; index += 1) {
+    const [storeNumber, title, message, createdAt] = announcementRows[index];
     await q(
-      "INSERT INTO store_announcements(id,store_id,title,message,created_by) VALUES(?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),title=VALUES(title),message=VALUES(message),created_by=VALUES(created_by)",
+      "INSERT INTO store_announcements(id,store_id,title,message,created_by,created_at) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE store_id=VALUES(store_id),title=VALUES(title),message=VALUES(message),created_by=VALUES(created_by),created_at=VALUES(created_at)",
       [
         fid("announcement", index + 1),
-        fid("store", index + 1),
-        ["本日の確認事項", "棚卸予定", "休業のお知らせ", "閉店済み店舗の履歴"][index],
-        [
-          "未対応の店舗指示を確認してください。",
-          "月末棚卸は18時開始予定です。",
-          "設備点検のため休業中です。",
-          "これは履歴確認用の架空データです。",
-        ][index],
+        fid("store", storeNumber),
+        title,
+        message,
         fid("user", 7),
+        createdAt,
       ],
     );
   }
@@ -906,7 +936,7 @@ try {
 
   await db.commit();
   console.log(
-    `MySQL rich demo fixtures ready: ${scaleStoreCount} stores, ${scaleProductCount} products, ${8 + scaleStoreCount * scaleSalesDaysPerStore} sales days, and ${16 + scaleStoreCount * scaleSalesDaysPerStore * 6} sales lines (fictional records).`,
+    `MySQL rich demo fixtures ready: ${scaleStoreCount} stores, ${scaleProductCount} products, ${8 + scaleStoreCount * scaleSalesDaysPerStore} sales days, and ${8 * detailLineCount + scaleStoreCount * scaleSalesDaysPerStore * 6} sales lines (fictional records).`,
   );
 } catch (error) {
   await db.rollback();

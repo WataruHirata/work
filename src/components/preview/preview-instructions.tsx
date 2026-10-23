@@ -79,7 +79,9 @@ export function PreviewInstructions({
   );
 
   const visible = headquarters ? rows : targetInstructions(rows, store);
-  const pending = visible.filter((row) => !row.confirmedStores.includes(store)).length;
+  const pendingRows = visible.filter((row) => !row.confirmedStores.includes(store));
+  const completedRows = visible.filter((row) => row.confirmedStores.includes(store));
+  const pending = pendingRows.length;
   const noticesMode = feature === "storeNotices";
   const storeTaskMode = feature === "storeCampaigns";
 
@@ -275,51 +277,75 @@ export function PreviewInstructions({
       )}
 
       {storeTaskMode && (
-        <div className={styles.list}>
-          {visible.map((row) => {
-            const completed = row.confirmedStores.includes(store);
-            return (
-              <article className={styles.task} key={row.id}>
-                <div className={styles.badges}>
-                  <span className={styles.kind}>{row.kind}</span>
-                  <span className={completed ? styles.done : styles.pending}>
-                    {completed ? "対応済み" : "未対応"}
-                  </span>
-                </div>
-                <h3>{row.title}</h3>
-                <p className={styles.meta}>
-                  {row.product}・¥{row.price.toLocaleString("ja-JP")}・
-                  {row.effectiveAt.replace("T", " ")}
-                </p>
-                <p className={styles.instruction}>{row.message}</p>
-                <label className={styles.check}>
-                  <input
-                    type="checkbox"
-                    checked={completed || Boolean(checked[row.id])}
-                    disabled={completed}
-                    onChange={(event) =>
-                      setChecked((current) => ({
-                        ...current,
-                        [row.id]: event.target.checked,
-                      }))
-                    }
-                  />
-                  <span>{taskLabel(row)}</span>
-                </label>
-                <button
-                  className={styles.completeButton}
-                  type="button"
-                  disabled={completed || !checked[row.id]}
-                  onClick={() => {
-                    save(confirmDemoInstruction(rows, row.id, store));
-                    setMessage("値札作業を対応済みにしました。");
-                  }}
-                >
-                  {completed ? "対応済み" : "対応済みにする"}
-                </button>
-              </article>
-            );
-          })}
+        <div className={styles.taskColumns}>
+          <section className={styles.taskColumn} aria-labelledby="preview-pending-tasks">
+            <h3 id="preview-pending-tasks">
+              要対応 <span>{pendingRows.length}件</span>
+            </h3>
+            <div className={styles.list}>
+              {pendingRows.map((row) => (
+                <article className={styles.task} key={row.id}>
+                  <div className={styles.badges}>
+                    <span className={styles.kind}>{row.kind}</span>
+                    <span className={styles.pending}>要対応</span>
+                  </div>
+                  <h3>{row.title}</h3>
+                  <p className={styles.meta}>
+                    {row.product}・¥{row.price.toLocaleString("ja-JP")}・
+                    {row.effectiveAt.replace("T", " ")}
+                  </p>
+                  <p className={styles.instruction}>{row.message}</p>
+                  <label className={styles.check}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(checked[row.id])}
+                      onChange={(event) =>
+                        setChecked((current) => ({
+                          ...current,
+                          [row.id]: event.target.checked,
+                        }))
+                      }
+                    />
+                    <span>{taskLabel(row)}</span>
+                  </label>
+                  <button
+                    className={styles.completeButton}
+                    type="button"
+                    disabled={!checked[row.id]}
+                    onClick={() => {
+                      save(confirmDemoInstruction(rows, row.id, store));
+                      setMessage("対応完了を記録しました。");
+                    }}
+                  >
+                    対応完了
+                  </button>
+                </article>
+              ))}
+              {!pendingRows.length && <p className={styles.empty}>要対応項目はありません。</p>}
+            </div>
+          </section>
+          <section className={styles.taskColumn} aria-labelledby="preview-completed-tasks">
+            <h3 id="preview-completed-tasks">
+              対応済み <span>{completedRows.length}件</span>
+            </h3>
+            <div className={styles.list}>
+              {completedRows.map((row) => (
+                <article className={styles.task} key={row.id}>
+                  <div className={styles.badges}>
+                    <span className={styles.kind}>{row.kind}</span>
+                    <span className={styles.done}>対応済み</span>
+                  </div>
+                  <h3>{row.title}</h3>
+                  <p className={styles.meta}>
+                    {row.product}・¥{row.price.toLocaleString("ja-JP")}・
+                    {row.effectiveAt.replace("T", " ")}
+                  </p>
+                  <p className={styles.instruction}>{row.message}</p>
+                </article>
+              ))}
+              {!completedRows.length && <p className={styles.empty}>対応済み項目はありません。</p>}
+            </div>
+          </section>
         </div>
       )}
 

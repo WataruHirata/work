@@ -13,9 +13,9 @@ export const featureResources: Record<string, Resource[]> = {
   imports: ["imports", "jobs"],
   users: ["users", "roles"],
   audit: ["audit"],
-  storeSales: ["sales", "inventory"],
+  storeSales: ["sales"],
+  storeInventory: ["inventory"],
   storeCampaigns: ["campaigns", "campaignItems", "campaignTargets", "campaignTasks"],
-  storeOperations: ["sales", "corrections"],
   storeOrders: ["orders"],
   storeNotices: ["notifications"],
 };

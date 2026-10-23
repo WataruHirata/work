@@ -92,6 +92,13 @@ export interface BusinessRepository {
   execute(command: Command, input: Record<string, Json>): Promise<Json>;
   storeSnapshot(deviceToken: string): Promise<Record<string, Json>>;
   storeDeviceSalesDayLines(deviceToken: string, salesDayId: string): Promise<DataRecord[]>;
+  storeDeviceCorrections(deviceToken: string): Promise<DataRecord[]>;
+  storeDeviceRequestCorrection(
+    deviceToken: string,
+    salesDayId: string,
+    reason: string,
+    afterAmountYen: number,
+  ): Promise<string>;
 }
 
 export interface IdentityProvider {

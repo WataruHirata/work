@@ -10,17 +10,19 @@ import Link from "next/link";
 export function LoginForm({
   accessDenied = false,
   returnTo,
+  initialRoles = [],
 }: {
   accessDenied?: boolean;
   returnTo?: string;
+  initialRoles?: AdminRole[];
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [availableRoles, setAvailableRoles] = useState<AdminRole[]>([]);
-  const [selectedRole, setSelectedRole] = useState<AdminRole | "">("");
+  const [availableRoles, setAvailableRoles] = useState<AdminRole[]>(initialRoles);
+  const [selectedRole, setSelectedRole] = useState<AdminRole | "">(initialRoles[0] ?? "");
   const [errorMessage, setErrorMessage] = useState(
     accessDenied ? "このアカウントは利用できません。管理者にお問い合わせください。" : "",
   );
@@ -72,48 +74,52 @@ export function LoginForm({
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
-      <label className="login-field">
-        <span>メールアドレス</span>
-        <span className="login-input-wrap">
-          <Mail size={16} aria-hidden="true" />
-          <input
-            autoComplete="username"
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="name@example.co.jp"
-          />
-        </span>
-      </label>
-      <label className="login-field">
-        <span>パスワード</span>
-        <span className="login-input-wrap">
-          <LockKeyhole size={16} aria-hidden="true" />
-          <input
-            autoComplete="current-password"
-            type={showPassword ? "text" : "password"}
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="パスワードを入力"
-          />
-          <button
-            className="password-toggle"
-            type="button"
-            aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </span>
-      </label>
+      {availableRoles.length === 0 && (
+        <label className="login-field">
+          <span>メールアドレス</span>
+          <span className="login-input-wrap">
+            <Mail size={16} aria-hidden="true" />
+            <input
+              autoComplete="username"
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@example.co.jp"
+            />
+          </span>
+        </label>
+      )}
+      {availableRoles.length === 0 && (
+        <label className="login-field">
+          <span>パスワード</span>
+          <span className="login-input-wrap">
+            <LockKeyhole size={16} aria-hidden="true" />
+            <input
+              autoComplete="current-password"
+              type={showPassword ? "text" : "password"}
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="パスワードを入力"
+            />
+            <button
+              className="password-toggle"
+              type="button"
+              aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </span>
+        </label>
+      )}
       {errorMessage && (
         <p className="login-error" role="alert">
           {errorMessage}
         </p>
       )}
-      <Link href="/account/reset">パスワードを忘れた場合</Link>
+      {availableRoles.length === 0 && <Link href="/account/reset">パスワードを忘れた場合</Link>}
       {availableRoles.length > 0 && (
         <fieldset className="login-role-picker">
           <legend>利用する権限を選択</legend>

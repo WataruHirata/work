@@ -17,6 +17,7 @@ export function CollapsibleTable({
   className = "data-table",
   containerClassName = "workspace-table",
   defaultExpanded = false,
+  scrollAllRows = false,
 }: {
   caption?: ReactNode;
   head: ReactNode;
@@ -24,6 +25,7 @@ export function CollapsibleTable({
   className?: string;
   containerClassName?: string;
   defaultExpanded?: boolean;
+  scrollAllRows?: boolean;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const rowGroupId = useId();
@@ -35,9 +37,9 @@ export function CollapsibleTable({
       <table className={className}>
         {caption && <caption>{caption}</caption>}
         <thead>{head}</thead>
-        <tbody id={rowGroupId}>{visibleTableRows(rows, expanded)}</tbody>
+        <tbody id={rowGroupId}>{scrollAllRows ? rows : visibleTableRows(rows, expanded)}</tbody>
       </table>
-      {canExpand && (
+      {canExpand && !scrollAllRows && (
         <div className="table-expand-actions">
           <Button
             type="button"

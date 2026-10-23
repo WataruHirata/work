@@ -224,7 +224,7 @@ export class MysqlRepository implements BusinessRepository {
         .map((field) => `\`${field.trim()}\``)
         .join(
           ",",
-        )} FROM \`${spec.table}\`${where} ORDER BY \`${spec.order}\` ${order} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
+        )} FROM \`${spec.table}\`${where} ORDER BY \`${spec.order}\` ${order},\`id\` ${order} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
       values as never[],
     );
     return {
@@ -574,6 +574,77 @@ export class MysqlRepository implements BusinessRepository {
         ) as DataRecord,
     );
   }
+  async storeDeviceCorrections(deviceToken: string): Promise<DataRecord[]> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken)) throw new Error("店舗端末コードが正しくありません。");
+    const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
+    const [rows] = await mysqlPool().execute<(RowDataPacket & DataRecord)[]>(
+      "SELECT correction.id,correction.sales_day_id,correction.reason,correction.before_amount_yen,correction.after_amount_yen,correction.status,correction.requested_at FROM sales_corrections correction JOIN sales_days day ON day.id=correction.sales_day_id JOIN store_devices device ON device.store_id=day.store_id WHERE device.token_hash=? AND device.active=1 ORDER BY correction.requested_at DESC LIMIT 100",
+      [tokenHash],
+    );
+    return rows.map(
+      (row) =>
+        Object.fromEntries(
+          Object.entries(row).map(([key, value]) => [
+            key,
+            value instanceof Date
+              ? value.toISOString()
+              : typeof value === "bigint"
+                ? Number(value)
+                : value,
+          ]),
+        ) as DataRecord,
+    );
+  }
+  async storeDeviceRequestCorrection(
+    deviceToken: string,
+    salesDayId: string,
+    reason: string,
+    afterAmountYen: number,
+  ): Promise<string> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken) || !/^[0-9a-f-]{36}$/i.test(salesDayId))
+      throw new Error("登録端末または売上日を確認できません。");
+    if (
+      !reason.trim() ||
+      reason.length > 500 ||
+      !Number.isSafeInteger(afterAmountYen) ||
+      afterAmountYen < 0
+    )
+      throw new Error("修正理由と修正後売上を確認してください。");
+    const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
+    return mysqlTransaction(async (db) => {
+      const [rows] = await db.execute<
+        (RowDataPacket & {
+          business_date: string;
+          net_sales_yen: number;
+          status: string;
+          created_by: string;
+        })[]
+      >(
+        "SELECT day.business_date,day.net_sales_yen,day.status,device.created_by FROM sales_days day JOIN store_devices device ON device.store_id=day.store_id WHERE day.id=? AND device.token_hash=? AND device.active=1 FOR UPDATE",
+        [salesDayId, tokenHash],
+      );
+      const day = rows[0];
+      if (!day?.created_by) throw new Error("有効な店舗端末が見つかりません。");
+      if (day.status === "monthly_finalized") throw new Error("月次確定後の売上は修正できません。");
+      const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
+      if (day.status === "imported" && String(day.business_date).slice(0, 10) !== today)
+        throw new Error("過去営業日の売上を申請する前に日次確定してください。");
+      const id = randomUUID();
+      await db.execute(
+        "INSERT INTO sales_corrections(id,sales_day_id,reason,before_amount_yen,after_amount_yen,status,requested_by) VALUES(?,?,?,?,?,?,?)",
+        [
+          id,
+          salesDayId,
+          reason.trim(),
+          day.net_sales_yen,
+          afterAmountYen,
+          "pending_area_approval",
+          day.created_by,
+        ],
+      );
+      return id;
+    });
+  }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {
     if (!/^[a-f0-9]{64}$/.test(deviceToken)) throw new Error("店舗端末コードが正しくありません。");
     const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
@@ -610,8 +681,8 @@ export class MysqlRepository implements BusinessRepository {
       "SELECT id,order_date,requested_delivery_date,status FROM orders WHERE store_id=? ORDER BY created_at DESC LIMIT 50",
       [storeId],
     );
-    const [departments] = await mysqlPool().execute<RowDataPacket[]>(
-      "SELECT department.name,SUM(line.amount_yen) AS sales FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id JOIN store_departments department ON department.id=line.department_id WHERE day.store_id=? AND day.business_date=(SELECT MAX(business_date) FROM sales_days WHERE store_id=?) GROUP BY department.id,department.name",
+    const [salesComposition] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT line.product_name_snapshot AS name,SUM(line.amount_yen) AS sales FROM sales_lines line JOIN sales_days day ON day.id=line.sales_day_id WHERE day.store_id=? AND day.business_date=(SELECT MAX(business_date) FROM sales_days WHERE store_id=?) GROUP BY line.product_code_snapshot,line.product_name_snapshot ORDER BY sales DESC,line.product_code_snapshot",
       [storeId, storeId],
     );
     const [metricRows] = await mysqlPool().execute<RowDataPacket[]>(
@@ -639,7 +710,7 @@ export class MysqlRepository implements BusinessRepository {
       campaigns: jsonRows(campaigns),
       notices: jsonRows(notices),
       orders: jsonRows(orders),
-      departments: jsonRows(departments),
+      salesComposition: jsonRows(salesComposition),
       metrics: jsonRows(metricRows)[0] ?? {
         inventory_alert_count: 0,
         notice_count: 0,

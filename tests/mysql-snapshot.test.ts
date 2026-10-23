@@ -13,6 +13,12 @@ import { createHash } from "node:crypto";
 import { MysqlRepository } from "../database/mysql/repository";
 
 describe("MySQL store-device snapshot", () => {
+  it("uses an id tie-breaker so paged lists remain stable", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("database/mysql/repository.ts", "utf8");
+    expect(source).toContain("ORDER BY `\${spec.order}` \${order},`id` \${order}");
+  });
+
   beforeEach(() => execute.mockReset());
 
   it("rejects malformed device codes before querying MySQL", async () => {
@@ -66,6 +72,8 @@ describe("MySQL store-device snapshot", () => {
     expect(execute.mock.calls[0][0]).toContain("token_hash=? AND active=1");
     expect(execute.mock.calls[0][1][0]).toEqual(createHash("sha256").update(token).digest());
     expect(execute.mock.calls[2][0]).toContain("DATE_FORMAT(business_date,'%Y-%m-%d')");
+    expect(execute.mock.calls[4][0]).toContain("task.work_approved_at");
+    expect(execute.mock.calls[7][0]).toContain("line.product_name_snapshot AS name");
     expect(result.store).toEqual({
       id: "store-1",
       code: "S001",
@@ -81,6 +89,7 @@ describe("MySQL store-device snapshot", () => {
       },
     ]);
     expect(result.campaigns).toEqual([]);
+    expect(result.salesComposition).toEqual([]);
     expect(result.metrics).toEqual({
       inventory_alert_count: 2,
       notice_count: 5,

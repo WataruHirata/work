@@ -3,6 +3,7 @@
 import { Activity, ShoppingBasket, TrendingUp, Wallet } from "@/components/ui/icons";
 import { StateBadge } from "@/components/ui/state-badge";
 import { CollapsibleTable } from "@/components/ui/collapsible-table";
+import { salesTrendX } from "@/components/store/sales-trend-chart";
 
 // Fictional preview only: store identification and production data access are pending.
 const days = [
@@ -26,7 +27,7 @@ const today = days[days.length - 1];
 const yesterday = days[days.length - 2];
 const change = ((today.sales / yesterday.sales - 1) * 100).toFixed(1);
 const points = days
-  .map((day, i) => `${50 + i * 100},${286 - (day.sales / 1200000) * 234}`)
+  .map((day, i) => `${salesTrendX(i, days.length)},${286 - (day.sales / 1200000) * 234}`)
   .join(" ");
 
 export function StoreOverview() {
@@ -121,8 +122,15 @@ export function StoreOverview() {
             <polyline points={points} pathLength="1" className="chart-line" />
             {days.map((day, i) => (
               <g key={day.date}>
+                <line
+                  x1={salesTrendX(i, days.length)}
+                  x2={salesTrendX(i, days.length)}
+                  y1="52"
+                  y2="286"
+                  className="chart-gridline chart-date-gridline"
+                />
                 <circle
-                  cx={50 + i * 100}
+                  cx={salesTrendX(i, days.length)}
                   cy={286 - (day.sales / 1200000) * 234}
                   r="4"
                   className="chart-point"
@@ -131,7 +139,7 @@ export function StoreOverview() {
                     {day.date}: {yen(day.sales)}
                   </title>
                 </circle>
-                <text x={50 + i * 100} y="325" textAnchor="middle">
+                <text x={salesTrendX(i, days.length)} y="325" textAnchor="middle">
                   {day.date}
                 </text>
               </g>
@@ -140,9 +148,8 @@ export function StoreOverview() {
           <details className="store-data" open>
             <summary>売上データを表で確認</summary>
             <CollapsibleTable
-              className=""
-              containerClassName="table-scroll"
-              defaultExpanded
+              scrollAllRows
+              containerClassName="table-scroll store-sales-table-scroll"
               caption="デモ店舗の日次データ（税込・サンプル）"
               head={
                 <tr>

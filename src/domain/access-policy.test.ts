@@ -10,7 +10,7 @@ import {
 
 describe("FR-028 / FR-034 / FR-035 / AT-10 管理ルートの権限境界", () => {
   it("店舗入口・ログイン・旧ルートを管理ルートとして扱わない", () => {
-    for (const path of ["/", "/store", "/store/operations", "/login", "/sales", "/administrator"])
+    for (const path of ["/", "/store", "/store/sales", "/login", "/sales", "/administrator"])
       expect(isAdminPath(path)).toBe(false);
     for (const path of ["/admin", "/admin/sales", "/admin/users"])
       expect(isAdminPath(path)).toBe(true);

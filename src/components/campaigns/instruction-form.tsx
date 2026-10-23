@@ -98,7 +98,7 @@ export function InstructionConfirmation({
       <input type="hidden" name="instructionId" value={instructionId} />
       <input type="hidden" name="storeId" value={storeId} />
       <button className="ghost-button" disabled={pending}>
-        {pending ? "記録中…" : "指示内容を確認しました"}
+        {pending ? "処理中…" : "対応完了"}
       </button>
       {state.error && <p role="alert">{state.error}</p>}
       {state.success && <p role="status">{state.success}</p>}

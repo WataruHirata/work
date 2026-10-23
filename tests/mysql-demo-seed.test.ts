@@ -63,4 +63,16 @@ describe("MySQL rich demo fixtures", () => {
     expect(verifier).toContain("order_catalog.scale_fixture");
     expect(verifier).toContain("scale_fixture.diversity");
   });
+
+  it("provides enough store notifications and recent sales items for portal review", async () => {
+    const seed = await readFile("scripts/setup-mysql-demo.mjs", "utf8");
+    const verifier = await readFile("scripts/verify-mysql-demo.mjs", "utf8");
+
+    expect(seed).toContain("const detailLineCount = 6");
+    expect(seed).toContain("product_name_snapshot=VALUES(product_name_snapshot)");
+    expect(seed).toContain("const announcementRows = [");
+    expect(verifier).toContain(
+      "store_portal.fixture: announcements>=6, latest_sales_lines>=6, sales_composition=net_sales",
+    );
+  });
 });

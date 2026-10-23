@@ -58,7 +58,9 @@ describe("UI共通設定（AT-03 / AT-10 の表示・操作基盤）", () => {
       /\.table-expand-actions,\s*\.list-expand-actions\s*\{[^}]*position:\s*absolute[^}]*top:\s*0[^}]*right:\s*0/s,
     );
     expect(styles).toMatch(/table\s*\{[^}]*min-width:\s*0[^}]*table-layout:\s*fixed/s);
-    expect(styles).not.toContain("overflow-x: auto");
+    expect(styles).toMatch(
+      /\.store-portal-main \.store-sales-table-scroll\s*\{[^}]*overflow-x:\s*auto/s,
+    );
     expect(uiConfig.theme["--green"]).toBe("var(--accent)");
     expect(uiConfig.theme["--green-dark"]).toBe("var(--accent-strong)");
     expect(uiConfig.theme["--panel"]).toBe("var(--surface)");
@@ -72,8 +74,12 @@ describe("UI共通設定（AT-03 / AT-10 の表示・操作基盤）", () => {
     expect(styles).toMatch(
       /\.demo-badge\s*\{[^}]*background:\s*var\(--accent-soft\)[^}]*color:\s*var\(--accent-strong\)/s,
     );
-    expect(styles).toMatch(/\.chart-line\s*\{[^}]*stroke:\s*var\(--accent\)/s);
-    expect(styles).toMatch(/\.chart-point\s*\{[^}]*stroke:\s*var\(--accent\)/s);
+    expect(styles).toMatch(/\.chart-line\s*\{[^}]*stroke:\s*var\(--chart-line\)/s);
+    expect(styles).toMatch(/\.chart-point\s*\{[^}]*stroke:\s*var\(--chart-line\)/s);
+    expect(uiConfig.theme).toMatchObject({
+      "--chart-donut-duration": "800ms",
+      "--chart-line-duration": "900ms",
+    });
     expect(styles).toMatch(
       /\.metric-value\s*\{[^}]*color:\s*var\(--text-strong\)[^}]*font-size:\s*var\(--font-size-kpi\)[^}]*letter-spacing:\s*normal/s,
     );

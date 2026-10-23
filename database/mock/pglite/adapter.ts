@@ -340,6 +340,36 @@ export class LocalRepository implements BusinessRepository {
         : [];
     });
   }
+  async storeDeviceCorrections(deviceToken: string): Promise<DataRecord[]> {
+    return withLocalDatabase(async (db) => {
+      const result = await db.query<{ value: Json }>(
+        "select public.store_device_sales_corrections($1) as value",
+        [deviceToken],
+      );
+      const rows = result.rows[0]?.value;
+      return Array.isArray(rows)
+        ? rows.flatMap((row) =>
+            row && typeof row === "object" && !Array.isArray(row) && typeof row.id === "string"
+              ? [row as DataRecord]
+              : [],
+          )
+        : [];
+    });
+  }
+  async storeDeviceRequestCorrection(
+    deviceToken: string,
+    salesDayId: string,
+    reason: string,
+    afterAmountYen: number,
+  ): Promise<string> {
+    return withLocalDatabase(async (db) => {
+      const result = await db.query<{ value: string }>(
+        "select public.request_store_device_sales_correction($1,$2,$3,$4) as value",
+        [deviceToken, salesDayId, reason, afterAmountYen],
+      );
+      return String(result.rows[0]?.value);
+    });
+  }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {
     return withLocalDatabase(async (db) => {
       const result = await db.query<{ value: Record<string, Json> }>(

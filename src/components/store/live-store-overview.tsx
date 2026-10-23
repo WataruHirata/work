@@ -5,139 +5,113 @@ import Link from "next/link";
 import { storeSummary } from "@/domain/store-summary";
 import type { Json } from "@/domain/contracts";
 import { CollapsibleTable } from "@/components/ui/collapsible-table";
-import { CollapsibleList } from "@/components/ui/collapsible-list";
 import { uiConfig } from "@/config/ui";
+import { SalesCompositionChart } from "@/components/store/sales-composition-chart";
+import { SalesTrendChart } from "@/components/store/sales-trend-chart";
 export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json> }) {
   const summary = storeSummary(snapshot);
-  const notices = (Array.isArray(snapshot.notices) ? snapshot.notices : []).flatMap((notice) => {
-    if (!notice || typeof notice !== "object" || Array.isArray(notice)) return [];
-    const { id, title, message, created_at: createdAt } = notice;
-    if (typeof title !== "string" || typeof message !== "string") return [];
-    return [
-      {
-        id: typeof id === "string" ? id : `${String(createdAt ?? "")}:${title}`,
-        title,
-        message,
-        createdAt: typeof createdAt === "string" ? createdAt : "",
-      },
-    ];
-  });
   const yen = (value: number) => `¥${Math.round(value).toLocaleString("ja-JP")}`;
-  const max = Math.max(1, ...summary.days.map((day) => day.sales));
-  const x = (index: number) =>
-    50 + (summary.days.length > 1 ? (index * 600) / (summary.days.length - 1) : 300);
-  const y = (value: number) => 286 - (value / max) * 234;
-  const points = summary.days.map((day, index) => `${x(index)},${y(day.sales)}`).join(" ");
+  const rawSalesComposition = Array.isArray(snapshot.salesComposition)
+    ? snapshot.salesComposition
+    : Array.isArray(snapshot.departments)
+      ? snapshot.departments
+      : [];
+  const salesComposition = rawSalesComposition.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const name = String(item.name ?? "").trim();
+    const sales = Number(item.sales);
+    return name && Number.isSafeInteger(sales) && sales > 0 ? [{ name, sales }] : [];
+  });
+  const compositionTotal = salesComposition.reduce((total, item) => total + item.sales, 0);
+  const showSalesComposition =
+    Boolean(summary.latest && summary.latest.sales > 0) &&
+    salesComposition.length > 0 &&
+    compositionTotal === summary.latest?.sales;
   return (
     <div className="content">
       <div className="store-overview-grid">
         <div className="store-overview-sidebar">
-          <section className="metrics-grid" aria-label="接続店舗の営業指標">
-            {[
-              {
-                label: "本日の売上",
-                value: summary.latest ? yen(summary.latest.sales) : "—",
-                note: summary.latest
-                  ? `${summary.latest.date} · ${summary.change === null ? "比較対象なし" : `前営業日比 ${summary.change.toFixed(1)}%`}`
-                  : "売上データなし",
-                Icon: TrendingUp,
-                href: uiConfig.pages.storeSales.href,
-              },
-              {
-                label: "在庫アラート件数",
-                value:
-                  summary.inventoryAlertCount === null ? "—" : `${summary.inventoryAlertCount}件`,
-                note: "在庫数量0以下",
-                Icon: Activity,
-                href: uiConfig.pages.storeSales.href,
-              },
-              {
-                label: "お知らせ件数",
-                value: summary.noticeCount === null ? "—" : `${summary.noticeCount}件`,
-                note: "登録店舗のお知らせ",
-                Icon: Wallet,
-                href: uiConfig.pages.storeNotices.href,
-              },
-              {
-                label: "特売未対応件数",
-                value:
-                  summary.campaignPendingCount === null ? "—" : `${summary.campaignPendingCount}件`,
-                note: "売場作業待ちの特売",
-                Icon: ShoppingBasket,
-                href: uiConfig.pages.storeCampaigns.href,
-              },
-            ].map(({ label, value, note, Icon, href }) => (
-              <Link className="metric-card metric-card-link" href={href} key={label}>
+          <section className="metrics-grid portal-metrics-grid" aria-label="接続店舗の営業指標">
+            <Link
+              className="metric-card metric-card-link store-sales-composition-card"
+              href={uiConfig.pages.storeSales.href}
+            >
+              <div className="store-sales-summary">
                 <div className="metric-topline">
-                  <span>{label}</span>
+                  <span>直近営業日の売上</span>
                   <span className="metric-icon green-icon">
-                    <Icon size={18} aria-hidden="true" />
+                    <TrendingUp size={18} aria-hidden="true" />
                   </span>
                 </div>
                 <div className="metric-value">
-                  <strong>{value}</strong>
+                  <strong>{summary.latest ? yen(summary.latest.sales) : "—"}</strong>
                 </div>
-                <p className="metric-foot">{note}</p>
-              </Link>
-            ))}
-          </section>
-          <section className="panel store-notices-panel" aria-labelledby="store-notices-title">
-            <div className="panel-head">
-              <h2 className="panel-title" id="store-notices-title">
-                お知らせ
-              </h2>
+                <p className="metric-foot">
+                  {summary.latest
+                    ? `${summary.latest.date} · ${summary.change === null ? "比較対象なし" : `前営業日比 ${summary.change.toFixed(1)}%`}`
+                    : "売上データなし"}
+                </p>
+              </div>
+              {showSalesComposition ? (
+                <SalesCompositionChart
+                  items={salesComposition}
+                  total={compositionTotal}
+                  formatValue={yen}
+                />
+              ) : null}
+            </Link>
+            <div className="store-compact-metrics">
+              {[
+                {
+                  label: "在庫アラート件数",
+                  value:
+                    summary.inventoryAlertCount === null ? "—" : `${summary.inventoryAlertCount}件`,
+                  note: "在庫数量0以下",
+                  Icon: Activity,
+                  href: uiConfig.pages.storeInventory.href,
+                },
+                {
+                  label: "お知らせ件数",
+                  value: summary.noticeCount === null ? "—" : `${summary.noticeCount}件`,
+                  note: "登録店舗のお知らせ",
+                  Icon: Wallet,
+                  href: uiConfig.pages.storeNotices.href,
+                },
+                {
+                  label: "特売未対応件数",
+                  value:
+                    summary.campaignPendingCount === null
+                      ? "—"
+                      : `${summary.campaignPendingCount}件`,
+                  note: "売場作業待ちの特売",
+                  Icon: ShoppingBasket,
+                  href: uiConfig.pages.storeCampaigns.href,
+                },
+              ].map(({ label, value, note, Icon, href }) => (
+                <Link className="metric-card metric-card-link" href={href} key={label}>
+                  <div className="metric-topline">
+                    <span>{label}</span>
+                    <span className="metric-icon green-icon">
+                      <Icon size={18} aria-hidden="true" />
+                    </span>
+                  </div>
+                  <div className="metric-value">
+                    <strong>{value}</strong>
+                  </div>
+                  <p className="metric-foot">{note}</p>
+                </Link>
+              ))}
             </div>
-            {notices.length ? (
-              <CollapsibleList className="notice-list">
-                {notices.map((notice) => {
-                  const date = new Date(notice.createdAt);
-                  const dateLabel = Number.isNaN(date.valueOf())
-                    ? notice.createdAt
-                    : date.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-                  return (
-                    <article className="store-announcement-card" key={notice.id}>
-                      <h3>{notice.title}</h3>
-                      {dateLabel && <p className="store-announcement-date">{dateLabel}</p>}
-                      <p className="store-announcement-message">{notice.message}</p>
-                    </article>
-                  );
-                })}
-              </CollapsibleList>
-            ) : (
-              <p className="empty-state">この店舗宛てのお知らせはありません。</p>
-            )}
           </section>
         </div>
         <section className="panel sales-panel store-sales-trend-panel">
           <h2 className="panel-title">店舗売上の推移</h2>
           {summary.days.length ? (
             <>
-              <svg
-                className="store-trend"
-                viewBox="0 0 700 350"
-                role="img"
-                aria-labelledby="live-trend-title"
-              >
-                <title id="live-trend-title">
-                  {summary.storeName}
-                  の直近営業日別売上。正確な数値は下の表で確認できます。
-                </title>
-                <polyline points={points} pathLength="1" className="chart-line" />
-                {summary.days.map((day, index) => (
-                  <g key={day.date}>
-                    <circle cx={x(index)} cy={y(day.sales)} r="4" className="chart-point">
-                      <title>
-                        {day.date}: {yen(day.sales)}
-                      </title>
-                    </circle>
-                    <text x={x(index)} y="325" textAnchor="middle">
-                      {day.date.slice(5)}
-                    </text>
-                  </g>
-                ))}
-              </svg>
+              <SalesTrendChart days={summary.days} formatValue={yen} />
               <CollapsibleTable
-                defaultExpanded
+                scrollAllRows
+                containerClassName="table-scroll store-sales-table-scroll"
                 caption="DBに保存された営業日別データ（税込・円）"
                 head={
                   <tr>

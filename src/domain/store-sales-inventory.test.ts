@@ -37,4 +37,26 @@ describe("店舗売上・在庫の対象と検索", () => {
       filterInventoryRows(rows, products, departments, "日配売場").map((row) => row.id),
     ).toEqual(["stock-2"]);
   });
+
+  it("品目、種別、業者を組み合わせて在庫行を絞り込む", () => {
+    const rows: DataRecord[] = [
+      { id: "stock-1", product_id: "product-1", supplier_name: "青果卸A" },
+      { id: "stock-2", product_id: "product-2", supplier_name: "日配卸B" },
+    ];
+    const products: DataRecord[] = [
+      { id: "product-1", code: "A-001", name: "りんご", category_code: "青果" },
+      { id: "product-2", code: "B-002", name: "牛乳", category_code: "日配" },
+    ];
+
+    expect(
+      filterInventoryRows(rows, products, [], {
+        item: "りんご",
+        category: "青果",
+        supplier: "青果卸A",
+      }).map((row) => row.id),
+    ).toEqual(["stock-1"]);
+    expect(
+      filterInventoryRows(rows, products, [], { supplier: "日配卸B" }).map((row) => row.id),
+    ).toEqual(["stock-2"]);
+  });
 });

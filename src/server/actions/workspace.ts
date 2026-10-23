@@ -6,6 +6,7 @@ import { identity, repository } from "@/server/container";
 import { activeSession, requireRoles } from "@/server/auth/session";
 import { date, integer, japanDateTime, parseMaster, text, uuid } from "@/server/validation";
 import { runConfiguredIntegrations } from "@/server/integrations/run";
+import { deviceToken } from "@/server/auth/store-context";
 import type { ActionResult, Json, Resource } from "@/domain/contracts";
 
 function message(error: unknown) {
@@ -51,7 +52,7 @@ export async function executeOperation(
       const session = await identity().session();
       if (!session?.active) throw new Error("ログインしてください。");
       if (session.mustChangePassword) throw new Error("パスワードを変更してください。");
-    } else {
+    } else if (operation !== "requestCorrection") {
       await activeSession();
     }
     const repo = repository();
@@ -63,15 +64,26 @@ export async function executeOperation(
           p_sales_day_id: uuid(data.get("salesDayId")),
         });
         break;
-      case "requestCorrection":
-        await requireRoles(["store_manager"]);
+      case "requestCorrection": {
         if (data.get("confirm") !== "true") throw new Error("変更前後を確認してください。");
-        await repo.execute("requestCorrection", {
-          p_sales_day_id: uuid(data.get("salesDayId")),
-          p_reason: text(data.get("reason"), 500),
-          p_after_amount_yen: integer(data.get("amount")),
-        });
+        const salesDayId = uuid(data.get("salesDayId"));
+        const reason = text(data.get("reason"), 500);
+        const amount = integer(data.get("amount"));
+        const session = await identity().session();
+        const token = await deviceToken();
+        if (token) {
+          await repo.storeDeviceRequestCorrection(token, salesDayId, reason, amount);
+        } else if (session?.active && session.roles.includes("store_manager")) {
+          await repo.execute("requestCorrection", {
+            p_sales_day_id: salesDayId,
+            p_reason: reason,
+            p_after_amount_yen: amount,
+          });
+        } else {
+          throw new Error("店舗端末を登録してください。");
+        }
         break;
+      }
       case "approveCorrection": {
         await requireRoles(["area_manager", "store_operations"]);
         const approved = data.get("approved");
@@ -231,7 +243,7 @@ export async function executeOperation(
     return {
       success:
         operation === "requestCorrection"
-          ? "修正依頼を受け付けました。翌日以降の修正は承認担当へ通知し、最終承認後に売上へ反映します。"
+          ? "修正依頼を受け付けました。承認担当へ通知し、最終承認後に売上へ反映します。"
           : operation === "approveCorrection"
             ? "決定を保存し、次の承認担当または申請店舗へ通知しました。"
             : operation === "createUser"

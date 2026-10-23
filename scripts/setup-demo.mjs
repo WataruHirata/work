@@ -147,6 +147,34 @@ async function run() {
       category_code: "FOOD",
       promotion_eligibility: "excluded",
     },
+    {
+      code: "FIXTURE-V1-DELI",
+      name: "架空商品・彩り幕の内弁当",
+      tax_rate: 8,
+      category_code: "DELI",
+      promotion_eligibility: "eligible",
+    },
+    {
+      code: "FIXTURE-V1-DRINK",
+      name: "架空商品・国産緑茶500ml",
+      tax_rate: 8,
+      category_code: "DRINK",
+      promotion_eligibility: "eligible",
+    },
+    {
+      code: "FIXTURE-V1-FROZEN",
+      name: "架空商品・冷凍うどん",
+      tax_rate: 8,
+      category_code: "FROZEN",
+      promotion_eligibility: "eligible",
+    },
+    {
+      code: "FIXTURE-V1-DAIRY",
+      name: "架空商品・低温殺菌牛乳",
+      tax_rate: 8,
+      category_code: "DAIRY",
+      promotion_eligibility: "eligible",
+    },
   ];
   await insert(
     "products",
@@ -309,7 +337,7 @@ async function run() {
         Date.parse(`${date}T00:00:00+09:00`) + (hour * 60 + minute + 60) * 60000,
       ).toISOString();
       return Array.from({ length: 20 }, (_, receipt) =>
-        products.slice(0, 2).map((product, index) => ({
+        products.slice(0, 6).map((product, index) => ({
           store_code: store.code,
           department_code: "FIXTURE-FOOD",
           product_code: product.code,
@@ -365,7 +393,7 @@ async function run() {
       Date.parse(`${date}T00:00:00+09:00`) + (hour * 60 + minute) * 60000,
     ).toISOString();
     const rows = Array.from({ length: 5 }, (_, receipt) =>
-      products.slice(0, 2).map((product, index) => ({
+      products.slice(0, 6).map((product, index) => ({
         store_code: store.code,
         department_code: "FIXTURE-FOOD",
         product_code: product.code,

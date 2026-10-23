@@ -49,9 +49,9 @@ export function PreviewWorkspace({ feature }: { feature: PageId }) {
         </div>
         <p className="muted">データ連携後は、この一覧に担当範囲のデータ・処理結果を表示します。</p>
       </section>
-      {feature === "storeOperations" || feature === "approvals" ? (
+      {feature === "approvals" ? (
         <section className="page-panel">
-          <PreviewCorrections mode={feature === "approvals" ? "headquarters" : "store"} />
+          <PreviewCorrections mode="headquarters" />
         </section>
       ) : feature === "campaigns" || feature === "storeCampaigns" || feature === "storeNotices" ? (
         <section className="page-panel">

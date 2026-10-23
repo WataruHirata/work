@@ -74,9 +74,9 @@ export function safeAdminReturnPath(value?: string | null): string {
   if (!value || /[\\\s?#%]/.test(value)) return "/admin";
   if (
     [
-      "/store/sales-inventory",
+      "/store/sales",
+      "/store/inventory",
       "/store/orders",
-      "/store/operations",
       "/store/campaigns",
       "/store/notices",
       "/account/password",

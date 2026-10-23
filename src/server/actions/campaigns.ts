@@ -112,7 +112,9 @@ export async function updateCampaignProgressAction(
         : { ...input, p_task: task, p_completed: completed === "true" },
     );
     refresh();
-    return { success: "店舗作業の状態を保存しました。" };
+    return {
+      success: completed === "true" ? "対応完了を記録しました。" : "対応を未完了に戻しました。",
+    };
   } catch (error) {
     return { error: errorMessage(error) };
   }

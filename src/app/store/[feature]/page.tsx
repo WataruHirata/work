@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PageLayout } from "@/components/ui/page-layout";
 import { FeatureNotice } from "@/components/ui/feature-notice";
 import { uiConfig } from "@/config/ui";
@@ -9,7 +9,10 @@ import { DeviceWorkspace } from "@/components/store/device-workspace";
 import { DataWorkspace, type WorkspaceSearch } from "@/components/workspaces/data-workspace";
 import { CampaignWorkspace } from "@/components/campaigns/campaign-workspace";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
-import { StoreSalesInventoryWorkspace } from "@/components/store/store-sales-inventory-workspace";
+import {
+  StoreInventoryWorkspace,
+  StoreSalesWorkspace,
+} from "@/components/store/store-sales-inventory-workspace";
 
 export default async function StoreFeaturePage({
   params,
@@ -19,10 +22,12 @@ export default async function StoreFeaturePage({
   searchParams: Promise<WorkspaceSearch>;
 }) {
   const { feature } = await params;
+  if (feature === "sales-inventory") redirect("/store/sales");
   const page = uiConfig.navigation.find((id) => uiConfig.pages[id].href === `/store/${feature}`);
   if (!page) notFound();
+  if (page === "storeSales") return <StoreSalesWorkspace search={await searchParams} />;
+  if (page === "storeInventory") return <StoreInventoryWorkspace search={await searchParams} />;
   if (!backendConfigured()) return <PreviewWorkspace feature={page} />;
-  if (page === "storeSales") return <StoreSalesInventoryWorkspace search={await searchParams} />;
   if (backendConfigured()) {
     const session = await identity().session();
     if (session?.active)

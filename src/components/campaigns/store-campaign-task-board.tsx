@@ -132,7 +132,7 @@ function FilteredTaskColumn({
               {item.instructionId && !item.completed && (
                 <InstructionConfirmation instructionId={item.instructionId} storeId={storeId} />
               )}
-              {item.campaignItemId && item.task && (
+              {item.campaignItemId && item.task && !item.completed && (
                 <ProgressAction
                   campaignItemId={item.campaignItemId}
                   storeId={storeId}
@@ -302,7 +302,7 @@ export function StoreCampaignTaskBoard({
         </div>
       </header>
       <div className="store-campaign-task-columns">
-        <FilteredTaskColumn title="価格変更指示" items={pending} storeId={storeId} />
+        <FilteredTaskColumn title="要対応" items={pending} storeId={storeId} />
         <FilteredTaskColumn title="対応済み" items={completed} storeId={storeId} />
       </div>
     </section>

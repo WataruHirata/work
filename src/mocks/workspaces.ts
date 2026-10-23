@@ -100,23 +100,6 @@ export const previewSpecs: Partial<Record<PageId, PreviewSpec>> = {
       ),
     ],
   },
-  storeOperations: {
-    columns: ["対象業務", "対象金額"],
-    unit: "円",
-    action: "確認を記録",
-    nextStatus: "確認済み（デモ）",
-    creatable: true,
-    rows: [
-      row("B-001", "当日の売上確認", 960000, "締め前", "日次確定前に売上と客数を確認"),
-      row(
-        "B-002",
-        "返品・売上修正の申請",
-        1200,
-        "申請内容確認",
-        "返品理由・対象伝票・操作者の確認が必要",
-      ),
-    ],
-  },
   monthly: {
     columns: ["対象月", "月間売上"],
     unit: "円",

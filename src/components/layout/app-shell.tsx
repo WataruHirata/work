@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import {
   ArrowRight,
-  ClipboardCheck,
+  LayoutDashboard,
   LogIn,
   Package,
   PanelLeftClose,
@@ -23,9 +23,10 @@ import { logout } from "@/server/actions/auth";
 import { resolveSwipeAction } from "@/components/layout/swipe-gesture";
 
 const icons = {
+  dashboard: LayoutDashboard,
   storeSales: TrendingUp,
+  storeInventory: Package,
   storeOrders: ShoppingBasket,
-  storeOperations: ClipboardCheck,
   storeCampaigns: Package,
   storeNotices: Bell,
 };
@@ -33,10 +34,12 @@ const icons = {
 export function AppShell({
   children,
   stationConnected,
+  adminEntryState,
   storeNotifications,
 }: {
   children: ReactNode;
   stationConnected: boolean;
+  adminEntryState: "anonymous" | "select-role" | "ready";
   storeNotifications?: ReactNode;
 }) {
   const pathname = usePathname();
@@ -210,12 +213,21 @@ export function AppShell({
           })}
         </nav>
         <div className="sidebar-bottom">
-          <Link className="support-card" href="/login?next=%2Fadmin">
+          <Link
+            className="support-card"
+            href={adminEntryState === "ready" ? "/admin" : "/login?next=%2Fadmin"}
+          >
             <span className="support-icon">
               <LogIn size={18} />
             </span>
             <span>
-              <strong>権限機能にログイン</strong>
+              <strong>
+                {adminEntryState === "ready"
+                  ? "管理メニューへ"
+                  : adminEntryState === "select-role"
+                    ? "利用する権限を選択"
+                    : "権限機能にログイン"}
+              </strong>
             </span>
             <ArrowRight className="support-arrow" size={15} />
           </Link>
@@ -249,7 +261,7 @@ export function AppShell({
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      <div className="global-main" ref={mainRef}>
+      <div className={`global-main${pathname === "/" ? " store-portal-main" : ""}`} ref={mainRef}>
         {!admin && storeNotifications}
         <div
           className={`pull-refresh-indicator${pullDistance || refreshFeedback || isRefreshing ? " is-visible" : ""}`}
