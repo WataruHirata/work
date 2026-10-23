@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
+import { Activity, ShoppingBasket, TrendingUp, Wallet } from "@/components/ui/icons";
 import Link from "next/link";
 import { storeSummary } from "@/domain/store-summary";
 import type { Json } from "@/domain/contracts";

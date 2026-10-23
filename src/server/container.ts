@@ -7,6 +7,7 @@ import type {
 } from "@/domain/contracts";
 import { SupabaseRepository } from "@/infrastructure/supabase/adapter";
 import { SupabaseIntegrationStore } from "@/infrastructure/supabase/integration-store";
+import { createSupabaseServerClient } from "@/infrastructure/supabase/clients/server";
 import {
   LocalRepository,
   LocalIdentity,
@@ -43,6 +44,11 @@ export function identity(): IdentityProvider {
 export function integrationStore(): IntegrationJobStore {
   if (isMysqlProvider()) return new MysqlIntegrationStore();
   return isSupabaseProvider() ? new SupabaseIntegrationStore() : new LocalIntegrationStore();
+}
+export async function refreshCampaignTimingAlerts() {
+  if (!isSupabaseProvider()) return;
+  const client = await createSupabaseServerClient();
+  await client.rpc("refresh_campaign_timing_alerts");
 }
 export function integrationRuntime(): {
   transport: IntegrationTransport;

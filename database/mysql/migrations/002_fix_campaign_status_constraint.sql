@@ -53,4 +53,3 @@ ALTER TABLE campaigns
       'completed'
     )
   );
-  

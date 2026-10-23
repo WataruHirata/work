@@ -149,8 +149,8 @@ declare
   active_product_count integer;
   active_store_count integer;
 begin
-  if not public.has_role(array['product_office']::public.app_role[]) then
-    raise exception 'Only product office users can create campaigns';
+  if not public.has_role(array['product_office', 'information_systems']::public.app_role[]) then
+    raise exception 'Only campaign administrators can create campaigns';
   end if;
   if p_name is null or length(trim(p_name)) = 0 then
     raise exception 'Campaign name is required';
@@ -246,8 +246,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if not public.has_role(array['product_office']::public.app_role[]) then
-    raise exception 'Only product office users can publish campaigns';
+  if not public.has_role(array['product_office', 'information_systems']::public.app_role[]) then
+    raise exception 'Only campaign administrators can publish campaigns';
   end if;
   if exists (
     select 1

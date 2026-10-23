@@ -10,8 +10,7 @@ import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
 import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 import { hasAdminAccess } from "@/domain/access-policy";
-import { PageLayout } from "@/components/ui/page-layout";
-import { Tag } from "lucide-react";
+import { Tag } from "@/components/ui/icons";
 
 const timestamp = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
 
@@ -29,14 +28,34 @@ export async function CampaignWorkspace({
   if (!session?.active)
     redirect(`/login?next=${storeMode ? "/store/campaigns" : "/admin/campaigns"}`);
   if (session.mustChangePassword) redirect("/account/password");
-  const [allStores, products, campaigns, items, targets, tasks] = await Promise.all([
-    allRecords("stores"),
-    allRecords("products"),
-    allRecords("campaigns"),
-    allRecords("campaignItems"),
-    allRecords("campaignTargets"),
-    allRecords("campaignTasks"),
-  ]);
+  let records: DataRecord[][];
+  try {
+    records = await Promise.all([
+      allRecords("stores"),
+      allRecords("products"),
+      allRecords("campaigns"),
+      allRecords("campaignItems"),
+      allRecords("campaignTargets"),
+      allRecords("campaignTasks"),
+    ]);
+  } catch {
+    return (
+      <PageLayout page={storeMode ? "storeCampaigns" : "campaigns"}>
+        <FeatureNotice title="特売情報を読み込めませんでした">
+          データベース接続と特売用マイグレーションを確認して、再度お試しください。
+          <p>
+            <Link
+              className="ghost-button"
+              href={storeMode ? "/store/campaigns" : "/admin/campaigns"}
+            >
+              再読み込み
+            </Link>
+          </p>
+        </FeatureNotice>
+      </PageLayout>
+    );
+  }
+  const [allStores, products, campaigns, items, targets, tasks] = records;
   const stores =
     storeMode && !hasAdminAccess(session.roles)
       ? allStores.filter((store) => (session.storeIds ?? []).includes(store.id))

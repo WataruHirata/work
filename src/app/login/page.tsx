@@ -1,4 +1,4 @@
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "@/components/ui/icons";
 import { LoginForm } from "@/components/auth/login-form";
 import { PageLayout } from "@/components/ui/page-layout";
 import Link from "next/link";

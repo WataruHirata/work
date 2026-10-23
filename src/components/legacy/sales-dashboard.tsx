@@ -16,7 +16,7 @@ import {
   Sun,
   Store,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { CollapsibleTable } from "@/components/ui/collapsible-table";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";

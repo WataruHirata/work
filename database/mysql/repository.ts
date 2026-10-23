@@ -407,6 +407,7 @@ export class MysqlRepository implements BusinessRepository {
       case "publishCampaign":
       case "confirmCampaign":
       case "updateCampaignTask":
+      case "approveCampaignWork":
       case "changeCampaignEligibility": {
         return mysqlTransaction((db) => executeMysqlCampaign(db, session, command, input));
       }
@@ -598,7 +599,7 @@ export class MysqlRepository implements BusinessRepository {
       [storeId],
     );
     const [campaigns] = await mysqlPool().execute<RowDataPacket[]>(
-      "SELECT c.id,c.name,c.starts_at,c.ends_at,c.status FROM campaigns c JOIN campaign_store_targets t ON t.campaign_id=c.id WHERE t.store_id=? AND c.status<>'draft' AND NOT EXISTS (SELECT 1 FROM campaign_items i WHERE i.campaign_id=c.id AND i.eligibility_status<>'eligible') ORDER BY c.starts_at DESC LIMIT 50",
+      "SELECT c.id,c.name,p.code AS product_code,p.name AS product_name,i.price_yen,c.starts_at,c.ends_at,c.status,task.pos_promotion_status,task.price_label_changed_at,task.work_approved_at FROM campaigns c JOIN campaign_store_targets target ON target.campaign_id=c.id JOIN campaign_items i ON i.campaign_id=c.id JOIN products p ON p.id=i.product_id JOIN campaign_item_store_tasks task ON task.campaign_item_id=i.id AND task.store_id=target.store_id WHERE target.store_id=? AND c.status<>'draft' AND NOT EXISTS (SELECT 1 FROM campaign_items blocked WHERE blocked.campaign_id=c.id AND blocked.eligibility_status<>'eligible') ORDER BY c.starts_at DESC,p.code LIMIT 500",
       [storeId],
     );
     const [notices] = await mysqlPool().execute<RowDataPacket[]>(

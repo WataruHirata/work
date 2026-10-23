@@ -4,7 +4,7 @@ import { filterCampaigns } from "@/domain/campaign-list";
 import { useActionState, useState, type ReactNode } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
-import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "@/components/ui/icons";
 import {
   createCampaignDraftAction,
   publishCampaignDraftAction,
@@ -46,6 +46,7 @@ type CampaignView = {
   }[];
 };
 type Props = {
+  instructionPanel?: ReactNode;
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
@@ -395,6 +396,7 @@ function eligibilityLabel(value: string) {
 }
 
 export function CampaignManagement({
+  instructionPanel,
   isConfigured,
   canManage,
   canRecordStoreWork = false,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
+import { Activity, ShoppingBasket, TrendingUp, Wallet } from "@/components/ui/icons";
 import { StateBadge } from "@/components/ui/state-badge";
 import { CollapsibleTable } from "@/components/ui/collapsible-table";
 

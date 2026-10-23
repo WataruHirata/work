@@ -36,7 +36,6 @@
 
 ## 技術基盤
 
-
 初期実装はNext.js App Router、TypeScript、Node.js 22、Supabase PostgreSQL、Vercelを使う（[ADR-0001](./docs/adr/0001-platform.md)）。依存パッケージを追加・更新した場合はlockfileも更新する。DB変更はSupabase CLIの版管理マイグレーションを使用する。
 
 Supabaseの `service_role` key、アクセストークン、DBパスワードはサーバーやGitHub Environment以外に露出させない。ブラウザには公開可能なSupabase URL/anon keyだけを用い、RLSを無効化しない。

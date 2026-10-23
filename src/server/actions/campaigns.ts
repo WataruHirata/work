@@ -30,7 +30,7 @@ export async function createCampaignDraftAction(
   data: FormData,
 ): Promise<CampaignActionState> {
   try {
-    await requireRoles(["product_office"]);
+    await requireRoles(["product_office", "information_systems"]);
     const raw: unknown = JSON.parse(String(data.get("items")));
     if (!Array.isArray(raw) || !raw.length) throw new Error("特売商品を指定してください。");
     const items = raw.map((line: { productId?: unknown; priceYen?: unknown }) => ({
@@ -65,7 +65,7 @@ export async function publishCampaignDraftAction(
   data: FormData,
 ): Promise<CampaignActionState> {
   try {
-    await requireRoles(["product_office"]);
+    await requireRoles(["product_office", "information_systems"]);
     if (data.get("confirmed") !== "true")
       throw new Error("期間・商品・価格・対象店舗を確認してください。");
     await repository().execute("publishCampaign", {
@@ -113,6 +113,25 @@ export async function updateCampaignProgressAction(
     );
     refresh();
     return { success: "店舗作業の状態を保存しました。" };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+export async function approveCampaignWorkAction(
+  _previous: CampaignActionState,
+  data: FormData,
+): Promise<CampaignActionState> {
+  try {
+    await requireRoles(["product_office", "information_systems"]);
+    if (data.get("confirmed") !== "true")
+      throw new Error("店舗のPOS価格と商品値札の完了を確認してください。");
+    await repository().execute("approveCampaignWork", {
+      p_campaign_item_id: uuid(data.get("campaignItemId")),
+      p_store_id: uuid(data.get("storeId")),
+    });
+    refresh();
+    return { success: "店舗作業を承認しました。" };
   } catch (error) {
     return { error: errorMessage(error) };
   }
