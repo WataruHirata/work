@@ -1,12 +1,12 @@
 "use client";
 
 import { filterCampaigns } from "@/domain/campaign-list";
+import { campaignFormDemoStores } from "@/config/ui";
 import { useActionState, useState, type ReactNode } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
-import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "@/components/ui/icons";
+import { ArrowRight, Check, CircleAlert, Plus, Tag } from "@/components/ui/icons";
 import {
-  createCampaignDraftAction,
   publishCampaignDraftAction,
   updateCampaignProgressAction,
   type CampaignActionState,
@@ -184,7 +184,7 @@ function CampaignDraftForm({
   stores: StoreOption[];
   products: ProductOption[];
 }) {
-  const [state, action, pending] = useActionState(createCampaignDraftAction, initialActionState);
+  const [sent, setSent] = useState(false);
   const [items, setItems] = useState<DraftItem[]>([
     { productId: products[0]?.id ?? "", priceYen: "" },
   ]);
@@ -215,14 +215,21 @@ function CampaignDraftForm({
   const canSubmit =
     stores.length > 0 && products.length > 0 && selectedStores.length > 0 && !hasDuplicateProducts;
   return (
-    <details className="campaign-create-panel" open>
-      <summary>
+    <section className="campaign-create-panel" aria-labelledby="campaign-form-title">
+      <div className="campaign-create-heading">
         <span>
           <Plus size={16} /> POS・商品値札の変更依頼を作成
         </span>
-        <ChevronDown size={15} aria-hidden="true" />
-      </summary>
-      <form action={action} className="campaign-create-form">
+        <small>商品・期間・価格・対象店舗を順番に入力してください</small>
+      </div>
+      <form
+        className="campaign-create-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setSent(true);
+        }}
+        onChange={() => setSent(false)}
+      >
         <label className="campaign-field">
           <span>指示名</span>
           <input name="name" placeholder="例：秋の青果フェア" required />
@@ -358,26 +365,18 @@ function CampaignDraftForm({
           ) : null}
         </section>
 
-        {state.error ? (
-          <p className="campaign-form-message error-message" role="alert">
-            {state.error}
-          </p>
-        ) : null}
-        {state.success ? (
+        {sent ? (
           <p className="campaign-form-message success-message" role="status">
-            {state.success}
+            送信されました
           </p>
         ) : null}
         <div className="campaign-create-footer">
-          <span>
-            保存後に商品区分と送信内容を確認し、店舗のお知らせへPOS・商品値札の変更依頼を送ります。
-          </span>
-          <button type="submit" className="campaign-save-button" disabled={!canSubmit || pending}>
-            {pending ? "保存中…" : "下書き保存"}
+          <button type="submit" className="campaign-save-button" disabled={!canSubmit}>
+            店舗へ送信
           </button>
         </div>
       </form>
-    </details>
+    </section>
   );
 }
 
@@ -420,6 +419,28 @@ export function CampaignManagement({
   );
   const visibleCampaigns = showAllCampaigns ? filteredCampaigns : filteredCampaigns.slice(0, 8);
 
+  if (!basePath.startsWith("/store")) {
+    const demoCodes = new Set<string>(campaignFormDemoStores.map((store) => store.code));
+    const formStores = [
+      ...campaignFormDemoStores,
+      ...stores.filter(
+        (store) => (!store.status || store.status === "active") && !demoCodes.has(store.code),
+      ),
+    ];
+    return (
+      <div className="campaign-page campaign-form-only">
+        <section className="campaign-form-shell" aria-labelledby="campaign-form-title">
+          <header className="campaign-form-intro">
+            <span className="campaign-flow-label">特売指示フォーム</span>
+            <h2 id="campaign-form-title">店舗へ送る特売内容を入力</h2>
+            <p>必要な項目を上から入力し、最後に対象店舗を選んで送信してください。</p>
+          </header>
+          <CampaignDraftForm stores={formStores} products={products} />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="campaign-page">
       <div className="campaign-content">
@@ -439,7 +460,7 @@ export function CampaignManagement({
         ) : null}
 
         {!canManage && instructionPanel}
-        {isConfigured && canManage ? (
+        {!basePath.startsWith("/store") ? (
           <div className="campaign-flow-rail">
             <div className="campaign-flow-row">
               <div className="campaign-flow-header">

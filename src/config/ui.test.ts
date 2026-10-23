@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { responsiveStyles, stateTone, uiConfig } from "@/config/ui";
+import { campaignFormDemoStores, responsiveStyles, stateTone, uiConfig } from "@/config/ui";
 import { existsSync } from "node:fs";
 
 describe("UI共通設定（AT-03 / AT-10 の表示・操作基盤）", () => {
+  it("特売フォームにREADME記載の仮店舗をすべて表示する", () => {
+    expect(campaignFormDemoStores.map((store) => store.code)).toEqual([
+      "DEMO-001",
+      "DEMO-002",
+      "DEMO-003",
+    ]);
+    expect(campaignFormDemoStores.map((store) => store.name)).toEqual(["中央店", "駅前店", "港店"]);
+  });
   it("全ページとナビゲーションが実在するTSX画面を参照する", () => {
     const routes = Object.values(uiConfig.pages).map(({ href }) => href);
     expect(new Set(routes).size).toBe(routes.length);

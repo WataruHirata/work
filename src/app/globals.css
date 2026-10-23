@@ -2693,10 +2693,61 @@ textarea:focus-visible {
   background: var(--surface);
   box-shadow: 0 var(--size-2px) var(--size-8px) var(--color-mix-2);
 }
-.campaign-create-panel > summary {
+.campaign-create-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   color: var(--green-dark);
   font-weight: 800;
-  cursor: pointer;
+}
+.campaign-create-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-emphasis);
+}
+.campaign-create-heading small {
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+.campaign-form-only {
+  display: grid;
+  place-items: start center;
+}
+.campaign-form-shell {
+  display: grid;
+  width: min(100%, var(--size-960px));
+  gap: var(--space-4);
+}
+.campaign-form-intro {
+  padding: var(--space-2) var(--space-1) 0;
+}
+.campaign-form-intro h2 {
+  margin: var(--space-1) 0;
+  color: var(--text-strong);
+  font-size: clamp(var(--font-size-section-title), 3vw, var(--font-size-page-title));
+  letter-spacing: -0.03em;
+}
+.campaign-form-intro p {
+  margin: 0;
+  color: var(--text-subtle);
+  line-height: 1.7;
+}
+.campaign-form-only .campaign-create-panel {
+  padding: clamp(var(--space-3), 3vw, var(--space-5));
+  box-shadow: 0 var(--size-8px) var(--size-30px) rgba(23, 103, 79, 0.1);
+}
+.campaign-form-only .campaign-form-section {
+  padding: var(--space-3);
+}
+.campaign-form-only .campaign-create-footer {
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--size-1px) solid var(--border);
+}
+.campaign-form-only .campaign-save-button {
+  min-width: var(--size-160px);
 }
 .campaign-create-form {
   margin-top: var(--size-16px);
@@ -2928,6 +2979,14 @@ textarea:focus-visible {
   .campaign-datetime-grid,
   .campaign-store-picker {
     grid-template-columns: 1fr;
+  }
+  .campaign-create-heading,
+  .campaign-form-only .campaign-create-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .campaign-form-only .campaign-save-button {
+    width: 100%;
   }
 }
 @media (max-width: 480px) {
