@@ -40,8 +40,13 @@ try {
       .catch(() => undefined);
     if (new URL(page.url()).pathname === "/login") {
       const message =
-        (await page.locator('[role="alert"]').first().textContent().catch(() => null))?.trim() ||
-        "ログイン後の遷移を確認できませんでした。";
+        (
+          await page
+            .locator('[role="alert"]')
+            .first()
+            .textContent()
+            .catch(() => null)
+        )?.trim() || "ログイン後の遷移を確認できませんでした。";
       await page.screenshot({ path: join(artifactDir, "login-failed.png"), fullPage: true });
       throw new Error(`デモアカウントでログインできません: ${message}`);
     }

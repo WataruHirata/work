@@ -167,6 +167,7 @@ export const uiConfig = {
     "--warning": "#9b5c13",
     "--warning-soft": "#fff1d8",
     "--focus": "#287fb0",
+    "--link": "#17664f",
     "--font-size-caption": "13px",
     "--font-size-label": "14px",
     "--font-size-body": "15px",

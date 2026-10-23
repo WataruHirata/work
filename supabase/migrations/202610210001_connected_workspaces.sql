@@ -189,7 +189,7 @@ begin
     'store',(select jsonb_build_object('id',id,'code',code,'name',name) from public.stores where id=v_store),
     'sales',coalesce((select jsonb_agg(to_jsonb(day)) from(select id,business_date,status,net_sales_yen,customer_count from public.sales_days where store_id=v_store order by business_date desc limit 31) day),'[]'::jsonb),
     'inventory',coalesce((select jsonb_agg(to_jsonb(stock)) from(select p.code,p.name,i.quantity,i.observed_at from public.inventory_snapshots i join public.products p on p.id=i.product_id where i.store_id=v_store order by p.code limit 500) stock),'[]'::jsonb),
-    'campaigns',coalesce((select jsonb_agg(to_jsonb(promo)) from(select c.id,c.name,c.starts_at,c.ends_at,c.status from public.campaigns c join public.campaign_store_targets t on t.campaign_id=c.id where t.store_id=v_store and c.status<>'draft' and not exists(select 1 from public.campaign_items i where i.campaign_id=c.id and i.eligibility_status<>'eligible') order by c.starts_at desc limit 50) promo),'[]'::jsonb),
+    'campaigns',coalesce((select jsonb_agg(to_jsonb(promo)) from(select c.id,c.name,p.code product_code,p.name product_name,i.price_yen,c.starts_at,c.ends_at,c.status,task.pos_promotion_status,task.price_label_changed_at,task.work_approved_at from public.campaigns c join public.campaign_store_targets target on target.campaign_id=c.id join public.campaign_items i on i.campaign_id=c.id join public.products p on p.id=i.product_id join public.campaign_item_store_tasks task on task.campaign_item_id=i.id and task.store_id=target.store_id where target.store_id=v_store and c.status<>'draft' and not exists(select 1 from public.campaign_items blocked where blocked.campaign_id=c.id and blocked.eligibility_status<>'eligible') order by c.starts_at desc,p.code limit 500) promo),'[]'::jsonb),
     'notices',coalesce((select jsonb_agg(to_jsonb(notice)) from(select id,title,message,created_at from public.store_announcements where store_id=v_store order by created_at desc limit 100) notice),'[]'::jsonb),
     'orders',coalesce((select jsonb_agg(to_jsonb(item)) from(select id,order_date,requested_delivery_date,status from public.orders where store_id=v_store order by created_at desc limit 50) item),'[]'::jsonb),
     'departments',coalesce((select jsonb_agg(to_jsonb(summary)) from(select department.name,sum(line.amount_yen) sales from public.sales_lines line join public.sales_days day on day.id=line.sales_day_id join public.store_departments department on department.id=line.department_id where day.store_id=v_store and day.business_date=(select max(business_date) from public.sales_days where store_id=v_store) group by department.id,department.name) summary),'[]'::jsonb)
@@ -200,7 +200,7 @@ end; $$;
 create or replace function public.verify_campaign_product(p_campaign_item_id uuid)
 returns void language plpgsql security definer set search_path='' as $$
 begin
-  if not public.has_role(array['product_office']::public.app_role[]) then raise insufficient_privilege; end if;
+  if not public.has_role(array['product_office', 'information_systems']::public.app_role[]) then raise insufficient_privilege; end if;
   update public.campaign_items item set eligibility_status=product.promotion_eligibility
   from public.products product,public.campaigns campaign
   where item.id=p_campaign_item_id and product.id=item.product_id and campaign.id=item.campaign_id and campaign.status='draft';

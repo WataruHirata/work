@@ -9,7 +9,7 @@ import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
 import { hasAdminAccess } from "@/domain/access-policy";
-import { Tag } from "lucide-react";
+import { Tag } from "@/components/ui/icons";
 
 const timestamp = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
 
@@ -27,7 +27,7 @@ export async function CampaignWorkspace({
   if (!session?.active)
     redirect(`/login?next=${storeMode ? "/store/campaigns" : "/admin/campaigns"}`);
   if (session.mustChangePassword) redirect("/account/password");
-  let records: Awaited<ReturnType<typeof allRecords>>[];
+  let records: DataRecord[][];
   try {
     records = await Promise.all([
       allRecords("stores"),
@@ -43,7 +43,9 @@ export async function CampaignWorkspace({
       <PageLayout page={storeMode ? "storeCampaigns" : "campaigns"}>
         <FeatureNotice title="特売情報を読み込めませんでした">
           データベース接続と特売用マイグレーションを確認し、
-          <Link href={href}>再試行してください</Link>。
+          <Link className="ghost-button" href={href}>
+            再読み込み
+          </Link>
         </FeatureNotice>
       </PageLayout>
     );

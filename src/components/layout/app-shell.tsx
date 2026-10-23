@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Bell,
   RefreshCw,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { uiConfig } from "@/config/ui";
 import { isAdminPath } from "@/domain/access-policy";
 import { disconnectStation } from "@/server/actions/station";

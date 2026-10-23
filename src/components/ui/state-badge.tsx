@@ -1,3 +1,5 @@
+"use client";
+
 import { stateLabels, stateTone, type StateTone } from "@/config/ui";
 import Chip from "@mui/material/Chip";
 

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useRef, type ReactNode } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X } from "@/components/ui/icons";
 
 export function NotificationButton({
   unread,

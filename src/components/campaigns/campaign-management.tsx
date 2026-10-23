@@ -4,7 +4,7 @@ import { filterCampaigns } from "@/domain/campaign-list";
 import { useActionState, useState } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
-import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "@/components/ui/icons";
 import {
   createCampaignDraftAction,
   publishCampaignDraftAction,

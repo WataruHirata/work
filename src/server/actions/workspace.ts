@@ -186,7 +186,7 @@ export async function executeOperation(
         });
         break;
       case "verifyProduct":
-        await requireRoles(["product_office"]);
+        await requireRoles(["product_office", "information_systems"]);
         await repo.execute("changeCampaignEligibility", {
           p_campaign_item_id: uuid(data.get("itemId")),
         });
@@ -207,7 +207,7 @@ export async function executeOperation(
         break;
       }
       case "editCampaign": {
-        await requireRoles(["product_office"]);
+        await requireRoles(["product_office", "information_systems"]);
         const prices = [...data.entries()]
           .filter(([key]) => key.startsWith("price:"))
           .map(([key, value]) => ({
