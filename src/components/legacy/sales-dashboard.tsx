@@ -280,7 +280,7 @@ export function SalesDashboard() {
                   <line key={y} x1="40" x2="736" y1={y} y2={y} className="chart-gridline" />
                 ))}
                 <path d={area} className="chart-area" />
-                <polyline points={points} className="chart-line" />
+                <polyline points={points} pathLength="1" className="chart-line" />
                 {chartData.map((value, index) => (
                   <circle
                     key={`${period}-${index}`}

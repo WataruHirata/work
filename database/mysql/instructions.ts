@@ -1,5 +1,6 @@
 ﻿import "server-only";
 import { randomUUID } from "node:crypto";
+import { canAccessStoreByAssignment, type StoreRoleAssignment } from "./store-access";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import type { Json, Session } from "@/domain/contracts";
 import { integer, text, uuid } from "@/server/validation";
@@ -45,20 +46,23 @@ export async function executeMysqlInstruction(
     throw new Error("有効な個人アカウントでログインしてください。");
   const assignments = await rows(
     db,
-    "SELECT role,store_id FROM user_role_assignments WHERE user_id=? FOR SHARE",
+    "SELECT role,store_id,area_id FROM user_role_assignments WHERE user_id=? FOR SHARE",
     [session.userId],
   );
   if (command === "confirmInstruction") {
     const id = uuid(input.p_instruction_id),
       store = uuid(input.p_store_id);
+    const storeArea = (
+      await rows(db, "SELECT area_id FROM stores WHERE id=? FOR SHARE", [store])
+    )[0]?.area_id;
     if (
-      !assignments.some(
-        (row) =>
-          row.store_id === store &&
-          ["store_manager", "department_lead", "staff"].includes(String(row.role)),
+      !canAccessStoreByAssignment(
+        assignments as StoreRoleAssignment[],
+        store,
+        storeArea ? String(storeArea) : null,
       )
     )
-      throw new Error("担当店舗の権限が必要です。");
+      throw new Error("対象店舗へのアクセス範囲がありません。");
     const target = (
       await rows(
         db,

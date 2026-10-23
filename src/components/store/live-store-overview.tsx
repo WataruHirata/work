@@ -122,7 +122,7 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
                   {summary.storeName}
                   の直近営業日別売上。正確な数値は下の表で確認できます。
                 </title>
-                <polyline points={points} className="chart-line" />
+                <polyline points={points} pathLength="1" className="chart-line" />
                 {summary.days.map((day, index) => (
                   <g key={day.date}>
                     <circle cx={x(index)} cy={y(day.sales)} r="4" className="chart-point">
@@ -137,6 +137,7 @@ export function LiveStoreOverview({ snapshot }: { snapshot: Record<string, Json>
                 ))}
               </svg>
               <CollapsibleTable
+                defaultExpanded
                 caption="DBに保存された営業日別データ（税込・円）"
                 head={
                   <tr>

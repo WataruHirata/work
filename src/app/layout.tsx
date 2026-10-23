@@ -7,6 +7,7 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { AppProviders } from "./providers";
 import "./globals.css";
 import { stationCookie } from "@/server/auth/store-context";
+import { StoreAnnouncements } from "@/components/notifications/store-announcements";
 
 export const metadata: Metadata = {
   title: uiConfig.brand.title,
@@ -24,7 +25,12 @@ export default async function RootLayout({
       <body>
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <AppProviders>
-            <AppShell stationConnected={stationConnected}>{children}</AppShell>
+            <AppShell
+              stationConnected={stationConnected}
+              storeNotifications={<StoreAnnouncements />}
+            >
+              {children}
+            </AppShell>
             <style>{responsiveStyles}</style>
           </AppProviders>
         </AppRouterCacheProvider>

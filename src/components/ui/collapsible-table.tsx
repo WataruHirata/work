@@ -16,14 +16,16 @@ export function CollapsibleTable({
   children,
   className = "data-table",
   containerClassName = "workspace-table",
+  defaultExpanded = false,
 }: {
   caption?: ReactNode;
   head: ReactNode;
   children: ReactNode;
   className?: string;
   containerClassName?: string;
+  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const rowGroupId = useId();
   const rows = Children.toArray(children);
   const canExpand = rows.length > COLLAPSED_ROW_COUNT;

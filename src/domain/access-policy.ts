@@ -3,7 +3,6 @@ export const adminFeatures = [
   "sales",
   "products",
   "campaigns",
-  "orders",
   "approvals",
   "monthly",
   "stores",
@@ -39,7 +38,7 @@ export const adminMenuFeatures = adminFeatures.filter((feature) => feature !== "
 
 const roleFeatures: Record<string, readonly AdminFeature[]> = {
   area_manager: ["sales", "products", "campaigns", "approvals"],
-  store_operations: ["sales", "products", "campaigns", "orders", "approvals"],
+  store_operations: ["sales", "products", "campaigns", "approvals"],
   accounting: ["sales", "approvals", "monthly"],
   product_office: ["sales", "products", "campaigns"],
   information_systems: ["stores", "imports", "users", "audit"],

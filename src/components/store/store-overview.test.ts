@@ -13,14 +13,15 @@ describe("店舗概況（FR-005/006・AT-03/10 表示基盤）", () => {
     expect(html).not.toContain("href=");
   });
 
-  it("日次表は初期3件に折りたたみ、全件表示と集計を維持する", () => {
+  it("ポータルの売上推移は初期状態で全件を表示し、集計も維持する", () => {
     const html = renderToStaticMarkup(createElement(StoreOverview));
     const table = html.match(/<tbody[^>]*>(.*?)<\/tbody>/)?.[1] ?? "";
     const amounts = [...table.matchAll(/<td>¥([\d,]+)<\/td>/g)].map((match) =>
       Number(match[1].replaceAll(",", "")),
     );
-    expect(amounts).toHaveLength(3);
-    expect(html).toContain("全件表示");
+    expect(amounts).toHaveLength(7);
+    expect(html).toContain('details class="store-data" open=""');
+    expect(html).toContain("閉じる");
     expect(html).toContain("¥6,528,000");
     expect(html).toContain("¥1,200");
     const departments = html.match(/<ul class="department-list">(.*?)<\/ul>/)?.[1] ?? "";

@@ -1,6 +1,7 @@
 ﻿import "server-only";
 import { campaignChangeRequest } from "@/domain/campaign-notice";
 import { randomUUID } from "node:crypto";
+import { canAccessStoreByAssignment, type StoreRoleAssignment } from "./store-access";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import type { Json, Session } from "@/domain/contracts";
 import { integer, text, uuid } from "@/server/validation";
@@ -87,7 +88,7 @@ export async function executeMysqlCampaign(
     throw new Error("有効な個人アカウントでログインしてください。");
   const assignments = await rows(
     db,
-    "SELECT role,store_id FROM user_role_assignments WHERE user_id=? FOR SHARE",
+    "SELECT role,store_id,area_id FROM user_role_assignments WHERE user_id=? FOR SHARE",
     [session.userId],
   );
   const storeOperation = command === "confirmCampaign" || command === "updateCampaignTask";
@@ -354,14 +355,17 @@ export async function executeMysqlCampaign(
 
   const storeId = uuid(input.p_store_id),
     itemId = uuid(input.p_campaign_item_id);
+  const storeArea = (
+    await rows(db, "SELECT area_id FROM stores WHERE id=? FOR SHARE", [storeId])
+  )[0]?.area_id;
   if (
-    !assignments.some(
-      (row) =>
-        row.store_id === storeId &&
-        ["store_manager", "department_lead", "staff"].includes(String(row.role)),
+    !canAccessStoreByAssignment(
+      assignments as StoreRoleAssignment[],
+      storeId,
+      storeArea ? String(storeArea) : null,
     )
   )
-    throw new Error("担当店舗の個人権限が必要です。");
+    throw new Error("対象店舗へのアクセス範囲がありません。");
   const item = (await rows(db, "SELECT campaign_id FROM campaign_items WHERE id=?", [itemId]))[0];
   if (!item) throw new Error("特売商品が見つかりません。");
   const campaign = (

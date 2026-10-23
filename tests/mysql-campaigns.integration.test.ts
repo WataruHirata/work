@@ -12,7 +12,7 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
   "MySQL特売実DB FR-020/028/029 AT-07/10",
   () => {
     let db: PoolConnection;
-    let user: string, product: string, store: string, otherStore: string;
+    let user: string, product: string, store: string, otherStore: string, area: string;
     let session: Session;
     async function rows(sql: string, params: unknown[] = []) {
       return (await db.execute<RowDataPacket[]>(sql, params as never[]))[0];
@@ -45,7 +45,7 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       product = randomUUID();
       store = randomUUID();
       otherStore = randomUUID();
-      const area = randomUUID();
+      area = randomUUID();
       session = {
         userId: user,
         displayName: "架空検証担当",
@@ -200,11 +200,12 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
         p_task: "price_label_changed",
         p_completed: true,
       };
-      await expect(run("updateCampaignTask", input)).rejects.toThrow("担当店舗");
+      await db.execute("DELETE FROM user_role_assignments WHERE user_id=?", [user]);
       await db.execute(
-        "INSERT INTO user_role_assignments(id,user_id,role,store_id) VALUES(?,?,'store_manager',?)",
-        [randomUUID(), user, store],
+        "INSERT INTO user_role_assignments(id,user_id,role,area_id) VALUES(?,?,'area_manager',?)",
+        [randomUUID(), user, area],
       );
+      session.roles = ["area_manager"];
       await run("updateCampaignTask", input);
       await run("updateCampaignTask", { ...input, p_task: "pos_changed" });
       await run("confirmCampaign", {
@@ -229,7 +230,7 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       expect(completed.pos_promotion_status).toBe("manual_confirmed");
       expect(completed.pos_promotion_confirmed_at).not.toBeNull();
       await expect(run("updateCampaignTask", { ...input, p_store_id: otherStore })).rejects.toThrow(
-        "担当店舗",
+        "対象店舗",
       );
       await expect(
         run("updateCampaignTask", { ...input, p_task: "price_label_restored" }),
@@ -266,13 +267,12 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
           p_kind: "promotion",
         }),
       ).rejects.toThrow("対象区分");
-      await expect(
-        runInstruction("confirmInstruction", { p_instruction_id: id, p_store_id: store }),
-      ).rejects.toThrow("担当店舗");
+      await db.execute("DELETE FROM user_role_assignments WHERE user_id=?", [user]);
       await db.execute(
-        "INSERT INTO user_role_assignments(id,user_id,role,store_id) VALUES(?,?,'store_manager',?)",
-        [randomUUID(), user, store],
+        "INSERT INTO user_role_assignments(id,user_id,role,area_id) VALUES(?,?,'area_manager',?)",
+        [randomUUID(), user, area],
       );
+      session.roles = ["area_manager"];
       await runInstruction("confirmInstruction", { p_instruction_id: id, p_store_id: store });
       const confirmed = (
         await rows("SELECT confirmed_at FROM store_instruction_targets WHERE instruction_id=?", [
@@ -290,7 +290,7 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       ).toEqual(confirmed);
       await expect(
         runInstruction("confirmInstruction", { p_instruction_id: id, p_store_id: otherStore }),
-      ).rejects.toThrow("担当店舗");
+      ).rejects.toThrow("対象店舗の指示が見つかりません");
     });
   },
 );

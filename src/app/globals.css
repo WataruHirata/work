@@ -577,6 +577,16 @@ textarea:focus-visible {
   font-weight: 800;
   letter-spacing: 0.12em;
 }
+.page-header-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-subtle);
+  font-size: var(--font-size-caption);
+}
+.page-header-meta p {
+  margin: 0;
+}
 .page-panel > h2 {
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-section-title);
@@ -790,8 +800,7 @@ button {
 .store-portal-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--size-16px);
+  gap: var(--space-3);
   width: 100%;
 }
 
@@ -1605,8 +1614,8 @@ button {
 @media (max-width: 700px) {
   .store-portal-header {
     align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
 
   .page-shell-custom-header .page-topbar {
@@ -3357,23 +3366,11 @@ table td {
 
 .motion-region > .content .page-panel,
 .motion-region > .content .panel {
-  animation: page-content-enter 360ms var(--motion-easing) both;
+  animation: page-content-enter 420ms var(--motion-easing) both;
 }
 
-.motion-region > .content .metrics-grid > :nth-child(1) {
-  animation-delay: 60ms;
-}
-
-.motion-region > .content .metrics-grid > :nth-child(2) {
-  animation-delay: 110ms;
-}
-
-.motion-region > .content .metrics-grid > :nth-child(3) {
-  animation-delay: 160ms;
-}
-
-.motion-region > .content .metrics-grid > :nth-child(4) {
-  animation-delay: 210ms;
+.metrics-grid > .metric-card {
+  animation: metric-card-enter 440ms var(--motion-easing) backwards;
 }
 
 .metrics-grid > :nth-child(1) {
@@ -3412,9 +3409,9 @@ table td {
 }
 
 .chart-line {
-  stroke-dasharray: 1800;
+  stroke-dasharray: 1;
   stroke-dashoffset: 0;
-  animation: infographic-line-draw 900ms var(--motion-easing) 100ms forwards;
+  animation: infographic-line-draw 900ms var(--motion-easing) 80ms both;
 }
 
 .chart-point {
@@ -3425,7 +3422,39 @@ table td {
 
 .progress-track span {
   transform-origin: left center;
-  animation: infographic-bar-grow 700ms var(--motion-easing) 120ms forwards;
+  animation: infographic-bar-grow 700ms var(--motion-easing) 120ms both;
+}
+
+.department-track span,
+.progress-track span {
+  transform-origin: left center;
+  animation: infographic-bar-grow 700ms var(--motion-easing) 180ms both;
+}
+
+.department-list li:nth-child(2) .department-track span {
+  animation-delay: 240ms;
+}
+
+.department-list li:nth-child(3) .department-track span {
+  animation-delay: 300ms;
+}
+
+.department-list li:nth-child(4) .department-track span {
+  animation-delay: 360ms;
+}
+
+.department-list li:nth-child(5) .department-track span {
+  animation-delay: 420ms;
+}
+
+.motion-region .dashboard-grid > .panel:nth-child(2),
+.motion-region .store-overview-grid > .panel:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.motion-region .dashboard-grid > .panel:nth-child(3),
+.motion-region .store-overview-grid > .panel:nth-child(3) {
+  animation-delay: 220ms;
 }
 
 @keyframes kinetic-type-enter {
@@ -3450,6 +3479,17 @@ table td {
   }
 }
 
+@keyframes metric-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes kinetic-value-enter {
   from {
     opacity: 0.55;
@@ -3463,7 +3503,7 @@ table td {
 
 @keyframes infographic-line-draw {
   from {
-    stroke-dashoffset: 1800;
+    stroke-dashoffset: 1;
   }
   to {
     stroke-dashoffset: 0;
@@ -3555,7 +3595,8 @@ table td {
   font-size: var(--font-size-section-title);
 }
 
-.admin-notification-toolbar {
+.admin-notification-toolbar,
+.store-notification-toolbar {
   display: flex;
   justify-content: flex-end;
   padding: var(--space-2) 0;

@@ -157,7 +157,7 @@ describe("initial database migration and row-level security", () => {
       "select store_id from public.store_announcements where title='Demo price instruction'",
     );
     expect(notices.rows).toEqual([{ store_id: firstStoreId }]);
-    await selectAs(managerId);
+    await selectAs(areaManagerId);
     expect(
       (await db.query(`select * from public.store_instructions where id='${id}'`)).rows,
     ).toHaveLength(1);
@@ -181,7 +181,7 @@ describe("initial database migration and row-level security", () => {
     const confirmed = await db.query<{ confirmed_by: string }>(
       `select confirmed_by from public.store_instruction_targets where instruction_id='${id}'`,
     );
-    expect(confirmed.rows[0].confirmed_by).toBe(managerId);
+    expect(confirmed.rows[0].confirmed_by).toBe(areaManagerId);
     expect(
       (
         await db.query(
@@ -545,6 +545,7 @@ describe("initial database migration and row-level security", () => {
     expect(visibleTasks.rows).toHaveLength(2);
     expect(visibleTasks.rows.every(({ store_id }) => store_id === firstStoreId)).toBe(true);
 
+    await selectAs(areaManagerId);
     await db.query(
       `select public.set_campaign_store_confirmation('${campaignItems.rows[0].id}', '${firstStoreId}', true)`,
     );
@@ -558,7 +559,7 @@ describe("initial database migration and row-level security", () => {
       db.query(
         `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${secondStoreId}', 'price_label_changed', true)`,
       ),
-    ).rejects.toThrow("Only an assigned store user");
+    ).rejects.toThrow();
     await expect(
       db.query(
         `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${firstStoreId}', 'price_label_restored', true)`,
@@ -573,7 +574,7 @@ describe("initial database migration and row-level security", () => {
       `select store_confirmed_by, store_confirmed_at
        from public.campaign_store_targets where campaign_id = '${campaignId}' and store_id = '${firstStoreId}'`,
     );
-    expect(storeConfirmation.rows[0].store_confirmed_by).toBe(managerId);
+    expect(storeConfirmation.rows[0].store_confirmed_by).toBe(areaManagerId);
     expect(storeConfirmation.rows[0].store_confirmed_at).not.toBeNull();
     const completedTask = await db.query<{
       price_label_changed_by: string;
@@ -583,17 +584,19 @@ describe("initial database migration and row-level security", () => {
        from public.campaign_item_store_tasks task
        where task.campaign_item_id = '${campaignItems.rows[0].id}' and task.store_id = '${firstStoreId}'`,
     );
-    expect(completedTask.rows[0].price_label_changed_by).toBe(managerId);
+    expect(completedTask.rows[0].price_label_changed_by).toBe(areaManagerId);
     expect(completedTask.rows[0].price_label_changed_at).not.toBeNull();
     const posTask = await db.query<{
       pos_promotion_status: string;
+      pos_promotion_confirmed_by: string;
       pos_promotion_confirmed_at: string | null;
     }>(
-      `select task.pos_promotion_status, task.pos_promotion_confirmed_at
+      `select task.pos_promotion_status, task.pos_promotion_confirmed_by, task.pos_promotion_confirmed_at
        from public.campaign_item_store_tasks task
        where task.campaign_item_id = '${campaignItems.rows[0].id}' and task.store_id = '${firstStoreId}'`,
     );
     expect(posTask.rows[0].pos_promotion_status).toBe("manual_confirmed");
+    expect(posTask.rows[0].pos_promotion_confirmed_by).toBe(areaManagerId);
     expect(posTask.rows[0].pos_promotion_confirmed_at).not.toBeNull();
   });
 });

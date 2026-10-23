@@ -18,6 +18,7 @@ const store = "20000000-0000-4000-8000-000000000001",
   otherStore = "20000000-0000-4000-8000-000000000002";
 const product = "51000000-0000-4000-8000-000000000001";
 const orderProduct = "51000000-0000-4000-8000-000000000002";
+const orderUser = "31000000-0000-4000-8000-000000000009";
 let db: PGlite, department: string;
 async function root() {
   await db.exec("reset role; select set_config('request.jwt.claim.sub','',false)");
@@ -53,6 +54,11 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
         [id, `Fictional ${name}`],
       );
     }
+    await db.query("insert into auth.users values($1,'synthetic-unusable-hash')", [orderUser]);
+    await db.query(
+      "insert into public.app_users(id,display_name,employee_code) values($1,'Fictional roleless order user','ORDER-ONLY')",
+      [orderUser],
+    );
     department = await scalar<string>(
       "select id as value from public.store_departments where store_id=$1 and code='DEMO-BAKERY'",
       [store],
@@ -133,7 +139,7 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
       "insert into public.product_prices(product_id,store_id,price_yen,valid_from) values($1,$2,198,now()-interval '1 day')",
       [orderProduct, store],
     );
-    await asUser(ids.product);
+    await asUser(orderUser);
     const args = [store, department, JSON.stringify(items), request];
     const sql =
       "select public.submit_store_order($1,$2,(now() at time zone 'Asia/Tokyo')::date+3,$3::jsonb,$4) as value";
