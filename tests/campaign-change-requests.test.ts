@@ -85,7 +85,7 @@ describe("特売公開の店舗通知 FR-020/028/029 AT-07/10", () => {
       );`);
       await db.exec(
         readFileSync(
-          "supabase/migrations/202610220002_store_campaign_task_confirmation.sql",
+          "supabase/migrations/202610230008_store_campaign_task_confirmation.sql",
           "utf8",
         ),
       );

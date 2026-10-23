@@ -32,7 +32,9 @@
 
 `.env.local` の `DATABASE_PROVIDER` を `mysql` から `supabase` へ変更した。Project URL、開発 Project ID、CLI のリンク先が `iocbljrapxlobvdcwqfx` で一致することを確認し、サーバー専用キーを用いた読み取り専用の API 接続で `stores` 3件を取得できた。資格情報は記録・表示していない。
 
-`npm run db:migrate:check` は成功したが、ローカルの12マイグレーションがリモートDBへ未適用だった。既存データを変更する `db push` は実行していないため、これらのマイグレーションに依存する機能は適用後に再検証が必要。
+初回の `npm run db:migrate` は、適用済みの `202610220001_campaign_change_requests.sql` と未適用ファイルの版番号重複により、履歴登録前にロールバックされた。未適用12件を既存の最大版番号より後の `202610230006`～`202610230017` へ依存順を保って改番し、再度dry-runを確認してから適用した。適用後の `npm run db:migrate:check` は未適用0件を返した。
+
+適用後も、架空のログイン利用者8件すべてのパスワード認証と、デモ店舗端末3件の匿名スナップショット照合に成功した。DB reset、既存データの削除、マイグレーション履歴の手動修復は行っていない。
 
 同日、架空のログイン利用者8件が有効で、各1件の役割割当を持つことを再照合した。Git対象外の `.env.demo-accounts.local` に保存した共通の初期パスワードで全8アカウントの実ログインに成功した。店舗端末は `npm run db:demo:devices` で3件すべて登録・匿名照合に成功し、コードはGit対象外の `.env.demo-devices.local` に保存した。
 

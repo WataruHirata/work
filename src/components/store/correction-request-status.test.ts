@@ -12,7 +12,7 @@ describe("店舗お知らせ画面", () => {
     );
     const action = readFileSync("src/server/actions/workspace.ts", "utf8");
     const migration = readFileSync(
-      "supabase/migrations/202610230002_store_device_sales_corrections.sql",
+      "supabase/migrations/202610230014_store_device_sales_corrections.sql",
       "utf8",
     );
 
