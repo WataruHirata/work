@@ -8,6 +8,7 @@ import { uiConfig, stateLabels } from "@/config/ui";
 import { requireAdminFeature } from "@/server/auth/admin-access";
 import { backendConfigured } from "@/server/container";
 import { averageSale } from "@/domain/sales-report";
+import { Activity, ShoppingBasket, TrendingUp, Wallet } from "@/components/ui/icons";
 
 export type { SalesSearch } from "@/server/queries/sales-report";
 const number = (value: bigint) => value.toLocaleString("ja-JP");
@@ -59,12 +60,23 @@ function SalesReportView({
     totals,
     byStore,
     byDate,
-    max,
     pageCount,
     page,
     pageHref,
     storeName,
   } = report;
+  const chartRows = byDate.filter((row) => row.net >= 0n);
+  const chartMax = chartRows.reduce((value, row) => (row.net > value ? row.net : value), 1n);
+  const chartX = (index: number) =>
+    chartRows.length > 1 ? 48 + (index * 604) / (chartRows.length - 1) : 350;
+  const chartY = (value: bigint) => 244 - Number((value * 186000n) / chartMax) / 1000;
+  const chartPoints = chartRows
+    .map((row, index) => `${chartX(index)},${chartY(row.net)}`)
+    .join(" ");
+  const chartArea = chartRows.length
+    ? `M ${chartPoints.replaceAll(" ", " L ")} L ${chartX(chartRows.length - 1)},244 L ${chartX(0)},244 Z`
+    : "";
+  const storeMax = byStore.reduce((value, row) => (row.net > value ? row.net : value), 1n);
   return (
     <PageLayout page="sales">
       <section className="page-panel">
@@ -122,26 +134,42 @@ function SalesReportView({
             </Link>
           </div>
         </form>
-        <p className="muted">
-          表示範囲：{rows.at(-1)?.date ?? "—"} ～ {rows[0]?.date ?? "—"} · {targetStores.length}
-          店舗 · {rows.length}件。金額は取込済みの純売上です。締め前の速報値を含みます。
-        </p>
       </section>
-      <section className="page-panel" aria-labelledby="sales-summary-heading">
-        <h2 id="sales-summary-heading">売上サマリー</h2>
-        <div className="sales-summary-grid">
-          {[
-            ["売上合計", yen(totals.net)],
-            ["客数", `${number(totals.customers)}人`],
-            ["客単価（円単位に四捨五入）", average(totals.net, totals.customers)],
-            ["締め前", `${totals.pending}件`],
-          ].map(([label, value]) => (
-            <div className="sales-summary-item" key={label}>
+      <section className="metrics-grid admin-sales-metrics" aria-label="売上サマリー">
+        {[
+          { label: "売上合計", value: yen(totals.net), Icon: TrendingUp, tone: "green-icon" },
+          {
+            label: "客数",
+            value: `${number(totals.customers)}人`,
+            Icon: ShoppingBasket,
+            tone: "blue-icon",
+          },
+          {
+            label: "平均客単価",
+            value: average(totals.net, totals.customers),
+            Icon: Wallet,
+            tone: "violet-icon",
+          },
+          {
+            label: "締め前",
+            value: `${totals.pending}件`,
+            Icon: Activity,
+            tone: "amber-icon",
+          },
+        ].map(({ label, value, Icon, tone }) => (
+          <article className="metric-card" key={label}>
+            <div className="metric-topline">
               <span>{label}</span>
+              <span className={`metric-icon ${tone}`}>
+                <Icon size={18} aria-hidden="true" />
+              </span>
+            </div>
+            <div className="metric-value">
               <strong>{value}</strong>
             </div>
-          ))}
-        </div>
+            <div className="admin-sales-card-rule" aria-hidden="true" />
+          </article>
+        ))}
       </section>
       {!rows.length && (
         <section className="page-panel">
@@ -150,40 +178,79 @@ function SalesReportView({
       )}
       {!!rows.length && (
         <>
-          <section className="page-panel">
-            <h2>営業日別の売上推移</h2>
-            <p className="muted">
-              各営業日の合計です。棒の長さは正の売上を比較し、マイナス額を含む金額は表で確認できます。
-            </p>
-            <div className="sales-trend" aria-label="営業日別の純売上">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th scope="col">営業日</th>
-                    <th scope="col">売上（円）</th>
-                    <th scope="col">客数</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {byDate.map((row) => (
-                    <tr key={row.id}>
-                      <th scope="row">{row.id}</th>
-                      <td>
-                        <span className="sales-trend-value">{yen(row.net)}</span>
-                        <span className="sales-trend-track" aria-hidden="true">
-                          <span
+          <section className="admin-sales-visual-grid" aria-label="売上分析グラフ">
+            <article className="panel sales-panel admin-sales-chart-panel">
+              <div className="panel-heading">
+                <div>
+                  <h2 className="panel-title">営業日別の売上推移</h2>
+                  <p className="panel-subtitle">
+                    {rows.at(-1)?.date} — {rows[0]?.date}
+                  </p>
+                </div>
+                <strong className="admin-sales-chart-total">{yen(totals.net)}</strong>
+              </div>
+              <svg
+                className="admin-sales-chart"
+                viewBox="0 0 700 290"
+                role="img"
+                aria-label="営業日別の純売上グラフ"
+              >
+                <defs>
+                  <linearGradient id="admin-sales-fill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="var(--accent)" stopOpacity=".24" />
+                    <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {[58, 120, 182, 244].map((y) => (
+                  <line key={y} x1="48" x2="652" y1={y} y2={y} className="chart-gridline" />
+                ))}
+                <path d={chartArea} className="admin-sales-chart-area" />
+                <polyline points={chartPoints} className="chart-line" />
+                {chartRows.map((row, index) => (
+                  <g key={row.id}>
+                    <circle cx={chartX(index)} cy={chartY(row.net)} r="5" className="chart-point">
+                      <title>
+                        {row.id}: {yen(row.net)}
+                      </title>
+                    </circle>
+                    <text x={chartX(index)} y="276" textAnchor="middle">
+                      {row.id.slice(5)}
+                    </text>
+                  </g>
+                ))}
+              </svg>
+            </article>
+            <article className="panel sales-panel admin-store-ranking">
+              <div className="panel-heading">
+                <div>
+                  <h2 className="panel-title">店舗別売上</h2>
+                  <p className="panel-subtitle">{targetStores.length}店舗</p>
+                </div>
+              </div>
+              <ol>
+                {byStore
+                  .slice()
+                  .sort((a, b) => (a.net === b.net ? 0 : a.net > b.net ? -1 : 1))
+                  .map((row, index) => (
+                    <li key={row.id}>
+                      <span className="admin-store-rank">{index + 1}</span>
+                      <div>
+                        <span>
+                          <strong>{String(storeName(row.id)?.name ?? "店舗情報なし")}</strong>
+                          <b>{yen(row.net)}</b>
+                        </span>
+                        <span className="admin-store-bar" aria-hidden="true">
+                          <i
                             style={{
-                              width: `${max > 0n && row.net > 0n ? Number((row.net * 10000n) / max) / 100 : 0}%`,
+                              width: `${row.net > 0n ? Number((row.net * 10000n) / storeMax) / 100 : 0}%`,
                             }}
                           />
                         </span>
-                      </td>
-                      <td>{number(row.customers)}人</td>
-                    </tr>
+                      </div>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
+              </ol>
+            </article>
           </section>
           <section className="page-panel">
             <h2>店舗別比較</h2>
