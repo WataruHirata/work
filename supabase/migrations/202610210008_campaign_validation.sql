@@ -7,8 +7,8 @@ set search_path = ''
 as $$
 declare v_pair record;
 begin
-  if not public.has_role(array['product_office']::public.app_role[]) then
-    raise exception 'Only product office users can publish campaigns';
+  if not public.has_role(array['product_office', 'information_systems']::public.app_role[]) then
+    raise exception 'Only campaign administrators can publish campaigns';
   end if;
   if exists (
     select 1
@@ -51,7 +51,7 @@ create or replace function public.edit_campaign_draft(p_campaign_id uuid,p_expec
 returns void language plpgsql security definer set search_path='' as $$
 declare campaign public.campaigns%rowtype;
 begin
-  if not public.has_role(array['product_office']::public.app_role[]) then raise insufficient_privilege; end if;
+  if not public.has_role(array['product_office', 'information_systems']::public.app_role[]) then raise insufficient_privilege; end if;
   select * into campaign from public.campaigns where id=p_campaign_id for update;
   if not found or campaign.status<>'draft' or campaign.published_at is not null or campaign.updated_at<>p_expected_version then raise exception 'Editable draft version required'; end if;
   if p_name is null or length(trim(p_name)) not between 1 and 200 or p_starts_at is null or p_ends_at is null or p_ends_at<=p_starts_at or jsonb_typeof(p_prices) is distinct from 'array' then raise exception 'Invalid campaign draft'; end if;

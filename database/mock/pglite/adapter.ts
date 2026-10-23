@@ -164,7 +164,7 @@ export const tableSpecs: Record<
   campaignTasks: {
     table: "campaign_item_store_tasks",
     fields:
-      "campaign_item_id,store_id,pos_promotion_status,pos_promotion_confirmed_at,price_label_changed_at,pop_changed_at,display_changed_at,pos_restore_status,pos_restored_at,price_label_restored_at,pop_restored_at,display_restored_at",
+      "campaign_item_id,store_id,pos_promotion_status,pos_promotion_confirmed_at,price_label_changed_at,pop_changed_at,display_changed_at,pos_restore_status,pos_restored_at,price_label_restored_at,pop_restored_at,display_restored_at,work_approved_at,work_approved_by",
     order: "updated_at",
     scoped: true,
   },
@@ -189,6 +189,7 @@ const rpc: Record<Command, string> = {
   publishCampaign: "publish_campaign_draft",
   confirmCampaign: "set_campaign_store_confirmation",
   updateCampaignTask: "set_campaign_item_store_task",
+  approveCampaignWork: "approve_campaign_store_work",
   importSales: "import_canonical_sales",
   importProfiles: "import_app_profiles",
   editCampaign: "edit_campaign_draft",

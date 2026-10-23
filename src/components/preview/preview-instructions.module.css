@@ -247,8 +247,3 @@
     width: 100%;
   }
 }
-
-/* お知らせ・特売画面では共通のプレビュー案内を表示しない。 */
-:global(.page-panel:has(.demo-banner)) {
-  display: none;
-}

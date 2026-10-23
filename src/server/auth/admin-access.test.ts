@@ -85,6 +85,9 @@ describe("AT-10 管理ページのサーバー認可", () => {
     await expect(requireAdminFeature("users")).rejects.toThrow("NOT_FOUND");
     expect((await requireAdminFeature("campaigns")).status).toBe("authorized");
   });
+  it("情報システム管理者は特売管理を参照できる", async () => {
+    expect((await requireAdminFeature("campaigns")).status).toBe("authorized");
+  });
   it("店舗ロールだけでは管理機能へ昇格できない", async () => {
     mocks.session = { active: true, mustChangePassword: false, roles: ["store_manager"] };
     await expect(requireAdminFeature()).rejects.toThrow("NOT_FOUND");

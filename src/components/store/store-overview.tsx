@@ -1,4 +1,4 @@
-import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
+import { Activity, ShoppingBasket, TrendingUp, Wallet } from "@/components/ui/icons";
 import { StateBadge } from "@/components/ui/state-badge";
 
 // Fictional preview only: store identification and production data access are pending.

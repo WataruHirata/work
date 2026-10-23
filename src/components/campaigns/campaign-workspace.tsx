@@ -33,6 +33,9 @@ export async function CampaignWorkspace({
   ]);
   if (storeId && !stores.some((store) => store.id === storeId)) notFound();
   const selectedStoreId = storeId ?? stores[0]?.id ?? "";
+  const canManageCampaigns = session.roles.some((role) =>
+    ["product_office", "information_systems"].includes(role),
+  );
   const option = (row: DataRecord) => ({
     id: row.id,
     code: String(row.code),
@@ -42,13 +45,21 @@ export async function CampaignWorkspace({
   return (
     <CampaignManagement
       instructionPanel={
-        <InstructionWorkspace canManage={!storeMode && session.roles.includes("product_office")} />
+        storeMode ? (
+          <InstructionWorkspace
+            storeId={selectedStoreId}
+            canRecordStoreWork={session.roles.some((role) =>
+              ["store_manager", "department_lead", "staff"].includes(role),
+            )}
+          />
+        ) : undefined
       }
       canRecordStoreWork={session.roles.some((role) =>
         ["store_manager", "department_lead", "staff"].includes(role),
       )}
       isConfigured
-      canManage={!storeMode && session.roles.includes("product_office")}
+      canManage={!storeMode && canManageCampaigns}
+      canApproveStoreWork={!storeMode && canManageCampaigns}
       stores={stores.map(option)}
       products={products.filter((product) => product.active).map(option)}
       selectedStoreId={selectedStoreId}

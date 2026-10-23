@@ -25,4 +25,14 @@ describe("MySQL schema contract", () => {
     );
     expect(schema).toContain("pending_sales_day_id");
   });
+
+  it("adds auditable product-office approval to completed campaign work", async () => {
+    const migration = await readFile(
+      "database/mysql/migrations/002_campaign_work_approval.sql",
+      "utf8",
+    );
+    expect(migration).toContain("work_approved_at");
+    expect(migration).toContain("work_approved_by");
+    expect(migration).toContain("FOREIGN KEY (`work_approved_by`)");
+  });
 });

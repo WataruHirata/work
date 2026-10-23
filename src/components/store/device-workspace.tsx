@@ -32,13 +32,16 @@ export function DeviceWorkspace({
   return (
     <PageLayout page={feature}>
       <section className="page-panel">
-        <p>{store?.name ?? "接続店舗"} · 閲覧用の店舗端末</p>
+        <p>{store?.name ?? "接続店舗"} · 管理者ログインなしで確認できる店舗端末</p>
         <Link
           className="ghost-button"
           href={`/login?next=${encodeURIComponent(feature === "storeSales" ? "/store/operations" : "/store/" + (feature === "storeOrders" ? "orders" : feature === "storeCampaigns" ? "campaigns" : feature === "storeNotices" ? "notices" : "operations"))}`}
         >
-          個人ログインして操作する
+          店舗担当者として作業確認する
         </Link>
+        <p className="muted">
+          作業完了の記録には店舗担当者の個人ログインが必要です。管理者権限は必要ありません。
+        </p>
       </section>
       {groups.map((group) => {
         const rows = (snapshot[group] ?? []) as Record<string, Json>[];

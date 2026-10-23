@@ -11,7 +11,8 @@ export type CampaignCommand =
   | "publishCampaign"
   | "changeCampaignEligibility"
   | "confirmCampaign"
-  | "updateCampaignTask";
+  | "updateCampaignTask"
+  | "approveCampaignWork";
 type Input = Record<string, Json>;
 type Row = RowDataPacket & Record<string, unknown>;
 async function rows(db: PoolConnection, sql: string, values: unknown[] = []): Promise<Row[]> {
@@ -91,8 +92,11 @@ export async function executeMysqlCampaign(
     [session.userId],
   );
   const storeOperation = command === "confirmCampaign" || command === "updateCampaignTask";
-  if (!storeOperation && !assignments.some((row) => row.role === "product_office"))
-    throw new Error("商品本部権限が必要です。");
+  if (
+    !storeOperation &&
+    !assignments.some((row) => ["product_office", "information_systems"].includes(String(row.role)))
+  )
+    throw new Error("特売管理権限が必要です。");
 
   if (command === "createCampaign") {
     const { name, starts, ends } = draft(input),
@@ -352,6 +356,34 @@ export async function executeMysqlCampaign(
     return null;
   }
 
+  if (command === "approveCampaignWork") {
+    const storeId = uuid(input.p_store_id),
+      itemId = uuid(input.p_campaign_item_id);
+    const before = (
+      await rows(
+        db,
+        "SELECT task.* FROM campaign_item_store_tasks task JOIN campaign_items item ON item.id=task.campaign_item_id JOIN campaigns campaign ON campaign.id=item.campaign_id WHERE task.campaign_item_id=? AND task.store_id=? AND campaign.status IN ('scheduled','active') FOR UPDATE",
+        [itemId, storeId],
+      )
+    )[0];
+    if (!before) throw new Error("承認できる店舗作業が見つかりません。");
+    if (before.work_approved_at) throw new Error("店舗作業は承認済みです。");
+    if (
+      !["applied", "manual_confirmed"].includes(String(before.pos_promotion_status)) ||
+      !before.price_label_changed_at
+    )
+      throw new Error("POS価格と商品値札の完了後に承認してください。");
+    await db.execute(
+      "UPDATE campaign_item_store_tasks SET work_approved_at=CURRENT_TIMESTAMP(3),work_approved_by=?,updated_at=CURRENT_TIMESTAMP(3) WHERE campaign_item_id=? AND store_id=?",
+      [session.userId, itemId, storeId],
+    );
+    await audit(db, session.userId, "campaign_item_store_tasks", `${itemId}:${storeId}`, before, {
+      ...before,
+      work_approved: true,
+    });
+    return null;
+  }
+
   const storeId = uuid(input.p_store_id),
     itemId = uuid(input.p_campaign_item_id);
   if (
@@ -402,6 +434,7 @@ export async function executeMysqlCampaign(
   const task = String(input.p_task);
   if (
     ![
+      "pos_changed",
       "price_label_changed",
       "pop_changed",
       "display_changed",
@@ -422,9 +455,23 @@ export async function executeMysqlCampaign(
     )
   )[0];
   if (!before) throw new Error("対象店舗の作業がありません。");
+  if (task === "pos_changed") {
+    await db.execute(
+      "UPDATE campaign_item_store_tasks SET pos_promotion_status=IF(?,'manual_confirmed','not_configured'),pos_promotion_confirmed_at=IF(?,CURRENT_TIMESTAMP(3),NULL),pos_promotion_error=NULL,work_approved_at=NULL,work_approved_by=NULL,updated_at=CURRENT_TIMESTAMP(3) WHERE campaign_item_id=? AND store_id=?",
+      [input.p_completed, input.p_completed, itemId, storeId],
+    );
+    await audit(db, session.userId, "campaign_item_store_tasks", `${itemId}:${storeId}`, before, {
+      ...before,
+      task,
+      completed: input.p_completed,
+    });
+    return null;
+  }
   // Column identifiers are selected only from the fixed allowlist above.
+  const approvalReset =
+    task === "price_label_changed" ? ",work_approved_at=NULL,work_approved_by=NULL" : "";
   await db.execute(
-    `UPDATE campaign_item_store_tasks SET ${task}_at=IF(?,CURRENT_TIMESTAMP(3),NULL),${task}_by=?,updated_at=CURRENT_TIMESTAMP(3) WHERE campaign_item_id=? AND store_id=?`,
+    `UPDATE campaign_item_store_tasks SET ${task}_at=IF(?,CURRENT_TIMESTAMP(3),NULL),${task}_by=?${approvalReset},updated_at=CURRENT_TIMESTAMP(3) WHERE campaign_item_id=? AND store_id=?`,
     [input.p_completed, input.p_completed ? session.userId : null, itemId, storeId],
   );
   await audit(db, session.userId, "campaign_item_store_tasks", `${itemId}:${storeId}`, before, {

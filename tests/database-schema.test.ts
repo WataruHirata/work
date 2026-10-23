@@ -551,6 +551,9 @@ describe("initial database migration and row-level security", () => {
     await db.query(
       `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${firstStoreId}', 'price_label_changed', true)`,
     );
+    await db.query(
+      `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${firstStoreId}', 'pos_changed', true)`,
+    );
     await expect(
       db.query(
         `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${secondStoreId}', 'price_label_changed', true)`,
@@ -561,6 +564,22 @@ describe("initial database migration and row-level security", () => {
         `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${firstStoreId}', 'price_label_restored', true)`,
       ),
     ).rejects.toThrow("not available");
+    await expect(
+      db.query(
+        `select public.approve_campaign_store_work('${campaignItems.rows[0].id}', '${firstStoreId}')`,
+      ),
+    ).rejects.toThrow("Only product office users");
+    await db.exec("reset role");
+
+    await selectAs(productOfficeId);
+    await db.query(
+      `select public.approve_campaign_store_work('${campaignItems.rows[0].id}', '${firstStoreId}')`,
+    );
+    await expect(
+      db.query(
+        `select public.approve_campaign_store_work('${campaignItems.rows[0].id}', '${firstStoreId}')`,
+      ),
+    ).rejects.toThrow("incomplete or unavailable");
     await db.exec("reset role");
 
     const storeConfirmation = await db.query<{
@@ -575,12 +594,27 @@ describe("initial database migration and row-level security", () => {
     const completedTask = await db.query<{
       price_label_changed_by: string;
       price_label_changed_at: string | null;
+      work_approved_by: string;
+      work_approved_at: string | null;
     }>(
-      `select task.price_label_changed_by, task.price_label_changed_at
+      `select task.price_label_changed_by, task.price_label_changed_at,
+              task.work_approved_by, task.work_approved_at
        from public.campaign_item_store_tasks task
        where task.campaign_item_id = '${campaignItems.rows[0].id}' and task.store_id = '${firstStoreId}'`,
     );
     expect(completedTask.rows[0].price_label_changed_by).toBe(managerId);
     expect(completedTask.rows[0].price_label_changed_at).not.toBeNull();
+    expect(completedTask.rows[0].work_approved_by).toBe(productOfficeId);
+    expect(completedTask.rows[0].work_approved_at).not.toBeNull();
+    const posTask = await db.query<{
+      pos_promotion_status: string;
+      pos_promotion_confirmed_at: string | null;
+    }>(
+      `select task.pos_promotion_status, task.pos_promotion_confirmed_at
+       from public.campaign_item_store_tasks task
+       where task.campaign_item_id = '${campaignItems.rows[0].id}' and task.store_id = '${firstStoreId}'`,
+    );
+    expect(posTask.rows[0].pos_promotion_status).toBe("manual_confirmed");
+    expect(posTask.rows[0].pos_promotion_confirmed_at).not.toBeNull();
   });
 });

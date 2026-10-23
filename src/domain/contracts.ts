@@ -44,6 +44,7 @@ export type Command =
   | "publishCampaign"
   | "confirmCampaign"
   | "updateCampaignTask"
+  | "approveCampaignWork"
   | "importSales"
   | "importProfiles"
   | "editCampaign"

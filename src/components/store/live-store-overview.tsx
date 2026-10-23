@@ -1,4 +1,4 @@
-import { Activity, ShoppingBasket, TrendingUp, Wallet } from "lucide-react";
+import { Activity, ShoppingBasket, TrendingUp, Wallet } from "@/components/ui/icons";
 import { storeSummary } from "@/domain/store-summary";
 import type { Json } from "@/domain/contracts";
 import { StateBadge } from "@/components/ui/state-badge";

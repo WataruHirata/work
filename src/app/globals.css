@@ -1204,8 +1204,8 @@ button {
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(var(--size-280px), 0.95fr);
-  gap: var(--space-14px);
-  margin-top: var(--space-18px);
+  gap: var(--space-card);
+  margin-top: var(--space-card-wide);
 }
 
 .panel {
@@ -1738,6 +1738,32 @@ td {
 .instruction-workspace > p {
   font-size: var(--font-size-body);
   line-height: 1.8;
+}
+.campaign-notice-tasks {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-5);
+}
+.campaign-notice-checklist {
+  display: grid;
+  gap: var(--space-2);
+}
+.campaign-notice-checklist > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--size-1px) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.campaign-notice-checklist > div > span {
+  display: grid;
+  gap: var(--space-1);
+}
+.campaign-notice-checklist small {
+  color: var(--text-subtle);
 }
 .instruction-message {
   white-space: pre-wrap;
@@ -2283,7 +2309,8 @@ textarea:focus-visible {
 }
 .campaign-product-row,
 .campaign-task-group,
-.campaign-confirm-row {
+.campaign-confirm-row,
+.campaign-approval-state {
   padding: var(--size-10px);
   border: var(--size-1px) solid var(--line);
   border-radius: var(--size-7px);
@@ -2325,6 +2352,31 @@ textarea:focus-visible {
 .campaign-task-action {
   display: grid;
   gap: var(--size-4px);
+}
+.campaign-approval-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-12px);
+  margin-top: var(--size-10px);
+  border-color: var(--warning);
+  background: var(--color-fbf3e8);
+}
+.campaign-approval-state.is-approved {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+.campaign-approval-state > div,
+.campaign-approval-form {
+  display: grid;
+  gap: var(--size-5px);
+}
+.campaign-approval-state span {
+  color: var(--color-506056);
+  font-size: var(--size-10px);
+}
+.campaign-approval-form {
+  justify-items: end;
 }
 .campaign-confirm-row {
   margin: 0 var(--size-12px) var(--size-9px);
@@ -2378,6 +2430,10 @@ textarea:focus-visible {
   padding-top: var(--size-8px);
   text-align: center;
 }
+/* お知らせ・特売画面では共通のプレビュー案内を表示しない。 */
+.page-panel:has(.demo-banner) {
+  display: none;
+}
 @media (max-width: 760px) {
   .campaign-content {
     padding: var(--size-16px) var(--size-10px) var(--size-28px);
@@ -2392,6 +2448,13 @@ textarea:focus-visible {
   .campaign-datetime-grid,
   .campaign-store-picker {
     grid-template-columns: 1fr;
+  }
+  .campaign-approval-state {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .campaign-approval-form {
+    justify-items: stretch;
   }
 }
 @media (max-width: 480px) {

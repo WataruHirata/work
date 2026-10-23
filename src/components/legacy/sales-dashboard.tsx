@@ -15,7 +15,7 @@ import {
   ShoppingBasket,
   Store,
   TrendingUp,
-} from "lucide-react";
+} from "@/components/ui/icons";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 

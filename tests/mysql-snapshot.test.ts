@@ -47,7 +47,17 @@ describe("MySQL store-device snapshot", () => {
           },
         ],
       ])
-      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([
+        [
+          {
+            id: "campaign-1",
+            name: "週末特売",
+            product_code: "P001",
+            product_name: "架空商品",
+            price_yen: 198,
+          },
+        ],
+      ])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]]);
@@ -71,7 +81,16 @@ describe("MySQL store-device snapshot", () => {
         observed_at: observedAt.toISOString(),
       },
     ]);
-    expect(result.campaigns).toEqual([]);
+    expect(execute.mock.calls[4][0]).toContain("campaign_item_store_tasks");
+    expect(result.campaigns).toEqual([
+      {
+        id: "campaign-1",
+        name: "週末特売",
+        product_code: "P001",
+        product_name: "架空商品",
+        price_yen: 198,
+      },
+    ]);
     expect(execute).toHaveBeenCalledTimes(8);
   });
 });

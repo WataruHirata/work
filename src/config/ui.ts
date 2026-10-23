@@ -399,23 +399,23 @@ export const responsiveStyles = `@media (max-width: 1180px) {
   }
 }
 @media (max-width: 700px) {
-  .global-shell:has(.admin-notification-toolbar) {
+  .global-shell {
     flex-direction: column;
   }
-  .global-shell:has(.admin-notification-toolbar) > .global-sidebar {
+  .global-shell > .global-sidebar {
     order: 1;
     position: static;
     width: 100%;
     height: auto;
     flex-basis: auto;
   }
-  .global-shell:has(.admin-notification-toolbar) > .global-main {
+  .global-shell > .global-main {
     width: 100%;
   }
   .admin-menu-panel .admin-menu-grid {
     grid-template-columns: 1fr;
   }
-  .global-shell:has(.admin-notification-toolbar) .page-topbar {
+  .global-shell .page-topbar {
     height: auto;
     min-height: var(--size-54px);
     flex-wrap: wrap;
@@ -727,6 +727,11 @@ export const columnLabels: Record<string, string> = {
   last_error: "エラー",
   available_at: "次回処理日時",
   price_yen: "価格（円）",
+  product_code: "商品コード",
+  product_name: "商品名",
+  pos_promotion_status: "POS価格変更",
+  price_label_changed_at: "商品値札変更日時",
+  work_approved_at: "本部承認日時",
   valid_from: "適用開始",
   valid_until: "適用終了",
 };
