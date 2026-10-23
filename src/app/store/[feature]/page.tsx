@@ -6,6 +6,7 @@ import Link from "next/link";
 import { backendConfigured, identity } from "@/server/container";
 import { deviceSnapshot } from "@/server/auth/store-context";
 import { DeviceWorkspace } from "@/components/store/device-workspace";
+import { DeviceCampaignWorkspace } from "@/components/store/device-campaign-workspace";
 import { DataWorkspace, type WorkspaceSearch } from "@/components/workspaces/data-workspace";
 import { CampaignWorkspace } from "@/components/campaigns/campaign-workspace";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
@@ -51,7 +52,12 @@ export default async function StoreFeaturePage({
         </PageLayout>
       );
     }
-    if (result.snapshot) return <DeviceWorkspace feature={page} snapshot={result.snapshot} />;
+    if (result.snapshot)
+      return page === "storeCampaigns" ? (
+        <DeviceCampaignWorkspace snapshot={result.snapshot} />
+      ) : (
+        <DeviceWorkspace feature={page} snapshot={result.snapshot} />
+      );
   }
   return (
     <PageLayout page={page}>

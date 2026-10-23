@@ -157,7 +157,7 @@ describe("initial database migration and row-level security", () => {
       "select store_id from public.store_announcements where title='Demo price instruction'",
     );
     expect(notices.rows).toEqual([{ store_id: firstStoreId }]);
-    await selectAs(areaManagerId);
+    await selectAs(managerId);
     expect(
       (await db.query(`select * from public.store_instructions where id='${id}'`)).rows,
     ).toHaveLength(1);
@@ -181,7 +181,7 @@ describe("initial database migration and row-level security", () => {
     const confirmed = await db.query<{ confirmed_by: string }>(
       `select confirmed_by from public.store_instruction_targets where instruction_id='${id}'`,
     );
-    expect(confirmed.rows[0].confirmed_by).toBe(areaManagerId);
+    expect(confirmed.rows[0].confirmed_by).toBe(managerId);
     expect(
       (
         await db.query(
@@ -447,7 +447,7 @@ describe("initial database migration and row-level security", () => {
           array['${firstStoreId}']::uuid[]
         )`,
       ),
-    ).rejects.toThrow("Only product office users can create campaigns");
+    ).rejects.toThrow("Only campaign administrators can create campaigns");
     await db.exec("reset role");
 
     await selectAs(productOfficeId);
@@ -532,7 +532,7 @@ describe("initial database migration and row-level security", () => {
     );
     expect(visibleCampaign.rows[0].status).toBe("scheduled");
     const campaignNotices = await db.query<{ store_id: string }>(
-      "select store_id from public.store_announcements where title like '特売指示:%'",
+      "select store_id from public.store_announcements where title like '%Fictional autumn campaign%'",
     );
     expect(campaignNotices.rows.length).toBeGreaterThan(0);
     expect(campaignNotices.rows.every((notice) => notice.store_id === firstStoreId)).toBe(true);
@@ -555,11 +555,13 @@ describe("initial database migration and row-level security", () => {
     await db.query(
       `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${firstStoreId}', 'pos_changed', true)`,
     );
+    await selectAs(managerId);
     await expect(
       db.query(
         `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${secondStoreId}', 'price_label_changed', true)`,
       ),
     ).rejects.toThrow();
+    await selectAs(areaManagerId);
     await expect(
       db.query(
         `select public.set_campaign_item_store_task('${campaignItems.rows[0].id}', '${firstStoreId}', 'price_label_restored', true)`,
@@ -588,15 +590,13 @@ describe("initial database migration and row-level security", () => {
     expect(completedTask.rows[0].price_label_changed_at).not.toBeNull();
     const posTask = await db.query<{
       pos_promotion_status: string;
-      pos_promotion_confirmed_by: string;
       pos_promotion_confirmed_at: string | null;
     }>(
-      `select task.pos_promotion_status, task.pos_promotion_confirmed_by, task.pos_promotion_confirmed_at
+      `select task.pos_promotion_status, task.pos_promotion_confirmed_at
        from public.campaign_item_store_tasks task
        where task.campaign_item_id = '${campaignItems.rows[0].id}' and task.store_id = '${firstStoreId}'`,
     );
     expect(posTask.rows[0].pos_promotion_status).toBe("manual_confirmed");
-    expect(posTask.rows[0].pos_promotion_confirmed_by).toBe(areaManagerId);
     expect(posTask.rows[0].pos_promotion_confirmed_at).not.toBeNull();
   });
 });

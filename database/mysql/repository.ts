@@ -13,6 +13,7 @@ import type {
   QueryOptions,
   Resource,
   Session,
+  StoreDeviceOrderInput,
 } from "@/domain/contracts";
 import { tableSpecs } from "@database/mock/pglite/adapter";
 import { mysqlPool, mysqlTransaction } from "./pool";
@@ -218,13 +219,17 @@ export class MysqlRepository implements BusinessRepository {
       values as never[],
     );
     const order = ["code", "display_name"].includes(spec.order) ? "ASC" : "DESC";
+    const tieBreakers = (spec.tieBreakers ?? ["id"])
+      .filter((field) => field !== spec.order)
+      .map((field) => `,\`${field}\` ${order}`)
+      .join("");
     const [rows] = await mysqlPool().execute<(RowDataPacket & DataRecord)[]>(
       `SELECT ${spec.fields
         .split(",")
         .map((field) => `\`${field.trim()}\``)
         .join(
           ",",
-        )} FROM \`${spec.table}\`${where} ORDER BY \`${spec.order}\` ${order},\`id\` ${order} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
+        )} FROM \`${spec.table}\`${where} ORDER BY \`${spec.order}\` ${order}${tieBreakers} LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
       values as never[],
     );
     return {
@@ -645,6 +650,200 @@ export class MysqlRepository implements BusinessRepository {
       return id;
     });
   }
+  async storeDeviceOrderWorkspace(deviceToken: string): Promise<Record<string, Json>> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken)) throw new Error("店舗端末コードが正しくありません。");
+    const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
+    const [devices] = await mysqlPool().execute<
+      (RowDataPacket & { id: string; store_id: string; store_code: string; store_name: string })[]
+    >(
+      "SELECT device.id,device.store_id,store.code AS store_code,store.name AS store_name FROM store_devices device JOIN stores store ON store.id=device.store_id AND store.status='active' WHERE device.token_hash=? AND device.active=1 LIMIT 1",
+      [tokenHash],
+    );
+    const device = devices[0];
+    if (!device) throw new Error("有効な店舗端末が見つかりません。");
+    const [departments] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT id,code,name FROM store_departments WHERE store_id=? AND active=1 ORDER BY code",
+      [device.store_id],
+    );
+    const [catalog] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT product.id,product.code,product.name,product.category_code,(SELECT price.price_yen FROM product_prices price WHERE price.product_id=product.id AND (price.store_id=? OR price.store_id IS NULL) AND price.valid_from<=CURRENT_TIMESTAMP(3) AND (price.valid_until IS NULL OR price.valid_until>CURRENT_TIMESTAMP(3)) ORDER BY (price.store_id IS NOT NULL) DESC,price.valid_from DESC LIMIT 1) AS price_yen FROM store_products stock JOIN products product ON product.id=stock.product_id AND product.active=1 WHERE stock.store_id=? AND stock.active=1 HAVING price_yen IS NOT NULL ORDER BY product.code LIMIT 5000",
+      [device.store_id, device.store_id],
+    );
+    const [orders] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT order_header.id,order_header.order_date,order_header.requested_delivery_date,order_header.order_total_yen,order_header.status,COALESCE(user.display_name,CONCAT('店舗端末: ',source_device.name),'店舗端末') AS requested_name FROM orders order_header LEFT JOIN app_users user ON user.id=order_header.requested_by LEFT JOIN store_devices source_device ON source_device.id=order_header.requested_device_id WHERE order_header.store_id=? ORDER BY order_header.created_at DESC LIMIT 100",
+      [device.store_id],
+    );
+    const [orderLines] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT line.id,line.order_id,line.product_id,line.quantity,line.unit_price_yen,line.line_total_yen FROM order_lines line JOIN orders order_header ON order_header.id=line.order_id WHERE order_header.store_id=? AND order_header.id IN (SELECT recent.id FROM (SELECT id FROM orders WHERE store_id=? ORDER BY created_at DESC LIMIT 100) recent) ORDER BY line.created_at,line.id",
+      [device.store_id, device.store_id],
+    );
+    const jsonRows = (values: RowDataPacket[]) =>
+      values.map(
+        (row) =>
+          Object.fromEntries(
+            Object.entries(row).map(([key, value]) => [
+              key,
+              value instanceof Date
+                ? value.toISOString()
+                : typeof value === "bigint"
+                  ? Number(value)
+                  : value,
+            ]),
+          ) as { [key: string]: Json },
+      );
+    return {
+      store: { id: device.store_id, code: device.store_code, name: device.store_name },
+      departments: jsonRows(departments),
+      catalog: jsonRows(catalog),
+      orders: jsonRows(orders),
+      orderLines: jsonRows(orderLines),
+    };
+  }
+  async storeDeviceCreateOrder(deviceToken: string, input: StoreDeviceOrderInput): Promise<string> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken)) throw new Error("店舗端末コードが正しくありません。");
+    const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
+    return mysqlTransaction(async (db) => {
+      const [devices] = await db.execute<
+        (RowDataPacket & { id: string; store_id: string; store_code: string })[]
+      >(
+        "SELECT device.id,device.store_id,store.code AS store_code FROM store_devices device JOIN stores store ON store.id=device.store_id AND store.status='active' WHERE device.token_hash=? AND device.active=1 LIMIT 1 FOR UPDATE",
+        [tokenHash],
+      );
+      const device = devices[0];
+      if (!device || device.store_id !== input.storeId)
+        throw new Error("登録店舗と発注対象店舗が一致しません。");
+      if (
+        !/^[0-9a-f-]{36}$/i.test(input.requestId) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(input.deliveryDate) ||
+        !input.items.length ||
+        input.items.length > 500 ||
+        new Set(input.items.map((item) => item.productId)).size !== input.items.length
+      )
+        throw new Error("発注内容が不正です。");
+      const idempotencyKey = `order:${input.requestId}`;
+      const [existingJobs] = await db.execute<(RowDataPacket & { payload: Json })[]>(
+        "SELECT payload FROM integration_jobs WHERE idempotency_key=? FOR UPDATE",
+        [idempotencyKey],
+      );
+      if (existingJobs[0]) {
+        const payload =
+          typeof existingJobs[0].payload === "string"
+            ? (JSON.parse(existingJobs[0].payload) as Record<string, Json>)
+            : (existingJobs[0].payload as Record<string, Json>);
+        if (
+          payload.requestedDevice !== device.id ||
+          payload.storeId !== input.storeId ||
+          payload.departmentId !== input.departmentId ||
+          payload.deliveryDate !== input.deliveryDate ||
+          JSON.stringify(payload.request) !==
+            JSON.stringify(
+              input.items.map((item) => ({
+                product_id: item.productId,
+                quantity: item.quantity,
+              })),
+            )
+        )
+          throw new Error("同じ発注要求に異なる内容が指定されました。");
+        return String(payload.orderId);
+      }
+      const [departments] = await db.execute<(RowDataPacket & { code: string })[]>(
+        "SELECT code FROM store_departments WHERE id=? AND store_id=? AND active=1",
+        [input.departmentId, input.storeId],
+      );
+      if (!departments.length) throw new Error("指定部門が見つかりません。");
+      const pricedItems: {
+        productId: string;
+        productCode: string;
+        quantity: number;
+        unitPriceYen: number;
+        lineTotalYen: number;
+      }[] = [];
+      for (const item of input.items) {
+        if (
+          !/^[0-9a-f-]{36}$/i.test(item.productId) ||
+          !Number.isInteger(item.quantity) ||
+          item.quantity < 1 ||
+          item.quantity > 99999
+        )
+          throw new Error("発注明細が不正です。");
+        const [products] = await db.execute<
+          (RowDataPacket & { code: string; price_yen: number | null })[]
+        >(
+          "SELECT product.code,price.price_yen FROM products product JOIN store_products stock ON stock.product_id=product.id AND stock.store_id=? AND stock.active=1 LEFT JOIN product_prices price ON price.id=(SELECT candidate.id FROM product_prices candidate WHERE candidate.product_id=product.id AND (candidate.store_id=? OR candidate.store_id IS NULL) AND candidate.valid_from<=CURRENT_TIMESTAMP(3) AND (candidate.valid_until IS NULL OR candidate.valid_until>CURRENT_TIMESTAMP(3)) ORDER BY (candidate.store_id IS NOT NULL) DESC,candidate.valid_from DESC LIMIT 1) WHERE product.id=? AND product.active=1",
+          [input.storeId, input.storeId, item.productId],
+        );
+        const unitPriceYen = Number(products[0]?.price_yen);
+        if (!Number.isSafeInteger(unitPriceYen) || unitPriceYen < 0)
+          throw new Error("発注可能な価格がない商品が含まれています。");
+        pricedItems.push({
+          ...item,
+          productCode: products[0].code,
+          unitPriceYen,
+          lineTotalYen: unitPriceYen * item.quantity,
+        });
+      }
+      const orderId = randomUUID();
+      const total = pricedItems.reduce((sum, item) => sum + item.lineTotalYen, 0);
+      await db.execute(
+        "INSERT INTO orders(id,store_id,department_id,order_date,requested_delivery_date,order_total_yen,status,requested_by,requested_device_id) VALUES(?,?,?,CURRENT_DATE,?,?,'submitted',NULL,?)",
+        [orderId, input.storeId, input.departmentId, input.deliveryDate, total, device.id],
+      );
+      for (const item of pricedItems)
+        await db.execute(
+          "INSERT INTO order_lines(id,order_id,product_id,quantity,unit_price_yen,line_total_yen) VALUES(?,?,?,?,?,?)",
+          [
+            randomUUID(),
+            orderId,
+            item.productId,
+            item.quantity,
+            item.unitPriceYen,
+            item.lineTotalYen,
+          ],
+        );
+      await db.execute(
+        "INSERT INTO integration_jobs(id,kind,idempotency_key,payload,status) VALUES(?,'order',?,?,'pending')",
+        [
+          randomUUID(),
+          idempotencyKey,
+          JSON.stringify({
+            version: 1,
+            orderId,
+            storeId: input.storeId,
+            storeCode: device.store_code,
+            departmentId: input.departmentId,
+            departmentCode: departments[0].code,
+            deliveryDate: input.deliveryDate,
+            totalYen: total,
+            request: input.items.map((item) => ({
+              product_id: item.productId,
+              quantity: item.quantity,
+            })),
+            requestedBy: null,
+            requestedDevice: device.id,
+            items: pricedItems.map((item) => ({
+              productId: item.productId,
+              productCode: item.productCode,
+              quantity: item.quantity,
+              unitPriceYen: item.unitPriceYen,
+              lineTotalYen: item.lineTotalYen,
+            })),
+          }),
+        ],
+      );
+      return orderId;
+    });
+  }
+  async storeDeviceConfirmInstruction(deviceToken: string, instructionId: string): Promise<void> {
+    if (!/^[a-f0-9]{64}$/.test(deviceToken) || !/^[0-9a-f-]{36}$/i.test(instructionId))
+      throw new Error("店舗端末または指示を確認できません。");
+    const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
+    const [result] = await mysqlPool().execute(
+      "UPDATE store_instruction_targets target JOIN store_devices device ON device.store_id=target.store_id AND device.token_hash=? AND device.active=1 SET target.confirmed_at=COALESCE(target.confirmed_at,CURRENT_TIMESTAMP(3)),target.confirmed_by=NULL,target.confirmed_device_id=device.id WHERE target.instruction_id=?",
+      [tokenHash, instructionId],
+    );
+    if (!(result as { affectedRows: number }).affectedRows)
+      throw new Error("登録店舗に届いた指示が見つかりません。");
+  }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {
     if (!/^[a-f0-9]{64}$/.test(deviceToken)) throw new Error("店舗端末コードが正しくありません。");
     const tokenHash = createHash("sha256").update(deviceToken, "utf8").digest();
@@ -675,6 +874,10 @@ export class MysqlRepository implements BusinessRepository {
     );
     const [notices] = await mysqlPool().execute<RowDataPacket[]>(
       "SELECT id,title,message,created_at FROM store_announcements WHERE store_id=? ORDER BY created_at DESC LIMIT 100",
+      [storeId],
+    );
+    const [instructions] = await mysqlPool().execute<RowDataPacket[]>(
+      "SELECT instruction.id,instruction.kind,instruction.title,instruction.message,instruction.product_id,instruction.price_yen,instruction.effective_at,instruction.created_at,target.store_id,target.confirmed_at,product.code AS product_code,product.name AS product_name FROM store_instructions instruction JOIN store_instruction_targets target ON target.instruction_id=instruction.id AND target.store_id=? JOIN products product ON product.id=instruction.product_id ORDER BY instruction.effective_at DESC,instruction.id DESC LIMIT 500",
       [storeId],
     );
     const [orders] = await mysqlPool().execute<RowDataPacket[]>(
@@ -709,6 +912,7 @@ export class MysqlRepository implements BusinessRepository {
       inventory: jsonRows(inventory),
       campaigns: jsonRows(campaigns),
       notices: jsonRows(notices),
+      instructions: jsonRows(instructions),
       orders: jsonRows(orders),
       salesComposition: jsonRows(salesComposition),
       metrics: jsonRows(metricRows)[0] ?? {

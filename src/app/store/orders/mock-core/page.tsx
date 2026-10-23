@@ -1,14 +1,21 @@
 import { redirect } from "next/navigation";
-import { identity } from "@/server/container";
+import { deviceSnapshot } from "@/server/auth/store-context";
 import { listMockCoreOrders } from "../../../../../mock-core-system/order-store";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 
 export default async function MockCoreOrdersPage() {
-  const session = await identity().session();
-  if (!session?.active) redirect("/login?next=%2Fstore%2Forders%2Fmock-core");
-  if (session.mustChangePassword) redirect("/account/password");
-  const receipts = (await listMockCoreOrders()).toReversed();
+  const snapshot = await deviceSnapshot();
+  if (!snapshot) redirect("/station");
+  const store =
+    snapshot.store && typeof snapshot.store === "object" && !Array.isArray(snapshot.store)
+      ? snapshot.store
+      : null;
+  const storeCode = store && typeof store.code === "string" ? store.code : "";
+  if (!storeCode) redirect("/station");
+  const receipts = (await listMockCoreOrders())
+    .filter((receipt) => receipt.order.storeCode === storeCode)
+    .toReversed();
   return (
     <section className="page-panel">
       <h2>基幹システムの受信結果</h2>

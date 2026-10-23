@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import type { DataRecord } from "@/domain/contracts";
 import {
   filterInventoryRows,
@@ -7,6 +8,13 @@ import {
 } from "@/domain/store-sales-inventory";
 
 describe("店舗売上・在庫の対象と検索", () => {
+  it("在庫一覧は関連情報を4列にまとめて状態と日時の重なりを防ぐ", () => {
+    const source = readFileSync("src/components/store/store-sales-inventory-workspace.tsx", "utf8");
+    for (const heading of ["品目・商品", "種別・業者", "数量・状態", "在庫取得日時"])
+      expect(source).toContain(`<th scope="col">${heading}</th>`);
+    expect(source).toContain('className="data-table inventory-data-table"');
+  });
+
   it("URL由来の店舗選択を使わず、担当店舗を優先し端末登録店舗へフォールバックする", () => {
     expect(resolveRegisteredStoreId(["store-a", "store-b"], "device-store")).toBe("device-store");
     expect(resolveRegisteredStoreId(["store-a", "store-b"], undefined)).toBe("store-a");

@@ -80,6 +80,13 @@ export type ActionResult = {
   success?: string;
   secret?: string;
 };
+export type StoreDeviceOrderInput = {
+  storeId: string;
+  departmentId: string;
+  deliveryDate: string;
+  items: { productId: string; quantity: number }[];
+  requestId: string;
+};
 
 export interface BusinessRepository {
   list(resource: Resource, options?: QueryOptions): Promise<DataPage>;
@@ -99,6 +106,9 @@ export interface BusinessRepository {
     reason: string,
     afterAmountYen: number,
   ): Promise<string>;
+  storeDeviceOrderWorkspace(deviceToken: string): Promise<Record<string, Json>>;
+  storeDeviceCreateOrder(deviceToken: string, input: StoreDeviceOrderInput): Promise<string>;
+  storeDeviceConfirmInstruction(deviceToken: string, instructionId: string): Promise<void>;
 }
 
 export interface IdentityProvider {

@@ -14,7 +14,7 @@ export default async function NewStoreOrderPage() {
     />
   ) : (
     <FeatureNotice title="発注入力を利用できません">
-      {unavailableReason ?? "担当店舗と権限を確認してください。"}
+      {unavailableReason ?? "登録店舗の商品・部門設定を確認してください。"}
     </FeatureNotice>
   );
 }

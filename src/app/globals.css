@@ -517,6 +517,67 @@ textarea:focus-visible {
   background: var(--success-soft);
   color: var(--success);
 }
+.inventory-table-wrapper {
+  min-width: 0;
+}
+.inventory-data-table th,
+.inventory-data-table td {
+  height: auto;
+  padding: var(--space-2);
+  vertical-align: top;
+}
+.inventory-data-table th:nth-child(1) {
+  width: 30%;
+}
+.inventory-data-table th:nth-child(2) {
+  width: 27%;
+}
+.inventory-data-table th:nth-child(3) {
+  width: 23%;
+}
+.inventory-data-table th:nth-child(4) {
+  width: 20%;
+}
+.inventory-data-table tbody th,
+.inventory-data-table tbody td {
+  display: table-cell;
+  min-width: 0;
+  line-height: 1.45;
+}
+.inventory-cell-primary,
+.inventory-cell-secondary,
+.inventory-quantity {
+  display: block;
+}
+.inventory-cell-primary,
+.inventory-quantity {
+  color: var(--text-strong);
+  font-weight: 800;
+}
+.inventory-cell-secondary {
+  margin-top: var(--size-2px);
+  color: var(--text-subtle);
+  font-size: var(--font-size-caption);
+}
+.inventory-quantity {
+  margin-bottom: var(--space-1);
+  font-size: var(--font-size-emphasis);
+}
+.inventory-data-table .inventory-alert-badge,
+.inventory-data-table .inventory-normal-badge {
+  max-width: 100%;
+  padding-inline: var(--space-1);
+  white-space: normal;
+  line-height: 1.35;
+}
+.inventory-observed-at {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption) !important;
+}
+.inventory-observed-at span {
+  display: block;
+  white-space: nowrap;
+}
 
 .sales-day-toggle {
   display: block;

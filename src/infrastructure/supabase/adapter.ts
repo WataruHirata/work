@@ -10,6 +10,7 @@ import type {
   Json,
   QueryOptions,
   Resource,
+  StoreDeviceOrderInput,
 } from "@/domain/contracts";
 
 const tables: Record<
@@ -334,6 +335,38 @@ export class SupabaseRepository implements BusinessRepository {
     if (error)
       throw new Error("売上修正を申請できませんでした。内容と申請状況を確認してください。");
     return String(data);
+  }
+  async storeDeviceOrderWorkspace(deviceToken: string): Promise<Record<string, Json>> {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client.rpc("store_device_order_workspace", {
+      p_token: deviceToken,
+    });
+    if (error) throw new Error("登録店舗の発注情報を取得できませんでした。");
+    return data as Record<string, Json>;
+  }
+  async storeDeviceCreateOrder(deviceToken: string, input: StoreDeviceOrderInput): Promise<string> {
+    const client = await createSupabaseServerClient();
+    const { data, error } = await client.rpc("submit_store_device_order", {
+      p_token: deviceToken,
+      p_store_id: input.storeId,
+      p_department_id: input.departmentId,
+      p_delivery_date: input.deliveryDate,
+      p_items: input.items.map((item) => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+      })),
+      p_request_id: input.requestId,
+    });
+    if (error) throw new Error("発注を登録できませんでした。内容を確認してください。");
+    return String(data);
+  }
+  async storeDeviceConfirmInstruction(deviceToken: string, instructionId: string): Promise<void> {
+    const client = await createSupabaseServerClient();
+    const { error } = await client.rpc("confirm_store_device_instruction", {
+      p_token: deviceToken,
+      p_instruction_id: instructionId,
+    });
+    if (error) throw new Error("特売・価格指示の対応を記録できませんでした。");
   }
 }
 

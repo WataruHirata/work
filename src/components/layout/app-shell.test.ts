@@ -68,10 +68,10 @@ describe("共通サイドバーとページヘッダー", () => {
       /\.store-portal-main \.store-sales-trend-panel\s*\{[^}]*grid-template-rows:[^}]*10\.75rem[^}]*23vh/s,
     );
     expect(styles).toMatch(
-      /\.store-portal-main \.store-sales-table-scroll tbody\s*\{[^}]*overflow-y:\s*auto/s,
+      /\.store-portal-main \.store-sales-table-scroll\s*\{[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*auto/s,
     );
-    expect(styles).toMatch(
-      /\.store-portal-main \.store-sales-table-scroll caption,\s*\.store-portal-main \.store-sales-table-scroll thead/,
+    expect(styles).not.toMatch(
+      /\.store-portal-main \.store-sales-table-scroll tbody\s*\{[^}]*overflow-y/s,
     );
     expect(styles).toContain(".store-portal-main .store-compact-metrics");
   });

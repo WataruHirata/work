@@ -42,9 +42,13 @@ function snapshotRows(value: Json | undefined): DataRecord[] {
 }
 
 function formatDateTime(value: string) {
-  if (!value) return "—";
+  if (!value) return { date: "—", time: "" };
   const parsed = new Date(value);
-  return Number.isNaN(parsed.valueOf()) ? value : parsed.toLocaleString("ja-JP");
+  if (Number.isNaN(parsed.valueOf())) return { date: value, time: "" };
+  return {
+    date: parsed.toLocaleDateString("ja-JP"),
+    time: parsed.toLocaleTimeString("ja-JP"),
+  };
 }
 
 async function workspaceContext() {
@@ -136,14 +140,13 @@ function InventoryTable({
       )}
       <CollapsibleTable
         caption="登録店舗の商品別在庫"
+        className="data-table inventory-data-table"
+        containerClassName="workspace-table inventory-table-wrapper"
         head={
           <tr>
-            <th scope="col">品目</th>
-            <th scope="col">商品名</th>
-            <th scope="col">種別</th>
-            <th scope="col">業者</th>
-            <th scope="col">数量</th>
-            <th scope="col">状態</th>
+            <th scope="col">品目・商品</th>
+            <th scope="col">種別・業者</th>
+            <th scope="col">数量・状態</th>
             <th scope="col">在庫取得日時</th>
           </tr>
         }
@@ -155,16 +158,21 @@ function InventoryTable({
           const name = text(row, "name") || text(product, "name") || text(department, "name");
           const category = text(row, "category_code") || text(product, "category_code");
           const alert = isInventoryAlert(row);
+          const observedAt = formatDateTime(text(row, "observed_at"));
           return (
             <tr key={row.id} className={alert ? "inventory-alert-row" : undefined}>
-              <th scope="row">{item || text(product, "category_code") || "—"}</th>
-              <td>{name || "—"}</td>
-              <td>{category || "未設定"}</td>
-              <td>{inventorySupplier(row, product)}</td>
-              <td className={alert ? "inventory-alert-quantity" : undefined}>
-                {text(row, "quantity") || "—"}
-              </td>
+              <th scope="row">
+                <span className="inventory-cell-primary">
+                  {item || text(product, "category_code") || "—"}
+                </span>
+                <span className="inventory-cell-secondary">{name || "—"}</span>
+              </th>
               <td>
+                <span className="inventory-cell-primary">{category || "未設定"}</span>
+                <span className="inventory-cell-secondary">{inventorySupplier(row, product)}</span>
+              </td>
+              <td className={alert ? "inventory-alert-quantity" : undefined}>
+                <strong className="inventory-quantity">{text(row, "quantity") || "—"}</strong>
                 {alert ? (
                   <span className="inventory-alert-badge">
                     <CircleAlert size={16} aria-hidden="true" />
@@ -174,7 +182,10 @@ function InventoryTable({
                   <span className="inventory-normal-badge">在庫あり</span>
                 )}
               </td>
-              <td>{formatDateTime(text(row, "observed_at"))}</td>
+              <td className="inventory-observed-at">
+                <span>{observedAt.date}</span>
+                {observedAt.time && <span>{observedAt.time}</span>}
+              </td>
             </tr>
           );
         })}

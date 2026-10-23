@@ -14,6 +14,7 @@ import type {
   QueryOptions,
   Resource,
   Session,
+  StoreDeviceOrderInput,
 } from "@/domain/contracts";
 import { withLocalDatabase } from "./database";
 
@@ -26,6 +27,7 @@ export const tableSpecs: Record<
     search?: string;
     dated?: string;
     scoped?: boolean;
+    tieBreakers?: string[];
   }
 > = {
   instructions: {
@@ -38,6 +40,7 @@ export const tableSpecs: Record<
     fields: "instruction_id,store_id,confirmed_at,confirmed_by",
     order: "store_id",
     scoped: true,
+    tieBreakers: ["instruction_id", "store_id"],
   },
   products: {
     table: "products",
@@ -166,6 +169,7 @@ export const tableSpecs: Record<
     fields: "campaign_id,store_id,store_confirmed_at",
     order: "updated_at",
     scoped: true,
+    tieBreakers: ["campaign_id", "store_id"],
   },
   campaignTasks: {
     table: "campaign_item_store_tasks",
@@ -173,6 +177,7 @@ export const tableSpecs: Record<
       "campaign_item_id,store_id,pos_promotion_status,pos_promotion_confirmed_at,price_label_changed_at,pop_changed_at,display_changed_at,pos_restore_status,pos_restored_at,price_label_restored_at,pop_restored_at,display_restored_at,work_approved_at,work_approved_by",
     order: "updated_at",
     scoped: true,
+    tieBreakers: ["campaign_item_id", "store_id"],
   },
 };
 
@@ -282,8 +287,13 @@ export class LocalRepository implements BusinessRepository {
           params,
         );
         const order = spec.order;
+        const direction = ["code", "display_name"].includes(order) ? "asc" : "desc";
+        const tieBreakers = (spec.tieBreakers ?? ["id"])
+          .filter((field) => field !== order)
+          .map((field) => `,${field} ${direction}`)
+          .join("");
         const rows = await tx.query<DataRecord>(
-          `select ${spec.fields} from public.${spec.table}${where} order by ${order} ${["code", "display_name"].includes(order) ? "asc" : "desc"} limit ${pageSize} offset ${(page - 1) * pageSize}`,
+          `select ${spec.fields} from public.${spec.table}${where} order by ${order} ${direction}${tieBreakers} limit ${pageSize} offset ${(page - 1) * pageSize}`,
           params,
         );
         return {
@@ -368,6 +378,44 @@ export class LocalRepository implements BusinessRepository {
         [deviceToken, salesDayId, reason, afterAmountYen],
       );
       return String(result.rows[0]?.value);
+    });
+  }
+  async storeDeviceOrderWorkspace(deviceToken: string): Promise<Record<string, Json>> {
+    return withLocalDatabase(async (db) => {
+      const result = await db.query<{ value: Record<string, Json> }>(
+        "select public.store_device_order_workspace($1) as value",
+        [deviceToken],
+      );
+      return result.rows[0]?.value;
+    });
+  }
+  async storeDeviceCreateOrder(deviceToken: string, input: StoreDeviceOrderInput): Promise<string> {
+    return withLocalDatabase(async (db) => {
+      const result = await db.query<{ value: string }>(
+        "select public.submit_store_device_order($1,$2,$3,$4,$5::jsonb,$6) as value",
+        [
+          deviceToken,
+          input.storeId,
+          input.departmentId,
+          input.deliveryDate,
+          JSON.stringify(
+            input.items.map((item) => ({
+              product_id: item.productId,
+              quantity: item.quantity,
+            })),
+          ),
+          input.requestId,
+        ],
+      );
+      return String(result.rows[0]?.value);
+    });
+  }
+  async storeDeviceConfirmInstruction(deviceToken: string, instructionId: string): Promise<void> {
+    await withLocalDatabase(async (db) => {
+      await db.query("select public.confirm_store_device_instruction($1,$2)", [
+        deviceToken,
+        instructionId,
+      ]);
     });
   }
   async storeSnapshot(deviceToken: string): Promise<Record<string, Json>> {

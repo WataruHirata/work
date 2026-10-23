@@ -181,7 +181,7 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     ).toBe(1);
   });
 
-  it("匿名端末は登録店舗の閲覧専用情報に限定され、失効後は拒否される", async () => {
+  it("匿名端末は登録店舗の情報と発注だけを利用でき、失効後は拒否される", async () => {
     const token = randomBytes(32).toString("hex");
     await asUser(ids.info);
     const device = await scalar<string>(
@@ -199,12 +199,75 @@ describe("接続業務DB / AT-01/04/05/07/09/10", () => {
     );
     expect(snapshot.store.id).toBe(store);
     expect(snapshot.sales).toEqual([]);
+    const workspace = await scalar<{
+      store: { id: string };
+      departments: { id: string }[];
+      catalog: { id: string }[];
+    }>("select public.store_device_order_workspace($1) as value", [token]);
+    expect(workspace.store.id).toBe(store);
+    expect(workspace.departments.some((item) => item.id === department)).toBe(true);
+    expect(workspace.catalog.some((item) => item.id === orderProduct)).toBe(true);
+    const orderId = await scalar<string>(
+      "select public.submit_store_device_order($1,$2,$3,(now() at time zone 'Asia/Tokyo')::date+3,$4::jsonb,$5) as value",
+      [
+        token,
+        store,
+        department,
+        JSON.stringify([{ product_id: orderProduct, quantity: 1 }]),
+        randomUUID(),
+      ],
+    );
+    await root();
+    expect(
+      await scalar<number>(
+        "select count(*)::int as value from public.orders where id=$1 and requested_by is null and requested_device_id=$2",
+        [orderId, device],
+      ),
+    ).toBe(1);
+    await db.exec("set role anon");
+    await expect(
+      db.query("select public.submit_store_device_order($1,$2,$3,current_date+3,$4::jsonb,$5)", [
+        token,
+        otherStore,
+        department,
+        JSON.stringify([{ product_id: orderProduct, quantity: 1 }]),
+        randomUUID(),
+      ]),
+    ).rejects.toThrow();
     await expect(
       db.query("select public.store_device_snapshot($1)", [randomBytes(32).toString("hex")]),
     ).rejects.toThrow();
     await expect(
       db.query("select public.register_store_device($1,'Fictional station',$2)", [store, token]),
     ).rejects.toThrow("permission denied");
+    await asUser(ids.product);
+    const instructionId = await scalar<string>(
+      "select public.send_store_instruction($1,'promotion','Fictional targeted promotion','Change the shelf price',$2,180,now()+interval '1 day',array[$3]::uuid[]) as value",
+      [randomUUID(), product, store],
+    );
+    await root();
+    await db.exec("set role anon");
+    const notifiedSnapshot = await scalar<{
+      notices: { title: string }[];
+      instructions: { id: string; confirmed_at: string | null }[];
+    }>("select public.store_device_snapshot($1) as value", [token]);
+    expect(
+      notifiedSnapshot.notices.some((notice) => notice.title === "Fictional targeted promotion"),
+    ).toBe(true);
+    expect(
+      notifiedSnapshot.instructions.some(
+        (instruction) => instruction.id === instructionId && instruction.confirmed_at === null,
+      ),
+    ).toBe(true);
+    await db.query("select public.confirm_store_device_instruction($1,$2)", [token, instructionId]);
+    await root();
+    expect(
+      await scalar<number>(
+        "select count(*)::int as value from public.store_instruction_targets where instruction_id=$1 and store_id=$2 and confirmed_at is not null and confirmed_by is null and confirmed_device_id=$3",
+        [instructionId, store, device],
+      ),
+    ).toBe(1);
+    await db.exec("set role anon");
     await asUser(ids.info);
     await db.query("select public.disable_store_device($1)", [device]);
     await root();

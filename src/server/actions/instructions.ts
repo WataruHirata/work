@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { repository } from "@/server/container";
 import { activeSession, requireRoles } from "@/server/auth/session";
+import { deviceToken } from "@/server/auth/store-context";
 import { integer, text, uuid } from "@/server/validation";
 import type { ActionResult } from "@/domain/contracts";
 
@@ -48,11 +49,17 @@ export async function confirmInstruction(
   data: FormData,
 ): Promise<ActionResult> {
   try {
-    await activeSession();
-    await repository().execute("confirmInstruction", {
-      p_instruction_id: uuid(data.get("instructionId")),
-      p_store_id: uuid(data.get("storeId")),
-    });
+    const instructionId = uuid(data.get("instructionId"));
+    const token = await deviceToken();
+    if (token) {
+      await repository().storeDeviceConfirmInstruction(token, instructionId);
+    } else {
+      await activeSession();
+      await repository().execute("confirmInstruction", {
+        p_instruction_id: instructionId,
+        p_store_id: uuid(data.get("storeId")),
+      });
+    }
     revalidatePath("/store", "layout");
     revalidatePath("/admin/campaigns");
     return { success: "対応完了を記録しました。" };

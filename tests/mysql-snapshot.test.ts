@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 const { execute } = vi.hoisted(() => ({ execute: vi.fn() }));
 vi.mock("server-only", () => ({}));
@@ -13,10 +14,13 @@ import { createHash } from "node:crypto";
 import { MysqlRepository } from "../database/mysql/repository";
 
 describe("MySQL store-device snapshot", () => {
-  it("uses an id tie-breaker so paged lists remain stable", async () => {
-    const { readFileSync } = await import("node:fs");
+  it("uses resource-specific tie-breakers so paged lists remain stable", () => {
     const source = readFileSync("database/mysql/repository.ts", "utf8");
-    expect(source).toContain("ORDER BY `\${spec.order}` \${order},`id` \${order}");
+    const specs = readFileSync("database/mock/pglite/adapter.ts", "utf8");
+    expect(source).toContain('spec.tieBreakers ?? ["id"]');
+    expect(source).toContain("${tieBreakers} LIMIT");
+    expect(specs).toContain('tieBreakers: ["campaign_id", "store_id"]');
+    expect(specs).toContain('tieBreakers: ["campaign_item_id", "store_id"]');
   });
 
   beforeEach(() => execute.mockReset());
@@ -57,6 +61,7 @@ describe("MySQL store-device snapshot", () => {
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([
         [
           {
@@ -73,7 +78,8 @@ describe("MySQL store-device snapshot", () => {
     expect(execute.mock.calls[0][1][0]).toEqual(createHash("sha256").update(token).digest());
     expect(execute.mock.calls[2][0]).toContain("DATE_FORMAT(business_date,'%Y-%m-%d')");
     expect(execute.mock.calls[4][0]).toContain("task.work_approved_at");
-    expect(execute.mock.calls[7][0]).toContain("line.product_name_snapshot AS name");
+    expect(execute.mock.calls[7][0]).toContain("FROM orders WHERE store_id=?");
+    expect(execute.mock.calls[8][0]).toContain("line.product_name_snapshot AS name");
     expect(result.store).toEqual({
       id: "store-1",
       code: "S001",
@@ -95,6 +101,7 @@ describe("MySQL store-device snapshot", () => {
       notice_count: 5,
       campaign_pending_count: 3,
     });
-    expect(execute).toHaveBeenCalledTimes(9);
+    expect(result.instructions).toEqual([]);
+    expect(execute).toHaveBeenCalledTimes(10);
   });
 });

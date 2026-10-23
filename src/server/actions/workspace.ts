@@ -48,11 +48,7 @@ export async function executeOperation(
   data: FormData,
 ): Promise<ActionResult> {
   try {
-    if (operation === "createOrder") {
-      const session = await identity().session();
-      if (!session?.active) throw new Error("ログインしてください。");
-      if (session.mustChangePassword) throw new Error("パスワードを変更してください。");
-    } else if (operation !== "requestCorrection") {
+    if (operation !== "requestCorrection" && operation !== "createOrder") {
       await activeSession();
     }
     const repo = repository();
@@ -121,12 +117,17 @@ export async function executeOperation(
         }));
         if (new Set(items.map((line) => line.product_id)).size !== items.length)
           throw new Error("同じ商品は一行にまとめてください。");
-        await repo.execute("createOrder", {
-          p_store_id: uuid(data.get("storeId")),
-          p_department_id: uuid(data.get("departmentId")),
-          p_delivery_date: date(data.get("deliveryDate")),
-          p_items: items,
-          p_request_id: uuid(data.get("requestId")),
+        const token = await deviceToken();
+        if (!token) throw new Error("店舗端末を登録してください。");
+        await repo.storeDeviceCreateOrder(token, {
+          storeId: uuid(data.get("storeId")),
+          departmentId: uuid(data.get("departmentId")),
+          deliveryDate: date(data.get("deliveryDate")),
+          items: items.map((item) => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+          })),
+          requestId: uuid(data.get("requestId")),
         });
         try {
           const result = await runConfiguredIntegrations();

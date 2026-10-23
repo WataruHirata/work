@@ -35,4 +35,23 @@ describe("MySQL schema contract", () => {
     expect(migration).toContain("work_approved_by");
     expect(migration).toContain("FOREIGN KEY (`work_approved_by`)");
   });
+
+  it("records a registered store device as the order actor without requiring a login user", async () => {
+    const migration = await readFile(
+      "database/mysql/migrations/004_store_device_orders.sql",
+      "utf8",
+    );
+    expect(migration).toContain("requested_device_id");
+    expect(migration).toContain("MODIFY COLUMN `requested_by` CHAR(36) NULL");
+    expect(migration).toContain("orders_request_source_valid");
+  });
+
+  it("records store-device completion of targeted promotion instructions", async () => {
+    const migration = await readFile(
+      "database/mysql/migrations/005_store_device_instruction_confirmation.sql",
+      "utf8",
+    );
+    expect(migration).toContain("confirmed_device_id");
+    expect(migration).toContain("instruction_confirmation_actor_valid");
+  });
 });
