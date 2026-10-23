@@ -54,6 +54,8 @@ describe("管理売上画面 FR-005/006 AT-03/10", () => {
     expect(html).toContain("店舗別売上");
     expect(html).toContain("admin-store-bar");
     expect(html).toContain("店舗別比較");
+    expect(html).toContain("admin-sales-filter-panel");
+    expect(html).toContain('<details class="page-panel admin-sales-detail-panel">');
     expect(mocks.authorize).toHaveBeenCalledWith("sales");
   });
   it("期間・店舗の絞り込みをサーバーの取得条件に渡す", async () => {
