@@ -37,7 +37,7 @@ describe("FR-028 / FR-034 / FR-035 / AT-10 管理ルートの権限境界", () =
       store_operations: ["sales", "products", "campaigns", "approvals"],
       accounting: ["sales", "approvals", "monthly"],
       product_office: ["sales", "products", "campaigns"],
-      information_systems: ["stores", "imports", "users", "audit"],
+      information_systems: ["campaigns", "stores", "imports", "users", "audit"],
     };
     for (const [role, allowed] of Object.entries(expected)) {
       expect(adminFeatures.filter((feature) => canUseAdminFeature([role], feature))).toEqual(

@@ -55,8 +55,8 @@ export const uiConfig = {
     storeNotices: {
       href: "/store/notices",
       eyebrow: "STORE NOTICES",
-      label: "お知らせ",
-      title: "お知らせ一覧・詳細",
+      label: "お知らせ・作業",
+      title: "お知らせ・特売作業依頼",
       icon: "notices",
     },
     admin: {

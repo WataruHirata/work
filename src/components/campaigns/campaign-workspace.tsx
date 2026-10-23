@@ -1,13 +1,14 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdminFeature } from "@/server/auth/admin-access";
 import { CampaignManagement, type CampaignTask } from "@/components/campaigns/campaign-management";
+import { FeatureNotice } from "@/components/ui/feature-notice";
+import { PageLayout } from "@/components/ui/page-layout";
 import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
-import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 import { hasAdminAccess } from "@/domain/access-policy";
-import { PageLayout } from "@/components/ui/page-layout";
 import { Tag } from "lucide-react";
 
 const timestamp = (value: unknown) => (value instanceof Date ? value.toISOString() : String(value));
@@ -26,14 +27,28 @@ export async function CampaignWorkspace({
   if (!session?.active)
     redirect(`/login?next=${storeMode ? "/store/campaigns" : "/admin/campaigns"}`);
   if (session.mustChangePassword) redirect("/account/password");
-  const [allStores, products, campaigns, items, targets, tasks] = await Promise.all([
-    allRecords("stores"),
-    allRecords("products"),
-    allRecords("campaigns"),
-    allRecords("campaignItems"),
-    allRecords("campaignTargets"),
-    allRecords("campaignTasks"),
-  ]);
+  let records: Awaited<ReturnType<typeof allRecords>>[];
+  try {
+    records = await Promise.all([
+      allRecords("stores"),
+      allRecords("products"),
+      allRecords("campaigns"),
+      allRecords("campaignItems"),
+      allRecords("campaignTargets"),
+      allRecords("campaignTasks"),
+    ]);
+  } catch {
+    const href = storeMode ? "/store/campaigns" : "/admin/campaigns";
+    return (
+      <PageLayout page={storeMode ? "storeCampaigns" : "campaigns"}>
+        <FeatureNotice title="特売情報を読み込めませんでした">
+          データベース接続と特売用マイグレーションを確認し、
+          <Link href={href}>再試行してください</Link>。
+        </FeatureNotice>
+      </PageLayout>
+    );
+  }
+  const [allStores, products, campaigns, items, targets, tasks] = records;
   const stores =
     storeMode && !hasAdminAccess(session.roles)
       ? allStores.filter((store) => (session.storeIds ?? []).includes(store.id))
@@ -61,12 +76,6 @@ export async function CampaignWorkspace({
       eyebrow="PROMOTION OPERATIONS"
     >
       <CampaignManagement
-        instructionPanel={
-          <InstructionWorkspace
-            canManage={!storeMode && session.roles.includes("product_office")}
-            storeId={storeMode ? selectedStoreId : undefined}
-          />
-        }
         canRecordStoreWork={session.roles.some((role) =>
           ["store_manager", "department_lead", "staff"].includes(role),
         )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { filterCampaigns } from "@/domain/campaign-list";
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useState } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
 import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "lucide-react";
@@ -46,7 +46,6 @@ type CampaignView = {
   }[];
 };
 type Props = {
-  instructionPanel?: ReactNode;
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
@@ -396,7 +395,6 @@ function eligibilityLabel(value: string) {
 }
 
 export function CampaignManagement({
-  instructionPanel,
   isConfigured,
   canManage,
   canRecordStoreWork = false,
@@ -438,7 +436,6 @@ export function CampaignManagement({
           </div>
         ) : null}
 
-        {!canManage && instructionPanel}
         {isConfigured && canManage ? (
           <div className="campaign-flow-rail">
             <div className="campaign-flow-row">

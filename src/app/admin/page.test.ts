@@ -13,10 +13,12 @@ describe("管理トップ FR-028/029 AT-10", () => {
   it("申請・承認と権限不要の発注を除く8個の管理機能ボタンを表示する", async () => {
     const html = renderToStaticMarkup(await AdminPage());
     expect(adminMenuFeatures).toHaveLength(8);
-    for (const feature of adminMenuFeatures) {
+    for (const feature of adminMenuFeatures) expect(html).toContain(uiConfig.pages[feature].label);
+    for (const feature of ["sales", "products", "campaigns"] as const)
       expect(html).toContain(`href="${uiConfig.pages[feature].href}"`);
-      expect(html).toContain(uiConfig.pages[feature].label);
-    }
+    for (const feature of ["monthly", "stores", "imports", "users", "audit"] as const)
+      expect(html).not.toContain(`href="${uiConfig.pages[feature].href}"`);
+    expect(html.match(/権限なし/g)).toHaveLength(5);
     expect(html).not.toContain(`href="${uiConfig.pages.approvals.href}"`);
     expect(html).not.toContain(uiConfig.pages.approvals.label);
     expect(html).not.toContain("/admin/orders");
