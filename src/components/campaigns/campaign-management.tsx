@@ -1,23 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { filterCampaigns } from "@/domain/campaign-list";
-import { uiConfig } from "@/config/ui";
 import { useActionState, useState, type ReactNode } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
+import { ArrowRight, Check, ChevronDown, CircleAlert, Plus, Tag } from "@/components/ui/icons";
 import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  ChevronDown,
-  CircleAlert,
-  Plus,
-  Tag,
-  Store,
-} from "@/components/ui/icons";
-import {
-  approveCampaignWorkAction,
   createCampaignDraftAction,
   publishCampaignDraftAction,
   updateCampaignProgressAction,
@@ -37,8 +25,6 @@ export type CampaignTask = {
   price_label_restored_at: string | null;
   pop_restored_at: string | null;
   display_restored_at: string | null;
-  work_approved_at: string | null;
-  work_approved_by: string | null;
 };
 type CampaignView = {
   storeIds: string[];
@@ -64,7 +50,6 @@ type Props = {
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
-  canApproveStoreWork?: boolean;
   canRecordStoreWork?: boolean;
   stores: StoreOption[];
   products: ProductOption[];
@@ -83,33 +68,6 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function ApprovalAction({ campaignItemId, storeId }: { campaignItemId: string; storeId: string }) {
-  const [state, action, pending] = useActionState(approveCampaignWorkAction, initialActionState);
-  return (
-    <form action={action} className="campaign-approval-form">
-      <input type="hidden" name="campaignItemId" value={campaignItemId} />
-      <input type="hidden" name="storeId" value={storeId} />
-      <label className="campaign-target-filter">
-        <input type="checkbox" name="confirmed" value="true" required />
-        POS価格と商品値札の完了を確認しました
-      </label>
-      <button type="submit" className="campaign-publish-button" disabled={pending}>
-        {pending ? "承認中…" : "店舗作業を承認"}
-      </button>
-      {state.error ? (
-        <span className="campaign-inline-error" role="alert">
-          {state.error}
-        </span>
-      ) : null}
-      {state.success ? (
-        <span className="campaign-inline-success" role="status">
-          {state.success}
-        </span>
-      ) : null}
-    </form>
-  );
 }
 
 function formatYen(value: number) {
@@ -441,7 +399,6 @@ export function CampaignManagement({
   instructionPanel,
   isConfigured,
   canManage,
-  canApproveStoreWork = false,
   canRecordStoreWork = false,
   stores,
   products,
@@ -464,23 +421,7 @@ export function CampaignManagement({
   const visibleCampaigns = showAllCampaigns ? filteredCampaigns : filteredCampaigns.slice(0, 8);
 
   return (
-    <main className="campaign-page" id="main-content" tabIndex={-1}>
-      <header className="campaign-topbar">
-        <Link
-          className="campaign-back-link"
-          href={
-            basePath.startsWith("/store")
-              ? uiConfig.pages.storeMenu.href
-              : uiConfig.pages.admin.href
-          }
-        >
-          <ArrowLeft size={16} /> メニューへ戻る
-        </Link>
-        <div className={isConfigured ? "campaign-env-pill live" : "campaign-env-pill"}>
-          <span />
-          {isConfigured ? "データ接続中" : "プレビュー"}
-        </div>
-      </header>
+    <div className="campaign-page">
       <div className="campaign-content">
         {!isConfigured ? (
           <div className="campaign-notice preview-notice" role="status">
@@ -490,38 +431,11 @@ export function CampaignManagement({
             </span>
           </div>
         ) : null}
-        <div className="campaign-heading">
-          <div className="campaign-heading-icon">
-            <Tag size={21} />
-          </div>
-          <div>
-            <div className="campaign-eyebrow">PROMOTION OPERATIONS</div>
-            <h1>特売管理</h1>
-            <p>POS価格反映と店舗の売場作業を分けて確認します。</p>
-          </div>
-        </div>
-
-        {isConfigured && !selectedStore ? (
+        {isConfigured && !selectedStoreId ? (
           <div className="campaign-notice" role="status">
             <CircleAlert size={17} />
             <span>参照できる店舗がありません。情報システム部へ権限の割当を依頼してください。</span>
           </div>
-        ) : null}
-
-        {isConfigured && selectedStore ? (
-          <form className="campaign-store-filter" action={basePath} method="get">
-            <label htmlFor="campaign-store-select">
-              <Store size={16} /> 作業対象店舗
-            </label>
-            <select id="campaign-store-select" name="store" defaultValue={selectedStoreId}>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.code} · {store.name}
-                </option>
-              ))}
-            </select>
-            <button type="submit">表示</button>
-          </form>
         ) : null}
 
         {!canManage && instructionPanel}
@@ -539,16 +453,7 @@ export function CampaignManagement({
             </div>
           </div>
         ) : null}
-        {isConfigured && !canManage ? (
-          <div className="campaign-note">
-            <CircleAlert size={15} />
-            <span>
-              本部特売の登録・公開は商品本部または情報システム部の管理権限が必要です。店舗の確認と売場作業は、対象店舗を選択して記録できます。
-            </span>
-          </div>
-        ) : null}
-
-        {isConfigured ? (
+        {isConfigured && !basePath.startsWith("/store") ? (
           <section className="campaign-list-section" aria-labelledby="campaign-list-heading">
             <div className="campaign-list-heading">
               <div>
@@ -703,13 +608,6 @@ export function CampaignManagement({
                           <div className="campaign-items">
                             {items.map((item) => {
                               const task = item.task;
-                              const readyForApproval = Boolean(
-                                task &&
-                                ["applied", "manual_confirmed"].includes(
-                                  task.pos_promotion_status,
-                                ) &&
-                                task.price_label_changed_at,
-                              );
                               return (
                                 <div className="campaign-product-row" key={item.id}>
                                   <div className="campaign-product-heading">
@@ -818,34 +716,6 @@ export function CampaignManagement({
                                       </div>
                                     </div>
                                   ) : null}
-                                  {canTrack && readyForApproval ? (
-                                    <div
-                                      className={
-                                        task?.work_approved_at
-                                          ? "campaign-approval-state is-approved"
-                                          : "campaign-approval-state"
-                                      }
-                                    >
-                                      <div>
-                                        <strong>
-                                          {task?.work_approved_at
-                                            ? "店舗作業 承認済み"
-                                            : "店舗作業 承認待ち"}
-                                        </strong>
-                                        <span>
-                                          {task?.work_approved_at
-                                            ? `${formatDate(task.work_approved_at)} に承認`
-                                            : "POS価格と商品値札の完了登録を確認してください。"}
-                                        </span>
-                                      </div>
-                                      {canApproveStoreWork && !task?.work_approved_at ? (
-                                        <ApprovalAction
-                                          campaignItemId={item.id}
-                                          storeId={selectedStoreId}
-                                        />
-                                      ) : null}
-                                    </div>
-                                  ) : null}
                                 </div>
                               );
                             })}
@@ -905,13 +775,13 @@ export function CampaignManagement({
         <div className="campaign-note">
           <CircleAlert size={15} />
           <span>
-            通常売価の参照元と外部POS連携仕様は未確定です。価格の自動配信・通常売価への自動復帰は行いません。現在は店舗担当者によるPOS価格変更と商品値札変更の完了、および商品本部の承認を記録します。
+            通常売価の参照元とPOS連携仕様は未確定です。価格の自動配信・通常売価への自動復帰は行いません。POS結果は「未設定」と表示し、値札・POP・売場表示の作業状態のみ記録します。
           </span>
         </div>
         <footer className="campaign-footer">
           みのり屋 販売管理システム <span>·</span> 特売業務
         </footer>
       </div>
-    </main>
+    </div>
   );
 }

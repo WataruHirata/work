@@ -4,6 +4,7 @@ import {
   canUseAdminFeature,
   hasAdminAccess,
   isAdminPath,
+  resolveStorePageStoreId,
   safeAdminReturnPath,
 } from "@/domain/access-policy";
 
@@ -60,5 +61,21 @@ describe("FR-028 / FR-034 / FR-035 / AT-10 管理ルートの権限境界", () =
       "/store",
     ])
       expect(safeAdminReturnPath(value)).toBe("/admin");
+  });
+  it("店舗ロールのURL指定を登録店舗の範囲内へ制限する", () => {
+    expect(resolveStorePageStoreId(["staff"], ["store-a"], "store-b")).toBe("store-a");
+    expect(resolveStorePageStoreId(["store_manager"], ["store-a", "store-b"], "store-b")).toBe(
+      "store-b",
+    );
+    expect(resolveStorePageStoreId(["area_manager"], ["store-a"], "store-b")).toBe("store-b");
+    expect(resolveStorePageStoreId(["staff"], [])).toBeUndefined();
+  });
+  it("店舗ロールのURL指定を登録店舗の範囲内へ制限する", () => {
+    expect(resolveStorePageStoreId(["staff"], ["store-a"], "store-b")).toBe("store-a");
+    expect(resolveStorePageStoreId(["store_manager"], ["store-a", "store-b"], "store-b")).toBe(
+      "store-b",
+    );
+    expect(resolveStorePageStoreId(["area_manager"], ["store-a"], "store-b")).toBe("store-b");
+    expect(resolveStorePageStoreId(["staff"], [])).toBeUndefined();
   });
 });

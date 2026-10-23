@@ -39,19 +39,34 @@ export class MysqlIntegrationStore implements IntegrationJobStore {
     });
   }
   async finish(job: IntegrationJob, success: boolean, result: Json, error?: string) {
-    const [updated] = await mysqlPool().execute(
-      `UPDATE integration_jobs SET status=?,result=?,last_error=?,locked_until=NULL,available_at=IF(?,available_at,DATE_ADD(CURRENT_TIMESTAMP(3),INTERVAL LEAST(attempts,8) MINUTE)),updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND status='processing' AND lease_id=?`,
-      [
-        success ? "completed" : "failed",
-        JSON.stringify(result),
-        error ?? null,
-        success,
-        job.id,
-        job.leaseId,
-      ],
-    );
-    if (!(updated as { affectedRows: number }).affectedRows)
-      throw new Error("連携ジョブのleaseが無効です。再取得して処理してください。");
+    await mysqlTransaction(async (db) => {
+      const [updated] = await db.execute(
+        `UPDATE integration_jobs SET status=?,result=?,last_error=?,locked_until=NULL,available_at=IF(?,available_at,DATE_ADD(CURRENT_TIMESTAMP(3),INTERVAL LEAST(attempts,8) MINUTE)),updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND status='processing' AND lease_id=?`,
+        [
+          success ? "completed" : "failed",
+          JSON.stringify(result),
+          error ?? null,
+          success,
+          job.id,
+          job.leaseId,
+        ],
+      );
+      if (!(updated as { affectedRows: number }).affectedRows)
+        throw new Error("連携ジョブのleaseが無効です。再取得して処理してください。");
+      if (
+        job.kind === "order" &&
+        job.payload &&
+        typeof job.payload === "object" &&
+        !Array.isArray(job.payload)
+      ) {
+        const orderId = String(job.payload.orderId ?? "");
+        if (orderId)
+          await db.execute(
+            "UPDATE orders SET status=?,updated_at=CURRENT_TIMESTAMP(3) WHERE id=? AND status IN ('submitted','failed')",
+            [success ? "sent" : "failed", orderId],
+          );
+      }
+    });
   }
   async restorePrice(productId: string, storeId: string): Promise<NormalPriceQuote | null> {
     const [rows] = await mysqlPool().execute<

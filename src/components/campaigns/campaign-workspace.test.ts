@@ -1,11 +1,17 @@
 ﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 const mocks = vi.hoisted(() => ({ authorize: vi.fn(), records: vi.fn(), session: vi.fn() }));
 vi.mock("@/server/auth/admin-access", () => ({ requireAdminFeature: mocks.authorize }));
 vi.mock("@/server/container", () => ({
   backendConfigured: () => true,
   identity: () => ({ session: mocks.session }),
 }));
-vi.mock("@/server/queries/workspaces", () => ({ allRecords: mocks.records }));
+vi.mock("@/server/queries/workspaces", () => ({
+  allRecords: mocks.records,
+  featureResources: {
+    campaigns: ["campaigns", "campaignItems", "campaignTargets", "campaignTasks"],
+  },
+}));
 vi.mock("@/components/campaigns/campaign-management", () => ({ CampaignManagement: () => null }));
 vi.mock("@/components/campaigns/instruction-workspace", () => ({
   InstructionWorkspace: () => null,
@@ -36,27 +42,39 @@ describe("特売画面 FR-020/028 AT-07/10", () => {
   });
   it("20件を超える特売と対象店舗を一覧に渡す", async () => {
     const result = await CampaignWorkspace({});
-    expect(result.props.campaigns).toHaveLength(25);
-    expect(result.props.campaigns[24].storeIds).toEqual(["store1"]);
-    expect(result.props.canManage).toBe(true);
-    expect(result.props.canApproveStoreWork).toBe(true);
+    const management = result.props.children;
+    expect(management.props.campaigns).toHaveLength(25);
+    expect(management.props.campaigns[24].storeIds).toEqual(["store1"]);
+    expect(management.props.canManage).toBe(true);
+    expect(result.props.eyebrow).toBe("PROMOTION OPERATIONS");
   });
   it("閲覧ロールには特売の管理操作を渡さない", async () => {
     mocks.session.mockResolvedValue({ active: true, roles: ["area_manager"] });
     const result = await CampaignWorkspace({});
-    expect(result.props.canManage).toBe(false);
-    expect(result.props.canApproveStoreWork).toBe(false);
+    expect(result.props.children.props.canManage).toBe(false);
   });
-  it("情報システム管理者には特売の登録・送信操作を渡す", async () => {
-    mocks.session.mockResolvedValue({ active: true, roles: ["information_systems"] });
-    const result = await CampaignWorkspace({});
-    expect(result.props.canManage).toBe(true);
-    expect(result.props.canApproveStoreWork).toBe(true);
-    expect(result.props.campaigns).toHaveLength(25);
+  it("店舗の特売画面にはお知らせ用の作業依頼パネルを重複表示しない", async () => {
+    mocks.session.mockResolvedValue({
+      active: true,
+      roles: ["store_manager"],
+      storeIds: ["store1"],
+    });
+    const result = await CampaignWorkspace({ storeMode: true, storeId: "store1" });
+    const management = result.props.children;
+    expect(management.props.instructionPanel).toBeTruthy();
+    expect(management.props.basePath).toBe("/store/campaigns");
   });
   it("権限確認前に業務データを取得しない", async () => {
     mocks.authorize.mockRejectedValue(new Error("denied"));
     await expect(CampaignWorkspace({})).rejects.toThrow("denied");
     expect(mocks.records).not.toHaveBeenCalled();
+  });
+  it("特売データの取得失敗を空画面にせず再試行案内にする", async () => {
+    mocks.records.mockRejectedValue(new Error("database unavailable"));
+    const html = renderToStaticMarkup(await CampaignWorkspace({}));
+    expect(html).toContain("特売情報を読み込めませんでした");
+    expect(html).toContain("データベース接続と特売用マイグレーション");
+    expect(html).toContain('href="/admin/campaigns"');
+    expect(html).not.toContain("database unavailable");
   });
 });

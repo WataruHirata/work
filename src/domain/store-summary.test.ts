@@ -24,4 +24,22 @@ describe("AT-03 実店舗集計", () => {
     expect(result.change).toBe(100);
     expect(storeSummary({ store: { name: "Fictional" }, sales: [] }).unitPrice).toBeNull();
   });
+
+  it("parses store-scoped metrics and leaves absent values unknown", () => {
+    const result = storeSummary({
+      store: { name: "Fictional store" },
+      sales: [],
+      metrics: {
+        inventory_alert_count: 2,
+        notice_count: 5,
+        campaign_pending_count: 3,
+      },
+    });
+    expect(result.inventoryAlertCount).toBe(2);
+    expect(result.noticeCount).toBe(5);
+    expect(result.campaignPendingCount).toBe(3);
+    expect(
+      storeSummary({ store: { name: "Fictional" }, sales: [] }).inventoryAlertCount,
+    ).toBeNull();
+  });
 });

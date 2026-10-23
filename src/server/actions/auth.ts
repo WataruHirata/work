@@ -1,11 +1,22 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { backendConfigured, identity } from "@/server/container";
-import { safeAdminReturnPath } from "@/domain/access-policy";
+import {
+  canUseAdminFeature,
+  adminFeatures,
+  isAdminRole,
+  safeAdminReturnPath,
+  type AdminFeature,
+  type AdminRole,
+} from "@/domain/access-policy";
 import type { ActionResult } from "@/domain/contracts";
+import { activeAdminRoleCookie } from "@/server/auth/admin-role";
 
-export async function signIn(data: FormData): Promise<ActionResult & { next?: string }> {
+export async function signIn(
+  data: FormData,
+): Promise<ActionResult & { next?: string; roles?: AdminRole[] }> {
   try {
     if (!backendConfigured()) throw new Error("認証サービスの接続設定がありません。");
     const email = String(data.get("email") ?? "").trim();
@@ -15,15 +26,58 @@ export async function signIn(data: FormData): Promise<ActionResult & { next?: st
     const provider = identity();
     await provider.signIn(email, password);
     const session = await provider.session();
+    const roles = (session?.roles ?? []).filter(isAdminRole);
+    if (session?.mustChangePassword) return { next: "/account/password" };
+    if (roles.length) {
+      (await cookies()).delete(activeAdminRoleCookie);
+      return { roles };
+    }
     return {
-      next: session?.mustChangePassword
-        ? "/account/password"
-        : safeAdminReturnPath(String(data.get("next") ?? "")),
+      next:
+        session && session.roles.length === 0
+          ? "/store/orders"
+          : safeAdminReturnPath(String(data.get("next") ?? "")),
     };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "ログインできませんでした。",
     };
+  }
+}
+
+export async function selectAdminRole(
+  roleValue: string,
+  returnTo?: string,
+): Promise<ActionResult & { next?: string }> {
+  try {
+    if (!isAdminRole(roleValue)) throw new Error("選択できない権限です。");
+    const session = await identity().session();
+    if (!session?.active || session.mustChangePassword || !session.roles.includes(roleValue))
+      throw new Error("このアカウントに割り当てられていない権限は選択できません。");
+
+    const cookieStore = await cookies();
+    cookieStore.set(activeAdminRoleCookie, roleValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 8,
+    });
+
+    const requestedPath = safeAdminReturnPath(returnTo);
+    const feature = requestedPath.startsWith("/admin/")
+      ? requestedPath.slice("/admin/".length)
+      : undefined;
+    return {
+      next:
+        feature &&
+        adminFeatures.includes(feature as AdminFeature) &&
+        canUseAdminFeature([roleValue], feature as AdminFeature)
+          ? requestedPath
+          : "/admin",
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "権限を選択できませんでした。" };
   }
 }
 
@@ -75,6 +129,7 @@ export async function resetPassword(
 }
 
 export async function logout() {
+  (await cookies()).delete(activeAdminRoleCookie);
   if (backendConfigured()) await identity().signOut();
   redirect("/");
 }

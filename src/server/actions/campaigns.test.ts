@@ -4,7 +4,6 @@ vi.mock("@/server/container", () => ({ repository: () => ({ execute: mocks.execu
 vi.mock("@/server/auth/session", () => ({ requireRoles: mocks.roles, activeSession: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import {
-  approveCampaignWorkAction,
   publishCampaignDraftAction,
   updateCampaignProgressAction,
 } from "@/server/actions/campaigns";
@@ -44,24 +43,5 @@ describe("特売依頼送信 FR-020/028/029 AT-07/10", () => {
       p_completed: true,
     });
     expect(mocks.revalidate).toHaveBeenCalledWith("/store/notices");
-  });
-  it("商品本部が店舗のPOS・値札完了を確認して承認する", async () => {
-    const data = new FormData();
-    data.set("campaignItemId", "10000000-0000-4000-8000-000000000001");
-    data.set("storeId", "20000000-0000-4000-8000-000000000002");
-    data.set("confirmed", "true");
-    expect((await approveCampaignWorkAction({}, data)).success).toContain("承認");
-    expect(mocks.roles).toHaveBeenCalledWith(["product_office", "information_systems"]);
-    expect(mocks.execute).toHaveBeenCalledWith("approveCampaignWork", {
-      p_campaign_item_id: "10000000-0000-4000-8000-000000000001",
-      p_store_id: "20000000-0000-4000-8000-000000000002",
-    });
-  });
-  it("店舗作業の確認なしでは承認しない", async () => {
-    const data = new FormData();
-    data.set("campaignItemId", "10000000-0000-4000-8000-000000000001");
-    data.set("storeId", "20000000-0000-4000-8000-000000000002");
-    expect((await approveCampaignWorkAction({}, data)).error).toContain("確認");
-    expect(mocks.execute).not.toHaveBeenCalled();
   });
 });

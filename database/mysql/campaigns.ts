@@ -92,11 +92,8 @@ export async function executeMysqlCampaign(
     [session.userId],
   );
   const storeOperation = command === "confirmCampaign" || command === "updateCampaignTask";
-  if (
-    !storeOperation &&
-    !assignments.some((row) => ["product_office", "information_systems"].includes(String(row.role)))
-  )
-    throw new Error("特売管理権限が必要です。");
+  if (!storeOperation && !assignments.some((row) => row.role === "product_office"))
+    throw new Error("商品本部権限が必要です。");
 
   if (command === "createCampaign") {
     const { name, starts, ends } = draft(input),

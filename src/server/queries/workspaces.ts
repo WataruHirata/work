@@ -5,6 +5,7 @@ import type { DataRecord, QueryOptions, Resource } from "@/domain/contracts";
 export const featureResources: Record<string, Resource[]> = {
   sales: ["sales"],
   products: ["products", "prices"],
+  campaigns: ["campaigns", "campaignItems", "campaignTargets", "campaignTasks"],
   stores: ["stores", "devices", "announcements"],
   orders: ["orders", "orderLines"],
   approvals: ["corrections", "approvals"],
@@ -13,8 +14,9 @@ export const featureResources: Record<string, Resource[]> = {
   users: ["users", "roles"],
   audit: ["audit"],
   storeSales: ["sales", "inventory"],
+  storeCampaigns: ["campaigns", "campaignItems", "campaignTargets", "campaignTasks"],
   storeOperations: ["sales", "corrections"],
-  storeOrders: ["orders", "orderLines"],
+  storeOrders: ["orders"],
   storeNotices: ["notifications"],
 };
 export async function allRecords(

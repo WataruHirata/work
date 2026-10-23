@@ -7,6 +7,7 @@ export type Resource =
   | "areas"
   | "departments"
   | "sales"
+  | "salesLines"
   | "corrections"
   | "approvals"
   | "orders"
@@ -56,6 +57,8 @@ export type Session = {
   active: boolean;
   mustChangePassword: boolean;
   roles: string[];
+  storeIds?: string[];
+  areaIds?: string[];
 };
 export type QueryOptions = {
   storeId?: string;
@@ -64,6 +67,7 @@ export type QueryOptions = {
   search?: string;
   page?: number;
   correctionId?: string;
+  salesDayId?: string;
 };
 export type DataPage = {
   rows: DataRecord[];
@@ -87,6 +91,7 @@ export interface BusinessRepository {
   ): Promise<void>;
   execute(command: Command, input: Record<string, Json>): Promise<Json>;
   storeSnapshot(deviceToken: string): Promise<Record<string, Json>>;
+  storeDeviceSalesDayLines(deviceToken: string, salesDayId: string): Promise<DataRecord[]>;
 }
 
 export interface IdentityProvider {

@@ -57,7 +57,7 @@
 
 2026-10-21のHTTP確認（Supabase未設定のローカル開発サーバー）では `/` `/store` `/store/orders` `/store/operations` `/login` は200、`/admin` は設定案内のみ、旧 `/sales` は307で `/admin/sales` へ、未認証 `/api/dashboard` は401となった。管理ログイン後の実データ操作・外部IF・現場受入は未検証。
 
-要件書の機能要件・トレーサビリティ表・受入試験IDはPython標準ライブラリで検査する。営業日・税の業務ロジックとDBマイグレーション/RLSはVitestとPGliteで検査し、GitHub ActionsではSupabase CLIでもローカルPostgreSQLに対するマイグレーション適用・Lintを実行する。特売DBテストでは複数商品/店舗の下書き作成、未確認EDLP分類での公開拒否、商品本部・情報システム管理者による公開、店舗別RLS、店舗確認・作業記録を検証する。ログインや特売画面のSupabase実環境認証・E2Eは未実装であり、本番POS連携も未検証。
+要件書の機能要件・トレーサビリティ表・受入試験IDはPython標準ライブラリで検査する。営業日・税の業務ロジックとDBマイグレーション/RLSはVitestとPGliteで検査し、GitHub ActionsではSupabase CLIでもローカルPostgreSQLに対するマイグレーション適用・Lintを実行する。特売DBテストでは複数商品/店舗の下書き作成、未確認EDLP分類での公開拒否、商品本部のみの公開、店舗別RLS、店舗確認・作業記録を検証する。ログインや特売画面のSupabase実環境認証・E2Eは未実装であり、本番POS連携も未検証。
 
 ```powershell
 python -m unittest discover -s tests -v
@@ -66,7 +66,7 @@ npm test
 
 管理トップの `src/app/admin/page.test.ts` は申請・承認を除く管理9機能の初期表示、申請・承認ボタンの非表示、通知本文の重複非表示を検証する。`src/components/notifications/admin-notifications.test.ts` は全通知の取得・未読件数・取得失敗・未接続状態を検証する（FR-028/029、AT-10）。
 
-特売指示は `src/components/campaigns/instruction-workspace.test.ts` で店舗お知らせに商品・期間・価格、POS変更と商品値札変更の個別タスクが表示されることを検証する。`src/server/actions/campaigns.test.ts`、`tests/database-schema.test.ts`、`tests/mysql-schema.test.ts`、`tests/mysql-campaigns.integration.test.ts` で担当店舗のPOS手動確認と値札完了、商品本部による店舗作業承認、承認者・時刻の保存、権限・監査境界を検証する（FR-020/029、F-10-056/107、AT-07/10）。
+特売指示は `src/components/campaigns/instruction-workspace.test.ts` で店舗お知らせに商品・期間・価格、POS変更と商品値札変更の個別タスクが表示されることを検証する。`src/server/actions/campaigns.test.ts`、`tests/database-schema.test.ts`、`tests/mysql-campaigns.integration.test.ts` で担当店舗のPOS手動確認と値札完了の認可・保存・監査境界を検証する（FR-020/029、AT-07/10）。
 
 2026-10-22 特売指示のEdge（ヘッドレス実ブラウザ）確認: 1440×1000の管理画面で商品・開始日時・終了日時・価格・対象店舗の入力欄が初期表示されることを確認した。1280×1000と390×844の店舗お知らせで、商品・価格・期間を含む「POS・商品値札の変更依頼」、POS変更と商品値札変更の個別完了・取消、横スクロールなし、JavaScript例外なしを確認した。証跡は `.local/design-check/campaign-ideal-*.png` と `campaign-ideal-results.json`（Git対象外）。
 
@@ -80,7 +80,7 @@ Edge実ブラウザでは通知ボタンの初期閉状態・開く/閉じる・
 
 2026-10-22 特売→店舗の実ブラウザ受入確認: ローカルの架空デモ商品で2026/12/10 09:00～12/12 22:00・123円の特売を作成し、対象区分確認→送信内容確認→POS・値札変更依頼送信→店長で `/store/notices` を開く→店舗確認、まで成功。価格・開始/終了日時・POSと値札の依頼文を確認し、JavaScript例外は0件。証跡は `.local/design-check/campaign-e2e-results.json`、`store-change-request.png`。追加の `campaign-change-requests.test.ts` と `campaigns.test.ts` はPostgreSQLの通知内容/対象/複数商品/再更新時の重複防止と送信確認の必須化を検証し3件成功。MySQL実DBの7件も更新した依頼内容で成功。
 
-2026-10-23 特売店舗作業承認のEdge（ヘッドレス実ブラウザ）確認: 商品本部で `/admin/campaigns` の登録フォームに商品・開始/終了日時・価格が表示されること、店舗のお知らせでPOS価格・商品値札を個別完了できること、両方の完了後に管理画面が「承認待ち」となり商品本部の確認操作後に「承認済み」となることを確認した。1440px/1280px/390pxで横スクロールとJavaScript例外は0件。証跡は `.local/design-check/campaign-ideal-*.png` と `campaign-approval-admin.png`（Git対象外）。その後の明示要望により情報システム管理者にも登録・送信・承認を開放し、接続済み店舗端末には商品・価格・期間・作業状態を表示するテストを追加した。完了登録は店舗担当者の個人識別を維持する。
+ログイン後の特売管理画面は `npm run check:browser:campaigns` で確認する。システムEdgeまたはChromeでログインして `/admin/campaigns` の入力フォーム、読込エラー、ブラウザコンソールエラーを検査する。認証値は出力せず、結果JSONとスクリーンショットをGit対象外の `.local/browser-check/` に保存する。初期パスワードを変更済みの場合は、Git対象外の `.env.browser-check.local` に商品本部の架空検証アカウントを `BROWSER_CHECK_EMAIL` と `BROWSER_CHECK_PASSWORD` として保存する。未指定時だけ `.env.local` のデモ初期値を使用する。実利用者の認証情報は使用しない。
 
 クローン先ブランチでの最終検証：format:check、lint、typecheck、build、関連25件のテスト、要件追跡5件が成功。MySQL実DB試験7件も同一コードで成功。PGliteのWASM初期化を含む単一DB試験だけ20秒の制限を設定し、ビルドとの並行実行で既定5秒を超える環境に対応した。既存の全体DB初期化SQLエラーとCSSトークン未定義は前述の通り残る。
 

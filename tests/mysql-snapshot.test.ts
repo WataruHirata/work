@@ -47,20 +47,19 @@ describe("MySQL store-device snapshot", () => {
           },
         ],
       ])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[]])
       .mockResolvedValueOnce([
         [
           {
-            id: "campaign-1",
-            name: "週末特売",
-            product_code: "P001",
-            product_name: "架空商品",
-            price_yen: 198,
+            inventory_alert_count: 2,
+            notice_count: 5,
+            campaign_pending_count: 3,
           },
         ],
-      ])
-      .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([[]]);
+      ]);
 
     const result = await new MysqlRepository().storeSnapshot(token);
 
@@ -81,16 +80,12 @@ describe("MySQL store-device snapshot", () => {
         observed_at: observedAt.toISOString(),
       },
     ]);
-    expect(execute.mock.calls[4][0]).toContain("campaign_item_store_tasks");
-    expect(result.campaigns).toEqual([
-      {
-        id: "campaign-1",
-        name: "週末特売",
-        product_code: "P001",
-        product_name: "架空商品",
-        price_yen: 198,
-      },
-    ]);
-    expect(execute).toHaveBeenCalledTimes(8);
+    expect(result.campaigns).toEqual([]);
+    expect(result.metrics).toEqual({
+      inventory_alert_count: 2,
+      notice_count: 5,
+      campaign_pending_count: 3,
+    });
+    expect(execute).toHaveBeenCalledTimes(9);
   });
 });

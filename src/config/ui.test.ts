@@ -35,25 +35,50 @@ describe("UI共通設定（AT-03 / AT-10 の表示・操作基盤）", () => {
     expect(uiConfig.theme).toMatchObject({
       "--text": "#172720",
       "--text-strong": "#0b2f57",
-      "--text-subtle": "#68766f",
-      "--border": "#e4ebe7",
+      "--text-subtle": "#465b54",
+      "--border": "#d9e5e0",
       "--surface": "#ffffff",
-      "--surface-subtle": "#f8fafc",
-      "--accent": "#2e75b6",
-      "--accent-strong": "#0b2f57",
-      "--success": "#2c7a5f",
-      "--warning": "#b96c38",
-      "--focus": "#2e75b6",
+      "--surface-subtle": "#f4f8f6",
+      "--accent": "#27856b",
+      "--accent-strong": "#17664f",
+      "--success": "#247653",
+      "--warning": "#9b5c13",
+      "--focus": "#287fb0",
       "--font-size-body": "15px",
+      "--font-size-kpi": "24px",
       "--radius-control": "8px",
       "--radius-panel": "12px",
       "--card-padding": "22px",
       "--control-height": "44px",
       "--disabled-surface": "#e9efec",
     });
+    const styles = readFileSync("src/app/globals.css", "utf8");
+    expect(styles).toMatch(
+      /\.table-expand-actions,\s*\.list-expand-actions\s*\{[^}]*position:\s*absolute[^}]*top:\s*0[^}]*right:\s*0/s,
+    );
+    expect(styles).toMatch(/table\s*\{[^}]*min-width:\s*0[^}]*table-layout:\s*fixed/s);
+    expect(styles).not.toContain("overflow-x: auto");
     expect(uiConfig.theme["--green"]).toBe("var(--accent)");
     expect(uiConfig.theme["--green-dark"]).toBe("var(--accent-strong)");
     expect(uiConfig.theme["--panel"]).toBe("var(--surface)");
+  });
+
+  it("旧店舗ポータルの指標・グラフ・サンプル色を共通テーマへ結び付ける", () => {
+    const styles = readFileSync("src/app/globals.css", "utf8");
+    expect(styles).toMatch(
+      /\.green-icon\s*\{[^}]*background:\s*var\(--accent-soft\)[^}]*color:\s*var\(--accent-strong\)/s,
+    );
+    expect(styles).toMatch(
+      /\.demo-badge\s*\{[^}]*background:\s*var\(--accent-soft\)[^}]*color:\s*var\(--accent-strong\)/s,
+    );
+    expect(styles).toMatch(/\.chart-line\s*\{[^}]*stroke:\s*var\(--accent\)/s);
+    expect(styles).toMatch(/\.chart-point\s*\{[^}]*stroke:\s*var\(--accent\)/s);
+    expect(styles).toMatch(
+      /\.metric-value\s*\{[^}]*color:\s*var\(--text-strong\)[^}]*font-size:\s*var\(--font-size-kpi\)[^}]*letter-spacing:\s*normal/s,
+    );
+    expect(styles).toMatch(
+      /\.department-list li > div:first-child\s*\{[^}]*font-size:\s*var\(--font-size-label\)/s,
+    );
   });
 
   it("データ状態を共通の警告・成功・中立色へ分類する", () => {

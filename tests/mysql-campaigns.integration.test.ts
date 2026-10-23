@@ -119,29 +119,10 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       await db.execute("UPDATE stores SET status='temporarily_closed' WHERE id=?", [store]);
       await expect(create()).rejects.toThrow("有効な対象店舗");
       await db.execute("DELETE FROM user_role_assignments WHERE user_id=?", [user]);
-      await expect(create()).rejects.toThrow("特売管理権限");
+      await expect(create()).rejects.toThrow("商品本部権限");
       await db.execute("UPDATE app_users SET active=0 WHERE id=?", [user]);
       await expect(create()).rejects.toThrow("個人アカウント");
       expect(await rows("SELECT id FROM campaigns WHERE created_by=?", [user])).toHaveLength(0);
-    });
-    it("情報システム管理者も特売を入力して店舗へ送信できる", async () => {
-      await db.execute(
-        "UPDATE user_role_assignments SET role='information_systems' WHERE user_id=?",
-        [user],
-      );
-      session.roles = ["information_systems"];
-      const id = await create();
-      await eligible(id);
-      await run("publishCampaign", { p_campaign_id: id });
-      expect((await rows("SELECT status FROM campaigns WHERE id=?", [id]))[0].status).toBe(
-        "scheduled",
-      );
-      expect(
-        await rows("SELECT id FROM store_announcements WHERE title LIKE ? AND store_id=?", [
-          "POS・値札変更依頼:%",
-          store,
-        ]),
-      ).toHaveLength(1);
     });
     it("下書きの価格と期間を更新し、古い版・欠落明細を拒否する", async () => {
       const id = await create(),
@@ -226,10 +207,6 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       );
       await run("updateCampaignTask", input);
       await run("updateCampaignTask", { ...input, p_task: "pos_changed" });
-      await run("approveCampaignWork", {
-        p_campaign_item_id: item.id,
-        p_store_id: store,
-      });
       await run("confirmCampaign", {
         p_campaign_item_id: item.id,
         p_store_id: store,
@@ -238,36 +215,19 @@ describe.skipIf(process.env.MINORIYA_MYSQL_TEST !== "1")(
       expect(
         (
           await rows(
-            "SELECT price_label_changed_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
+            "SELECT price_label_changed_at,pos_promotion_status,pos_promotion_confirmed_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
             [item.id, store],
           )
         )[0].price_label_changed_at,
       ).not.toBeNull();
       const completed = (
         await rows(
-          "SELECT pos_promotion_status,pos_promotion_confirmed_at,work_approved_at,work_approved_by FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
+          "SELECT pos_promotion_status,pos_promotion_confirmed_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
           [item.id, store],
         )
       )[0];
       expect(completed.pos_promotion_status).toBe("manual_confirmed");
       expect(completed.pos_promotion_confirmed_at).not.toBeNull();
-      expect(completed.work_approved_at).not.toBeNull();
-      expect(completed.work_approved_by).toBe(user);
-      await expect(
-        run("approveCampaignWork", {
-          p_campaign_item_id: item.id,
-          p_store_id: store,
-        }),
-      ).rejects.toThrow("承認済み");
-      await run("updateCampaignTask", { ...input, p_completed: false });
-      expect(
-        (
-          await rows(
-            "SELECT work_approved_at FROM campaign_item_store_tasks WHERE campaign_item_id=? AND store_id=?",
-            [item.id, store],
-          )
-        )[0].work_approved_at,
-      ).toBeNull();
       await expect(run("updateCampaignTask", { ...input, p_store_id: otherStore })).rejects.toThrow(
         "担当店舗",
       );

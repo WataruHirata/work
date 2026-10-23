@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import { allRecords } from "@/server/queries/workspaces";
 import { InstructionForm, InstructionConfirmation } from "@/components/campaigns/instruction-form";
 import { StateBadge } from "@/components/ui/state-badge";
+import { CollapsibleList } from "@/components/ui/collapsible-list";
 import { ProgressAction } from "@/components/campaigns/campaign-management";
+import { StoreCampaignTaskBoard } from "@/components/campaigns/store-campaign-task-board";
 
 const formatDate = (value: unknown) =>
   new Intl.DateTimeFormat("ja-JP", {
@@ -17,11 +19,9 @@ const formatDate = (value: unknown) =>
 export async function InstructionWorkspace({
   canManage = false,
   storeId,
-  canRecordStoreWork = false,
 }: {
   canManage?: boolean;
   storeId?: string;
-  canRecordStoreWork?: boolean;
 }) {
   const [
     instructions,
@@ -42,11 +42,24 @@ export async function InstructionWorkspace({
     storeId ? allRecords("campaignTargets", { storeId }) : [],
     storeId ? allRecords("campaignTasks", { storeId }) : [],
   ]);
+  if (storeId && !canManage) {
+    return (
+      <StoreCampaignTaskBoard
+        storeId={storeId}
+        instructions={instructions}
+        instructionTargets={targets}
+        products={products}
+        campaigns={campaigns}
+        campaignItems={campaignItems}
+        campaignTargets={campaignTargets}
+        tasks={tasks}
+      />
+    );
+  }
   const targetedInstructionIds = new Set(targets.map((target) => target.instruction_id));
   const visibleInstructions = storeId
     ? instructions.filter((instruction) => targetedInstructionIds.has(instruction.id))
     : instructions;
-  const selectedStore = storeId ? stores.find((store) => store.id === storeId) : undefined;
   const name = (id: unknown, rows: typeof stores) =>
     String(rows.find((row) => row.id === id)?.name ?? "参照権限のない項目");
   const targetedCampaignIds = new Set(
@@ -72,23 +85,14 @@ export async function InstructionWorkspace({
             String(task?.pos_promotion_status ?? ""),
           );
           const labelCompleted = Boolean(task?.price_label_changed_at);
-          const approved = Boolean(task?.work_approved_at);
           return (
             <article
               className="instruction-card campaign-notice-task"
               key={`${campaign.id}:${item.id}`}
             >
               <StateBadge
-                state={
-                  approved
-                    ? "approved"
-                    : posCompleted && labelCompleted
-                      ? "pending"
-                      : "not_configured"
-                }
-                label={
-                  approved ? "承認済み" : posCompleted && labelCompleted ? "承認待ち" : "対応が必要"
-                }
+                state={posCompleted && labelCompleted ? "completed" : "not_configured"}
+                label={posCompleted && labelCompleted ? "対応完了" : "対応が必要"}
               />
               <h3>POS・商品値札の変更依頼</h3>
               <p>
@@ -111,7 +115,7 @@ export async function InstructionWorkspace({
                     storeId={String(storeId)}
                     task="pos_changed"
                     completed={posCompleted}
-                    disabled={!canRecordStoreWork || task?.pos_promotion_status === "applied"}
+                    disabled={task?.pos_promotion_status === "applied"}
                   />
                 </div>
                 <div>
@@ -124,20 +128,9 @@ export async function InstructionWorkspace({
                     storeId={String(storeId)}
                     task="price_label_changed"
                     completed={labelCompleted}
-                    disabled={!canRecordStoreWork}
                   />
                 </div>
               </div>
-              {!canRecordStoreWork ? (
-                <p className="muted">完了登録には、この店舗を担当する個人アカウントが必要です。</p>
-              ) : null}
-              {posCompleted && labelCompleted ? (
-                <p className={approved ? "campaign-inline-success" : "muted"}>
-                  {approved
-                    ? `管理者承認済み（${formatDate(task?.work_approved_at)}）`
-                    : "店舗作業を送信済みです。管理者の承認をお待ちください。"}
-                </p>
-              ) : null}
             </article>
           );
         }),
@@ -183,10 +176,6 @@ export async function InstructionWorkspace({
         <h2>本部からの特売・価格変更指示</h2>
         <StateBadge state="draft" label={`全${visibleInstructions.length}件`} />
       </div>
-      <p className="muted">
-        指示の通知と店舗確認を管理します。指示価格はPOS・通常売価マスタへの反映結果とは別に表示します。
-      </p>
-      {selectedStore && <p className="muted">対象店舗: {String(selectedStore.name)}</p>}
       {canManage && (
         <details>
           <summary>変更指示を作成する</summary>
@@ -217,13 +206,7 @@ export async function InstructionWorkspace({
       ) : null}
       <h3>本部から届いたお知らせ</h3>
       {!visibleInstructions.length && <p>現在、対象の変更指示はありません。</p>}
-      <div className="notice-list">{instructionCards.slice(0, 3)}</div>
-      {instructionCards.length > 3 && (
-        <details className="notice-expander">
-          <summary>全{instructionCards.length}件を表示</summary>
-          <div className="notice-list">{instructionCards.slice(3)}</div>
-        </details>
-      )}
+      <CollapsibleList className="notice-list">{instructionCards}</CollapsibleList>
     </section>
   );
 }

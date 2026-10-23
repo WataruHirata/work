@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   profile: { active: true } as { active: boolean } | null,
   roles: [] as { role: string }[],
   session: null as unknown,
+  selectedRole: "information_systems" as string | undefined,
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@database/mock/pglite/adapter", () => ({
@@ -32,6 +33,14 @@ vi.mock("next/navigation", () => ({
     throw new Error("NOT_FOUND");
   },
 }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "active-admin-role" && mocks.selectedRole
+        ? { value: mocks.selectedRole }
+        : undefined,
+  }),
+}));
 
 import { getAdminSession, requireAdminFeature } from "@/server/auth/admin-access";
 
@@ -43,6 +52,7 @@ describe("AT-10 管理ページのサーバー認可", () => {
     mocks.profile = { active: true };
     mocks.roles = [{ role: "information_systems" }];
     mocks.session = { active: true, mustChangePassword: false, roles: ["information_systems"] };
+    mocks.selectedRole = "information_systems";
     mocks.getUser.mockResolvedValue({
       data: { user: { id: "fictional-user" } },
       error: null,
@@ -82,11 +92,29 @@ describe("AT-10 管理ページのサーバー認可", () => {
   });
   it("別の管理ロールでは機能URLへの直接アクセスを拒否する", async () => {
     mocks.session = { active: true, mustChangePassword: false, roles: ["product_office"] };
+    mocks.selectedRole = "product_office";
     await expect(requireAdminFeature("users")).rejects.toThrow("NOT_FOUND");
     expect((await requireAdminFeature("campaigns")).status).toBe("authorized");
   });
-  it("情報システム管理者は特売管理を参照できる", async () => {
-    expect((await requireAdminFeature("campaigns")).status).toBe("authorized");
+  it("割当済みロールが複数でも選択中の権限だけを管理画面へ適用する", async () => {
+    mocks.session = {
+      active: true,
+      mustChangePassword: false,
+      roles: ["product_office", "information_systems"],
+    };
+    mocks.selectedRole = "product_office";
+    expect(await getAdminSession()).toMatchObject({
+      status: "authorized",
+      roles: ["product_office"],
+    });
+    await expect(requireAdminFeature("users")).rejects.toThrow("NOT_FOUND");
+  });
+  it("未割当の選択値は無効にし、割当済み権限の選択を求める", async () => {
+    mocks.session = { active: true, mustChangePassword: false, roles: ["product_office"] };
+    mocks.selectedRole = "information_systems";
+    await expect(requireAdminFeature("users")).rejects.toThrow(
+      "REDIRECT:/login?next=%2Fadmin%2Fusers",
+    );
   });
   it("店舗ロールだけでは管理機能へ昇格できない", async () => {
     mocks.session = { active: true, mustChangePassword: false, roles: ["store_manager"] };
