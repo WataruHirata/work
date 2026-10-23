@@ -33,9 +33,11 @@ const icons = {
 export function AppShell({
   children,
   stationConnected,
+  storeNotifications,
 }: {
   children: ReactNode;
   stationConnected: boolean;
+  storeNotifications?: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -248,6 +250,7 @@ export function AppShell({
         />
       )}
       <div className="global-main" ref={mainRef}>
+        {!admin && storeNotifications}
         <div
           className={`pull-refresh-indicator${pullDistance || refreshFeedback || isRefreshing ? " is-visible" : ""}`}
           role="status"

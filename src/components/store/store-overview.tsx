@@ -118,7 +118,7 @@ export function StoreOverview() {
                 </text>
               </g>
             ))}
-            <polyline points={points} className="chart-line" />
+            <polyline points={points} pathLength="1" className="chart-line" />
             {days.map((day, i) => (
               <g key={day.date}>
                 <circle
@@ -137,11 +137,12 @@ export function StoreOverview() {
               </g>
             ))}
           </svg>
-          <details className="store-data">
+          <details className="store-data" open>
             <summary>売上データを表で確認</summary>
             <CollapsibleTable
               className=""
               containerClassName="table-scroll"
+              defaultExpanded
               caption="デモ店舗の日次データ（税込・サンプル）"
               head={
                 <tr>

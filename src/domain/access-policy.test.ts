@@ -34,7 +34,7 @@ describe("FR-028 / FR-034 / FR-035 / AT-10 管理ルートの権限境界", () =
   it("図の権限表を既存のDBロールへ対応付ける（メニュー利用のみ）", () => {
     const expected = {
       area_manager: ["sales", "products", "campaigns", "approvals"],
-      store_operations: ["sales", "products", "campaigns", "orders", "approvals"],
+      store_operations: ["sales", "products", "campaigns", "approvals"],
       accounting: ["sales", "approvals", "monthly"],
       product_office: ["sales", "products", "campaigns"],
       information_systems: ["campaigns", "stores", "imports", "users", "audit"],

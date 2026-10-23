@@ -7,6 +7,7 @@ import { LiveStoreOverview } from "@/components/store/live-store-overview";
 import { FeatureNotice } from "@/components/ui/feature-notice";
 import { storeSummary } from "@/domain/store-summary";
 import { StateBadge } from "@/components/ui/state-badge";
+import { LayoutDashboard } from "@/components/ui/icons";
 
 export default async function Home() {
   if (!backendConfigured())
@@ -37,6 +38,9 @@ export default async function Home() {
         page="dashboard"
         headerContent={
           <div className="store-portal-header">
+            <span className="page-heading-mark">
+              <LayoutDashboard size={20} aria-hidden="true" />
+            </span>
             <div>
               <p className="eyebrow">STORE OVERVIEW</p>
               <h1>{summary.storeName}</h1>

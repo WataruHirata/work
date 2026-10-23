@@ -8,7 +8,6 @@ import { backendConfigured, identity } from "@/server/container";
 import { allRecords } from "@/server/queries/workspaces";
 import type { DataRecord } from "@/domain/contracts";
 import { PreviewWorkspace } from "@/components/preview/preview-workspace";
-import { InstructionWorkspace } from "@/components/campaigns/instruction-workspace";
 import { hasAdminAccess } from "@/domain/access-policy";
 import { Tag } from "@/components/ui/icons";
 
@@ -39,18 +38,14 @@ export async function CampaignWorkspace({
       allRecords("campaignTasks"),
     ]);
   } catch {
+    const href = storeMode ? "/store/campaigns" : "/admin/campaigns";
     return (
       <PageLayout page={storeMode ? "storeCampaigns" : "campaigns"}>
         <FeatureNotice title="特売情報を読み込めませんでした">
-          データベース接続と特売用マイグレーションを確認して、再度お試しください。
-          <p>
-            <Link
-              className="ghost-button"
-              href={storeMode ? "/store/campaigns" : "/admin/campaigns"}
-            >
-              再読み込み
-            </Link>
-          </p>
+          データベース接続と特売用マイグレーションを確認し、
+          <Link className="ghost-button" href={href}>
+            再読み込み
+          </Link>
         </FeatureNotice>
       </PageLayout>
     );
@@ -83,12 +78,6 @@ export async function CampaignWorkspace({
       eyebrow="PROMOTION OPERATIONS"
     >
       <CampaignManagement
-        instructionPanel={
-          <InstructionWorkspace
-            canManage={!storeMode && session.roles.includes("product_office")}
-            storeId={storeMode ? selectedStoreId : undefined}
-          />
-        }
         canRecordStoreWork={session.roles.some((role) =>
           ["store_manager", "department_lead", "staff"].includes(role),
         )}

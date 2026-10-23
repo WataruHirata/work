@@ -26,6 +26,7 @@ describe("UI共通設定（AT-03 / AT-10 の表示・操作基盤）", () => {
     for (const id of uiConfig.navigation) {
       expect(uiConfig.pages[id].label).not.toBe("");
     }
+    expect(uiConfig.navigation).not.toContain("storeNotices");
   });
 
   it("全CSSとSVGの参照トークンが共通設定で定義される", () => {

@@ -59,7 +59,6 @@ export const previewSpecs: Partial<Record<PageId, PreviewSpec>> = {
     ...sales,
     rows: sales.rows.filter((r) => r.store === "デモ中央店"),
   },
-  orders,
   storeOrders: {
     ...orders,
     action: "発注を保存",

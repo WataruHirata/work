@@ -22,7 +22,6 @@ flowchart TD
 | 管理 | `/admin/sales`           | 売上集計・店舗比較     |
 | 管理 | `/admin/products`        | 商品検索・編集         |
 | 管理 | `/admin/campaigns`       | 特売一覧・登録         |
-| 管理 | `/admin/orders`          | 発注状況・履歴         |
 | 管理 | `/admin/approvals`       | 申請・承認             |
 | 管理 | `/admin/monthly`         | 月次締め・会計出力     |
 | 管理 | `/admin/stores`          | 店舗設定・端末管理     |

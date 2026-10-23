@@ -2,7 +2,7 @@
 
 import { filterCampaigns } from "@/domain/campaign-list";
 import { campaignFormDemoStores } from "@/config/ui";
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useState } from "react";
 import { OperationForm } from "@/components/workspaces/workspace-forms";
 import { DraftEditor } from "./draft-editor";
 import { ArrowRight, Check, CircleAlert, Plus, Tag } from "@/components/ui/icons";
@@ -46,7 +46,6 @@ type CampaignView = {
   }[];
 };
 type Props = {
-  instructionPanel?: ReactNode;
   basePath?: string;
   isConfigured: boolean;
   canManage: boolean;
@@ -395,7 +394,6 @@ function eligibilityLabel(value: string) {
 }
 
 export function CampaignManagement({
-  instructionPanel,
   isConfigured,
   canManage,
   canRecordStoreWork = false,
@@ -459,21 +457,6 @@ export function CampaignManagement({
           </div>
         ) : null}
 
-        {!canManage && instructionPanel}
-        {!basePath.startsWith("/store") ? (
-          <div className="campaign-flow-rail">
-            <div className="campaign-flow-row">
-              <div className="campaign-flow-header">
-                <span className="campaign-flow-label">特売の登録</span>
-                <strong>期間・店舗・価格を設定</strong>
-              </div>
-              <CampaignDraftForm
-                stores={stores.filter((store) => !store.status || store.status === "active")}
-                products={products}
-              />
-            </div>
-          </div>
-        ) : null}
         {isConfigured && !basePath.startsWith("/store") ? (
           <section className="campaign-list-section" aria-labelledby="campaign-list-heading">
             <div className="campaign-list-heading">
